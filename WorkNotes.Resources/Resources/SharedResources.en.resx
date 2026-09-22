@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+<resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+<resheader name="version"><value>2.0</value></resheader>
+<data name="Navigation_Home" xml:space="preserve"><value>Home</value></data>
+<data name="Navigation_Register" xml:space="preserve"><value>Register</value></data>
+<data name="Navigation_Login" xml:space="preserve"><value>Sign in</value></data>
+<data name="Navigation_MyAccount" xml:space="preserve"><value>My account</value></data>
+<data name="Navigation_ChangePassword" xml:space="preserve"><value>Change password</value></data>
+<data name="Navigation_Logout" xml:space="preserve"><value>Sign out</value></data>
+<data name="Navigation_Account" xml:space="preserve"><value>User account</value></data>
+<data name="Field_FirstName" xml:space="preserve"><value>First name</value></data>
+<data name="Field_LastName" xml:space="preserve"><value>Last name</value></data>
+<data name="Field_Email" xml:space="preserve"><value>Email</value></data>
+<data name="Field_Password" xml:space="preserve"><value>Password</value></data>
+<data name="Field_ConfirmPassword" xml:space="preserve"><value>Confirm password</value></data>
+<data name="Field_CurrentPassword" xml:space="preserve"><value>Current password</value></data>
+<data name="Field_NewPassword" xml:space="preserve"><value>New password</value></data>
+<data name="Field_ConfirmNewPassword" xml:space="preserve"><value>Confirm new password</value></data>
+<data name="Field_RememberMe" xml:space="preserve"><value>Remember me</value></data>
+<data name="Button_Save" xml:space="preserve"><value>Save</value></data>
+<data name="Button_Register" xml:space="preserve"><value>Create account</value></data>
+<data name="Button_ChangePassword" xml:space="preserve"><value>Change password</value></data>
+<data name="Button_ApplyLanguage" xml:space="preserve"><value>Apply language</value></data>
+<data name="Language_Label" xml:space="preserve"><value>Language</value></data>
+<data name="Language_Romanian" xml:space="preserve"><value>Română</value></data>
+<data name="Language_English" xml:space="preserve"><value>English</value></data>
+<data name="Language_Polish" xml:space="preserve"><value>Polski</value></data>
+<data name="Home_Introduction" xml:space="preserve"><value>The application is ready for development.</value></data>
+<data name="Footer_Version" xml:space="preserve"><value>Application version</value></data>
+<data name="Footer_NoVersion" xml:space="preserve"><value>Version not configured</value></data>
+<data name="Validation_Required" xml:space="preserve"><value>The {0} field is required.</value></data>
+<data name="Validation_InvalidEmail" xml:space="preserve"><value>Enter a valid email address.</value></data>
+<data name="Validation_MaxLength" xml:space="preserve"><value>The {0} field must not exceed {1} characters.</value></data>
+<data name="Validation_PasswordsDiffer" xml:space="preserve"><value>The passwords do not match.</value></data>
+<data name="Validation_PasswordPolicy" xml:space="preserve"><value>The password must contain at least 12 characters, a lowercase letter, an uppercase letter, a digit and a special character.</value></data>
+<data name="Validation_InvalidName" xml:space="preserve"><value>First and last names are required, must not exceed 100 characters and cannot contain control characters.</value></data>
+<data name="Validation_InvalidValue" xml:space="preserve"><value>The entered value is invalid.</value></data>
+<data name="Message_RegistrationSucceeded" xml:space="preserve"><value>Your account has been created. You can sign in.</value></data>
+<data name="Message_SaveSucceeded" xml:space="preserve"><value>Your account details have been updated.</value></data>
+<data name="Message_PasswordChanged" xml:space="preserve"><value>Your password has been changed.</value></data>
+<data name="Message_LoginFailed" xml:space="preserve"><value>Sign-in failed. Check your email and password or try again later.</value></data>
+<data name="Message_AccountUnavailable" xml:space="preserve"><value>Your account is unavailable. Please sign in again.</value></data>
+<data name="Identity_DefaultError" xml:space="preserve"><value>The operation could not be completed. Please try again.</value></data>
+<data name="Identity_ConcurrencyFailure" xml:space="preserve"><value>The account has changed. Reload the page.</value></data>
+<data name="Identity_DuplicateEmail" xml:space="preserve"><value>This email address is already in use.</value></data>
+<data name="Identity_PasswordMismatch" xml:space="preserve"><value>The current password is incorrect.</value></data>
+<data name="Identity_PasswordRequiresDigit" xml:space="preserve"><value>The password must contain a digit.</value></data>
+<data name="Identity_PasswordRequiresLower" xml:space="preserve"><value>The password must contain a lowercase letter.</value></data>
+<data name="Identity_PasswordRequiresUpper" xml:space="preserve"><value>The password must contain an uppercase letter.</value></data>
+<data name="Identity_PasswordRequiresNonAlphanumeric" xml:space="preserve"><value>The password must contain a special character.</value></data>
+</root>

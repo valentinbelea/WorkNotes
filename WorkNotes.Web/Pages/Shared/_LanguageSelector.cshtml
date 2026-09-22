@@ -1,0 +1,13 @@
+@using Microsoft.AspNetCore.Http.Extensions
+@using System.Globalization
+<form method="post" asp-page="/Language" class="language-selector">
+    <label for="culture">@L["Language_Label"]</label>
+    <select id="culture" name="culture" data-language-selector>
+        <option value="ro-RO" selected="@(CultureInfo.CurrentUICulture.Name == "ro-RO")">@L["Language_Romanian"]</option>
+        <option value="en-US" selected="@(CultureInfo.CurrentUICulture.Name == "en-US")">@L["Language_English"]</option>
+        <option value="pl-PL" selected="@(CultureInfo.CurrentUICulture.Name == "pl-PL")">@L["Language_Polish"]</option>
+    </select>
+    <input type="hidden" name="returnUrl" value="@Context.Request.GetEncodedPathAndQuery()" />
+    <noscript><button type="submit">@L["Button_ApplyLanguage"]</button></noscript>
+</form>
+

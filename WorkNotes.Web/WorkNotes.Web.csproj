@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\WorkNotes.Business\WorkNotes.Business.csproj" />
     <ProjectReference Include="..\WorkNotes.DataAccess\WorkNotes.DataAccess.csproj" />
+    <ProjectReference Include="..\WorkNotes.Resources\WorkNotes.Resources.csproj" />
   </ItemGroup>
 
 </Project>

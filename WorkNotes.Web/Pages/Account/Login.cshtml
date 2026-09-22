@@ -1,0 +1,14 @@
+@page
+@model WorkNotes.Web.Pages.Account.LoginModel
+@{ ViewData["Title"] = L["Navigation_Login"]; }
+<section class="account-card">
+<h1>@L["Navigation_Login"]</h1>
+<form method="post" data-validate>
+<div asp-validation-summary="All" class="validation-summary" role="alert"></div>
+<div class="field"><label asp-for="Input.Email"></label><input asp-for="Input.Email" autocomplete="username" /><span asp-validation-for="Input.Email" class="field-error"></span></div>
+<div class="field"><label asp-for="Input.Password"></label><input asp-for="Input.Password" autocomplete="current-password" /><span asp-validation-for="Input.Password" class="field-error"></span></div>
+<div class="check"><input asp-for="Input.RememberMe" /><label asp-for="Input.RememberMe"></label></div>
+<button type="submit">@L["Navigation_Login"]</button>
+</form>
+</section>
+

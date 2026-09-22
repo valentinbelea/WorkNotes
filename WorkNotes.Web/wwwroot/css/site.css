@@ -54,3 +54,22 @@ body {
 }
 
 .application-version { margin-left: auto; text-align: right; }
+
+.site-header, nav { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; }
+nav { margin-left: auto; }
+nav form { margin: 0; }
+a, .link-button { color: #176c65; }
+.link-button { background: none; border: 0; padding: 0; text-decoration: underline; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+.account-card { max-width: 32rem; margin: auto; padding: 2rem; border: 1px solid #dce3e8; border-radius: 8px; background: white; }
+.account-card h1 { margin-top: 0; }
+.field { display: flex; flex-direction: column; margin-bottom: 1rem; }
+.field label { font-weight: 600; }
+.field input { min-width: 0; padding: .5rem .75rem; border: 1px solid #84959f; border-radius: 4px; }
+.field input:focus { outline: 2px solid #176c65; outline-offset: 2px; }
+.field-error, .validation-summary-errors { color: #a21919; }
+.validation-summary-valid { display: none; }
+.account-card button { color: white; background: #176c65; border: 0; border-radius: 4px; padding: .6rem 1rem; margin-top: 1rem; }
+.check { display: flex; align-items: center; gap: .5rem; }
+.status-message { max-width: 40rem; margin: 0 auto 1rem; padding: 1rem; background: #e1f3e8; border: 1px solid #77a890; }
