@@ -9,7 +9,7 @@ using WorkNotes.Web.ViewModels;
 
 namespace WorkNotes.Web.Pages.Contexts;
 
-// Lists contexts; ?add=true or ?edit={id} opens the add/edit form in an overlay on the same page.
+// Lists contexts; ?add=true, ?edit={id} or ?delete={id} opens the form or the delete confirmation in an overlay on the same page.
 [Authorize]
 public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<SharedResources> localizer) : PageModel
 {
@@ -17,10 +17,16 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
     [BindProperty] public WorkContextInput Input { get; set; } = new();
     public bool IsEditorOpen { get; private set; }
     public int? EditingId { get; private set; }
+    public WorkContext? DeletingContext { get; private set; }
 
-    public async Task<IActionResult> OnGetAsync(bool add, int? edit, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnGetAsync(bool add, int? edit, int? delete, CancellationToken cancellationToken)
     {
-        if (edit is { } contextId)
+        if (delete is { } deleteId)
+        {
+            DeletingContext = await contexts.GetByIdAsync(deleteId, cancellationToken);
+            if (DeletingContext is null) return NotFound();
+        }
+        else if (edit is { } contextId)
         {
             var context = await contexts.GetByIdAsync(contextId, cancellationToken);
             if (context is null) return NotFound();
@@ -65,6 +71,13 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
         OpenEditor(edit);
         Contexts = await contexts.GetAllAsync(cancellationToken);
         return Page();
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(int delete, CancellationToken cancellationToken)
+    {
+        if (!await contexts.DeleteAsync(delete, cancellationToken)) return NotFound();
+        TempData["StatusMessage"] = "Message_ContextDeleted";
+        return RedirectToPage();
     }
 
     private void OpenEditor(int? id)

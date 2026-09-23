@@ -49,7 +49,7 @@ Contextele (de exemplu SD Worx, TopDev) sunt prima condiție a modulului Notes. 
 
 - /Contexts: listă ordonată după nume, cu Editează / Șterge; linkul „Contexte” din meniu apare pentru utilizatorii autentificați.
 - /Contexts?add=true: context nou; /Contexts?edit={id}: editare. Formularul se deschide peste listă, într-un overlay (dialog); după salvare se revine la listă, iar la erori de validare overlay-ul rămâne deschis.
-- /Contexts/Delete/{id}: confirmare; ștergerea se face numai prin POST cu antiforgery.
+- /Contexts?delete={id}: confirmarea ștergerii, tot într-un overlay peste listă; ștergerea se face numai prin POST cu antiforgery.
 
 Flux: `Pages/Contexts → IWorkContextService → WorkContextService → IWorkContextRepository → WorkContextRepository → WorkNotesDbContext`. Scriptul este în `Scripts/version_0.01/004_CreateWorkContexts.sql`. Business validează și normalizează (Trim, descriere goală → NULL) și întoarce coduri `WorkContextSaveStatus`; Web le traduce. Unicitatea numelui este garantată de indexul unic, inclusiv la salvări concurente. În această etapă orice utilizator autentificat poate administra contextele; ContextMembers și rolurile vin ulterior.
 
