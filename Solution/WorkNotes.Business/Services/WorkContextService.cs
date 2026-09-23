@@ -5,16 +5,18 @@ namespace WorkNotes.Business.Services;
 
 public sealed class WorkContextService(IWorkContextRepository repository) : IWorkContextService
 {
-    public Task<IReadOnlyList<WorkContext>> GetAllAsync(CancellationToken cancellationToken)
+    public Task<IReadOnlyList<WorkContext>> GetForMemberAsync(string userId, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        return repository.GetAllAsync(cancellationToken);
+        return repository.GetForMemberAsync(userId, cancellationToken);
     }
 
-    public Task<WorkContext?> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public Task<WorkContext?> GetByIdAsync(int id, string userId, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        return repository.GetByIdAsync(id, cancellationToken);
+        return repository.GetByIdAsync(id, userId, cancellationToken);
     }
 
     public Task<WorkContextSaveStatus> CreateAsync(string name, string? description, string creatorUserId, CancellationToken cancellationToken)
@@ -27,19 +29,21 @@ public sealed class WorkContextService(IWorkContextRepository repository) : IWor
             : repository.AddAsync(name.Trim(), WorkContextRules.NormalizeDescription(description), creatorUserId, cancellationToken);
     }
 
-    public Task<WorkContextSaveStatus> UpdateAsync(int id, string name, string? description, CancellationToken cancellationToken)
+    public Task<WorkContextSaveStatus> UpdateAsync(int id, string userId, string name, string? description, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
         var invalid = Validate(name, description);
         return invalid is { } status
             ? Task.FromResult(status)
-            : repository.UpdateAsync(id, name.Trim(), WorkContextRules.NormalizeDescription(description), cancellationToken);
+            : repository.UpdateAsync(id, userId, name.Trim(), WorkContextRules.NormalizeDescription(description), cancellationToken);
     }
 
-    public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
+    public Task<bool> DeleteAsync(int id, string userId, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        return repository.DeleteAsync(id, cancellationToken);
+        return repository.DeleteAsync(id, userId, cancellationToken);
     }
 
     private static WorkContextSaveStatus? Validate(string? name, string? description) =>

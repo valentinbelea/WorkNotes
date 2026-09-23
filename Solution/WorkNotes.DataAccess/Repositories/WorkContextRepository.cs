@@ -10,15 +10,15 @@ namespace WorkNotes.DataAccess.Repositories;
 
 public sealed class WorkContextRepository(WorkNotesDbContext dbContext) : IWorkContextRepository
 {
-    public async Task<IReadOnlyList<WorkContext>> GetAllAsync(CancellationToken cancellationToken) =>
-        await dbContext.WorkContexts
+    public async Task<IReadOnlyList<WorkContext>> GetForMemberAsync(string userId, CancellationToken cancellationToken) =>
+        await ForMember(userId)
             .AsNoTracking()
             .OrderBy(item => item.Name)
             .Select(item => new WorkContext(item.Id, item.Name, item.Description))
             .ToListAsync(cancellationToken);
 
-    public async Task<WorkContext?> GetByIdAsync(int id, CancellationToken cancellationToken) =>
-        await dbContext.WorkContexts
+    public async Task<WorkContext?> GetByIdAsync(int id, string userId, CancellationToken cancellationToken) =>
+        await ForMember(userId)
             .AsNoTracking()
             .Where(item => item.Id == id)
             .Select(item => new WorkContext(item.Id, item.Name, item.Description))
@@ -33,17 +33,21 @@ public sealed class WorkContextRepository(WorkNotesDbContext dbContext) : IWorkC
         return await SaveAsync(entity, cancellationToken);
     }
 
-    public async Task<WorkContextSaveStatus> UpdateAsync(int id, string name, string? description, CancellationToken cancellationToken)
+    public async Task<WorkContextSaveStatus> UpdateAsync(int id, string userId, string name, string? description, CancellationToken cancellationToken)
     {
-        var entity = await dbContext.WorkContexts.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        var entity = await ForMember(userId).SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (entity is null) return WorkContextSaveStatus.NotFound;
         entity.Name = name;
         entity.Description = description;
         return await SaveAsync(entity, cancellationToken);
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken) =>
-        await dbContext.WorkContexts.Where(item => item.Id == id).ExecuteDeleteAsync(cancellationToken) > 0;
+    public async Task<bool> DeleteAsync(int id, string userId, CancellationToken cancellationToken) =>
+        await ForMember(userId).Where(item => item.Id == id).ExecuteDeleteAsync(cancellationToken) > 0;
+
+    // Membership filter shared by every read and change; SQL Server applies it with IX_ContextMembers_UserId.
+    private IQueryable<WorkContextEntity> ForMember(string userId) =>
+        dbContext.WorkContexts.Where(item => item.ContextMembers.Any(member => member.UserId == userId));
 
     private async Task<WorkContextSaveStatus> SaveAsync(WorkContextEntity entity, CancellationToken cancellationToken)
     {

@@ -20,16 +20,18 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
     public int? EditingId { get; private set; }
     public WorkContext? DeletingContext { get; private set; }
 
+    private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
     public async Task<IActionResult> OnGetAsync(bool add, int? edit, int? delete, CancellationToken cancellationToken)
     {
         if (delete is { } deleteId)
         {
-            DeletingContext = await contexts.GetByIdAsync(deleteId, cancellationToken);
+            DeletingContext = await contexts.GetByIdAsync(deleteId, UserId, cancellationToken);
             if (DeletingContext is null) return NotFound();
         }
         else if (edit is { } contextId)
         {
-            var context = await contexts.GetByIdAsync(contextId, cancellationToken);
+            var context = await contexts.GetByIdAsync(contextId, UserId, cancellationToken);
             if (context is null) return NotFound();
             Input = new() { Name = context.Name, Description = context.Description };
             OpenEditor(contextId);
@@ -38,7 +40,7 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
         {
             OpenEditor(null);
         }
-        Contexts = await contexts.GetAllAsync(cancellationToken);
+        Contexts = await contexts.GetForMemberAsync(UserId, cancellationToken);
         return Page();
     }
 
@@ -48,8 +50,8 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
         if (ModelState.IsValid)
         {
             var status = edit is { } contextId
-                ? await contexts.UpdateAsync(contextId, Input.Name, Input.Description, cancellationToken)
-                : await contexts.CreateAsync(Input.Name, Input.Description, User.FindFirstValue(ClaimTypes.NameIdentifier)!, cancellationToken);
+                ? await contexts.UpdateAsync(contextId, UserId, Input.Name, Input.Description, cancellationToken)
+                : await contexts.CreateAsync(Input.Name, Input.Description, UserId, cancellationToken);
             switch (status)
             {
                 case WorkContextSaveStatus.Saved:
@@ -70,13 +72,13 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
         }
         // Validation errors keep the overlay open over the refreshed list.
         OpenEditor(edit);
-        Contexts = await contexts.GetAllAsync(cancellationToken);
+        Contexts = await contexts.GetForMemberAsync(UserId, cancellationToken);
         return Page();
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(int delete, CancellationToken cancellationToken)
     {
-        if (!await contexts.DeleteAsync(delete, cancellationToken)) return NotFound();
+        if (!await contexts.DeleteAsync(delete, UserId, cancellationToken)) return NotFound();
         TempData["StatusMessage"] = "Message_ContextDeleted";
         return RedirectToPage();
     }

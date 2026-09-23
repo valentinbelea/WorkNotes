@@ -44,6 +44,37 @@ public sealed class WorkContextServiceTests
         Assert.False(repository.WasCalled);
     }
 
+    [Fact]
+    public async Task ReadsAndChangesAreScopedToTheCurrentMember()
+    {
+        var repository = new StubRepository();
+        var service = new WorkContextService(repository);
+
+        await service.GetForMemberAsync(Creator, CancellationToken.None);
+        Assert.Equal(Creator, repository.Member);
+        await service.GetByIdAsync(3, "user-2", CancellationToken.None);
+        Assert.Equal("user-2", repository.Member);
+        await service.UpdateAsync(3, "user-3", "TopDev", null, CancellationToken.None);
+        Assert.Equal("user-3", repository.Member);
+        await service.DeleteAsync(3, "user-4", CancellationToken.None);
+        Assert.Equal("user-4", repository.Member);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task MemberIsRequiredBeforeDataAccess(string userId)
+    {
+        var repository = new StubRepository();
+        var service = new WorkContextService(repository);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.GetForMemberAsync(userId, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.GetByIdAsync(1, userId, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UpdateAsync(1, userId, "TopDev", null, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.DeleteAsync(1, userId, CancellationToken.None));
+        Assert.False(repository.WasCalled);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -79,7 +110,7 @@ public sealed class WorkContextServiceTests
         var service = new WorkContextService(repository);
 
         Assert.Equal(WorkContextSaveStatus.InvalidName, await service.CreateAsync(name, null, Creator, CancellationToken.None));
-        Assert.Equal(WorkContextSaveStatus.InvalidName, await service.UpdateAsync(1, name, null, CancellationToken.None));
+        Assert.Equal(WorkContextSaveStatus.InvalidName, await service.UpdateAsync(1, Creator, name, null, CancellationToken.None));
         Assert.False(repository.WasCalled);
     }
 
@@ -104,7 +135,7 @@ public sealed class WorkContextServiceTests
     {
         var service = new WorkContextService(new StubRepository(outcome));
 
-        Assert.Equal(outcome, await service.UpdateAsync(7, "TopDev", null, CancellationToken.None));
+        Assert.Equal(outcome, await service.UpdateAsync(7, Creator, "TopDev", null, CancellationToken.None));
     }
 
     [Fact]
@@ -114,7 +145,7 @@ public sealed class WorkContextServiceTests
         var repository = new StubRepository();
         var service = new WorkContextService(repository);
 
-        await service.GetAllAsync(cancellation.Token);
+        await service.GetForMemberAsync(Creator, cancellation.Token);
 
         Assert.Equal(cancellation.Token, repository.ReceivedToken);
     }
@@ -130,7 +161,7 @@ public sealed class WorkContextServiceTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => service.CreateAsync("TopDev", null, Creator, cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => service.DeleteAsync(1, cancellation.Token));
+            () => service.DeleteAsync(1, Creator, cancellation.Token));
         Assert.False(repository.WasCalled);
     }
 
@@ -140,15 +171,19 @@ public sealed class WorkContextServiceTests
         public bool WasCalled { get; private set; }
         public CancellationToken ReceivedToken { get; private set; }
 
-        public Task<IReadOnlyList<WorkContext>> GetAllAsync(CancellationToken cancellationToken)
+        public string? Member { get; private set; }
+
+        public Task<IReadOnlyList<WorkContext>> GetForMemberAsync(string userId, CancellationToken cancellationToken)
         {
             Record(cancellationToken);
+            Member = userId;
             return Task.FromResult<IReadOnlyList<WorkContext>>([]);
         }
 
-        public Task<WorkContext?> GetByIdAsync(int id, CancellationToken cancellationToken)
+        public Task<WorkContext?> GetByIdAsync(int id, string userId, CancellationToken cancellationToken)
         {
             Record(cancellationToken);
+            Member = userId;
             return Task.FromResult<WorkContext?>(null);
         }
 
@@ -162,16 +197,18 @@ public sealed class WorkContextServiceTests
             return Task.FromResult(outcome);
         }
 
-        public Task<WorkContextSaveStatus> UpdateAsync(int id, string name, string? description, CancellationToken cancellationToken)
+        public Task<WorkContextSaveStatus> UpdateAsync(int id, string userId, string name, string? description, CancellationToken cancellationToken)
         {
             Record(cancellationToken);
+            Member = userId;
             Saved = (name, description);
             return Task.FromResult(outcome);
         }
 
-        public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
+        public Task<bool> DeleteAsync(int id, string userId, CancellationToken cancellationToken)
         {
             Record(cancellationToken);
+            Member = userId;
             return Task.FromResult(true);
         }
 
