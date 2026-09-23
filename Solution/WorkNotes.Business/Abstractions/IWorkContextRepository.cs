@@ -10,5 +10,6 @@ public interface IWorkContextRepository
     // Saves the context and its owner membership atomically.
     Task<WorkContextSaveStatus> AddAsync(string name, string? description, string ownerUserId, CancellationToken cancellationToken);
     Task<WorkContextSaveStatus> UpdateAsync(int id, string userId, string name, string? description, CancellationToken cancellationToken);
-    Task<bool> DeleteAsync(int id, string userId, CancellationToken cancellationToken);
+    // Deleted, NotFound, or InUse when the context still has notes.
+    Task<WorkContextDeleteStatus> DeleteAsync(int id, string userId, CancellationToken cancellationToken);
 }

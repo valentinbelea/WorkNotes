@@ -4,5 +4,6 @@ public enum WorkContextDeleteStatus
 {
     Deleted,
     NotFound,
-    Forbidden
+    Forbidden,
+    InUse
 }

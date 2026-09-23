@@ -16,6 +16,8 @@ public partial class WorkNotesDbContext : DbContext
 
     public virtual DbSet<DatabaseVersion> DatabaseVersions { get; set; }
 
+    public virtual DbSet<Note> Notes { get; set; }
+
     public virtual DbSet<WorkContext> WorkContexts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -42,6 +44,38 @@ public partial class WorkNotesDbContext : DbContext
             entity.ToTable("DatabaseVersion");
 
             entity.Property(e => e.Version).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<Note>(entity =>
+        {
+            entity.HasIndex(e => new { e.ContextId, e.CreatedAtUtc }, "IX_Notes_ContextId_CreatedAtUtc").IsDescending(false, true);
+
+            entity.HasIndex(e => new { e.OwnerUserId, e.ContextId, e.JournalDate }, "UX_Notes_DailyJournal")
+                .IsUnique()
+                .HasFilter("([NoteType]=N'Journal')");
+
+            entity.Property(e => e.ArchivedAtUtc).HasPrecision(0);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Notes_CreatedAtUtc");
+            entity.Property(e => e.CreatedByUserId).HasMaxLength(128);
+            entity.Property(e => e.ModifiedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Notes_ModifiedAtUtc");
+            entity.Property(e => e.ModifiedByUserId).HasMaxLength(128);
+            entity.Property(e => e.NoteType).HasMaxLength(20);
+            entity.Property(e => e.OwnerUserId).HasMaxLength(128);
+            entity.Property(e => e.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Visibility)
+                .HasMaxLength(20)
+                .HasDefaultValue("Private", "DF_Notes_Visibility");
+
+            entity.HasOne(d => d.Context).WithMany(p => p.Notes)
+                .HasForeignKey(d => d.ContextId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<WorkContext>(entity =>

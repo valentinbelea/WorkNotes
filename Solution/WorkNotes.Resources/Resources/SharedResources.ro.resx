@@ -93,4 +93,20 @@
 <data name="Contexts_RemoveMemberNamed" xml:space="preserve"><value>Elimină pe {0} din context</value></data>
 <data name="Message_MemberRemoved" xml:space="preserve"><value>Membrul a fost eliminat.</value></data>
 <data name="Message_MemberNotFound" xml:space="preserve"><value>Utilizatorul nu mai este membru al contextului.</value></data>
+<data name="NoteType_Journal" xml:space="preserve"><value>Jurnal</value></data>
+<data name="NoteType_Article" xml:space="preserve"><value>Articol</value></data>
+<data name="NoteVisibility_Private" xml:space="preserve"><value>Privat</value></data>
+<data name="NoteVisibility_Context" xml:space="preserve"><value>În context</value></data>
+<data name="Field_Title" xml:space="preserve"><value>Titlu</value></data>
+<data name="Field_NoteType" xml:space="preserve"><value>Tipul notei</value></data>
+<data name="Field_Context" xml:space="preserve"><value>Context</value></data>
+<data name="Notes_TitlePlaceholder" xml:space="preserve"><value>Titlu (opțional)</value></data>
+<data name="Notes_Untitled" xml:space="preserve"><value>Fără titlu</value></data>
+<data name="Notes_OpenNamed" xml:space="preserve"><value>Deschide nota „{0}”</value></data>
+<data name="Notes_NoContexts" xml:space="preserve"><value>Creează mai întâi un context pentru a adăuga note.</value></data>
+<data name="Validation_InvalidNoteTitle" xml:space="preserve"><value>Titlul are maximum 200 de caractere și nu poate conține caractere de control.</value></data>
+<data name="Validation_JournalExists" xml:space="preserve"><value>Ai deja jurnalul de azi în acest context.</value></data>
+<data name="Validation_ContextUnavailable" xml:space="preserve"><value>Contextul ales nu mai este disponibil.</value></data>
+<data name="Message_NoteSaved" xml:space="preserve"><value>Nota a fost salvată.</value></data>
+<data name="Message_ContextInUse" xml:space="preserve"><value>Contextul are note și nu poate fi șters.</value></data>
 </root>

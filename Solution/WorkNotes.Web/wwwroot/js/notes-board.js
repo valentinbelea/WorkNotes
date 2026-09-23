@@ -1,17 +1,53 @@
-// A stable ID, not the note's index, determines its position inside the cell.
-// No text, ordering, selection or persisted data is changed by this module.
-export function initializeNotesBoards(root = document) {
-    root.querySelectorAll(".note-cell[data-note-id]").forEach(cell => {
-        const id = cell.dataset.noteId;
-        const card = cell.querySelector(".note-card");
-        if (!id || !card) return;
-        let hash = 2166136261;
-        for (const character of id) {
-            hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
+// Dashboard behaviour only: all appearance comes from CSS classes rendered by the server.
+// Inserts the server-rendered new-note card, removes it on Cancel, and opens saved notes.
+// Positions come from the grid; this module never moves cards or writes inline styles.
+
+// Single entry point for opening a note, used by the Open button and by double-click.
+export function openNoteEditor(noteId) {
+    // TODO: open the note's text editor when it exists (for example navigate to its editor page).
+    document.dispatchEvent(new CustomEvent("worknotes:open-note", { detail: { noteId } }));
+}
+
+export function initializeNotesBoard(board) {
+    const template = document.getElementById("new-note-template");
+    const newNoteButton = document.querySelector("[data-note-new]");
+
+    const focusTitle = card => card.querySelector("[data-new-note-title]")?.focus();
+
+    newNoteButton?.addEventListener("click", event => {
+        const open = board.querySelector("[data-new-note]");
+        if (open) { event.preventDefault(); focusTitle(open); return; }
+        if (!template) return; // no template: the link opens ?new=true
+        event.preventDefault();
+        board.prepend(template.content.firstElementChild.cloneNode(true));
+        focusTitle(board.firstElementChild);
+    });
+
+    const cancel = card => {
+        card.remove();
+        newNoteButton?.focus();
+    };
+
+    board.addEventListener("click", event => {
+        const cancelLink = event.target.closest("[data-new-note-cancel]");
+        if (cancelLink) {
+            event.preventDefault();
+            cancel(cancelLink.closest("[data-new-note]"));
+            return;
         }
-        card.style.setProperty("--note-x", ((hash % 13) - 6) + "px");
-        card.style.setProperty("--note-y", (((hash >>> 8) % 13) - 6) + "px");
-        card.style.setProperty("--note-rotation", ((((hash >>> 16) % 17) - 8) / 10) + "deg");
+        const openButton = event.target.closest("[data-note-open]");
+        if (openButton) openNoteEditor(openButton.closest("[data-note-id]").dataset.noteId);
+    });
+
+    board.addEventListener("keydown", event => {
+        const card = event.target.closest("[data-new-note]");
+        if (card && event.key === "Escape") cancel(card);
+    });
+
+    board.addEventListener("dblclick", event => {
+        const card = event.target.closest(".note-card[data-note-id]");
+        if (card && !event.target.closest("button, a, input, select, textarea")) openNoteEditor(card.dataset.noteId);
     });
 }
-initializeNotesBoards();
+
+document.querySelectorAll("[data-notes-board]").forEach(initializeNotesBoard);

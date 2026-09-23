@@ -139,7 +139,7 @@ public sealed class ContextMemberServiceTests
         public Task<IReadOnlyList<WorkContext>> GetForMemberAsync(string userId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<WorkContextSaveStatus> AddAsync(string name, string? description, string ownerUserId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<WorkContextSaveStatus> UpdateAsync(int id, string userId, string name, string? description, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<bool> DeleteAsync(int id, string userId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<WorkContextDeleteStatus> DeleteAsync(int id, string userId, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     private sealed class StubMembers(ContextMemberAddStatus outcome = ContextMemberAddStatus.Added, bool removes = true) : IContextMemberRepository

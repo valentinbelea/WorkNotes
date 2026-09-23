@@ -4,19 +4,48 @@
 .note-card { position: absolute; inset: 16px; display: flex; flex-direction: column; gap: .75rem; padding: clamp(1rem, 2vw, 1.5rem); text-align: start; text-decoration: none; color: var(--wn-text); transform: translate(var(--note-x, 0px), var(--note-y, 0px)) rotate(var(--note-rotation, 0deg)); transition: transform var(--wn-motion), box-shadow var(--wn-motion); overflow-wrap: anywhere; }
 .note-card:hover { color: var(--wn-text); transform: translate(var(--note-x, 0px), calc(var(--note-y, 0px) - 3px)) rotate(0deg); box-shadow: var(--wn-shadow-raised); }
 .note-card:focus-visible { outline-offset: 3px; }
-.note-card__meta, .note-card__footer { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: .25rem .5rem; font-size: .75rem; }
-.note-card__meta { font-weight: 600; }
+/* Deterministic tilt chosen on the server from the note's id (NoteCardStyle.TiltClass): within ±6px and ±0.8°. */
+.note-card--tilt-1 { --note-x: -4px; --note-y: 3px; --note-rotation: -.6deg; }
+.note-card--tilt-2 { --note-x: 5px; --note-y: -2px; --note-rotation: .4deg; }
+.note-card--tilt-3 { --note-x: -2px; --note-y: -5px; --note-rotation: .8deg; }
+.note-card--tilt-4 { --note-x: 3px; --note-y: 4px; --note-rotation: -.3deg; }
+.note-card--tilt-5 { --note-x: -6px; --note-y: 1px; --note-rotation: .5deg; }
+.note-card--tilt-6 { --note-x: 2px; --note-y: -6px; --note-rotation: -.8deg; }
+.note-card--tilt-7 { --note-x: 6px; --note-y: 5px; --note-rotation: .2deg; }
+.note-card__meta, .note-card__footer { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: .25rem .5rem; margin: 0; font-size: .75rem; }
+.note-card__meta { font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .note-card__title { margin: 0; font-size: 1.15rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.note-card__title--untitled { color: var(--wn-muted); font-style: italic; font-weight: 500; }
 .note-card__excerpt { margin: 0; font-size: .875rem; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.note-card__footer { margin-top: auto; }
+.note-card__footer { margin-top: auto; align-items: center; }
+.note-card__open { display: inline-grid; place-items: center; width: 44px; height: 44px; margin: -.5rem -.5rem -.5rem 0; padding: 0; border: 0; border-radius: var(--wn-radius); color: var(--wn-primary); background: transparent; cursor: pointer; }
+.note-card__open:hover { color: var(--wn-primary-hover); background: rgb(36 58 54 / 8%); }
+.note-card svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* Unsaved card: straight, no hover lift, with an inline title field and the type switch. */
+.note-card--draft, .note-card--draft:hover { transform: none; }
+.note-card--draft .note-card__meta { align-items: center; text-transform: none; letter-spacing: normal; }
+.note-card__title-input { width: 100%; min-height: 44px; padding: .35rem .1rem; border: 0; border-bottom: 1px dashed var(--wn-input-border); border-radius: 0; color: var(--wn-text); background: transparent; font-size: 1.15rem; font-weight: 650; }
+.note-card__title-input::placeholder { color: var(--wn-muted); font-weight: 500; }
+.note-card__title-input:focus-visible { outline: none; border-bottom: 2px solid var(--wn-primary); }
+.note-card__context { max-width: 10rem; min-height: 44px; padding: .25rem .4rem; border: 1px solid var(--wn-input-border); border-radius: var(--wn-radius); color: var(--wn-text); background: var(--wn-surface); font-size: .8rem; }
+.note-card--draft .actions { flex-wrap: nowrap; justify-content: flex-start; font-size: .9rem; }
+.note-type-switch { display: inline-flex; margin: 0; padding: 2px; border: 1px solid var(--wn-input-border); border-radius: var(--wn-radius); background: rgb(255 255 255 / 45%); }
+.note-type-switch__option { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 6px; color: var(--wn-muted); cursor: pointer; }
+.note-type-switch__option input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.note-type-switch__option:hover { color: var(--wn-primary-hover); }
+.note-type-switch__option:has(input:checked) { color: var(--wn-on-primary); background: var(--wn-primary); }
+.note-type-switch__option:has(input:focus-visible) { outline: 3px solid var(--wn-primary); outline-offset: 2px; }
 @media(max-width: 450px) { .notes-board { gap: .5rem; } .note-cell { aspect-ratio: auto; min-height: 17rem; } .note-card, .note-card:hover { inset: 6px; transform: none; } }
-@media(forced-colors: active) { .note-card[aria-pressed="true"] { outline: 3px solid Highlight; } }
+@media(forced-colors: active) { .note-card[aria-pressed="true"] { outline: 3px solid Highlight; } .note-type-switch__option:has(input:checked) { outline: 2px solid Highlight; } }
 /* The dashboard is the board: it fills the main area with a small margin; header on top, notes below. */
 .site-main:has(> .dashboard) { display: flex; flex-direction: column; max-width: none; padding: 1rem; }
 .dashboard { flex: 1; display: flex; flex-direction: column; min-height: 24rem; padding: clamp(1rem, 3vw, 2rem); border: 2px dashed var(--wn-border); border-radius: var(--wn-radius-panel); }
 .dashboard-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem 1.5rem; }
 .dashboard-header h1 { margin-bottom: .25rem; font-size: clamp(1.5rem, 3vw, 1.9rem); }
 .dashboard-header p { margin: 0; }
+/* The empty-state message disappears as soon as the board has a card, including an unsaved one. */
+.notes-board:has(> li) + .notes-board-empty { display: none; }
+.dashboard-header__aside { display: grid; justify-items: end; gap: .25rem; text-align: end; }
 .notes-board-empty { flex: 1; display: grid; place-items: center; margin: 1.5rem 0 0; color: var(--wn-muted); text-align: center; }
 @media(max-width: 450px) { .site-main:has(> .dashboard) { padding: .5rem; } .dashboard { min-height: 14rem; } }
 @media(forced-colors: active) { .dashboard { border-color: CanvasText; } }

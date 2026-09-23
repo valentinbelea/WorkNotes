@@ -2,9 +2,9 @@
 
 ## Design — Hârtie & salvie
 
-Tema aprobată folosește verdele #176C65, fundal crem și post-it-uri pastelate. Stilurile sunt separate în tokens.css (valori comune), site.css (componente) și notes-board.css (tablă). Modulul notes-board.js calculează poziții stabile din ID-ul notei, fără reordonare sau persistență.
+Tema aprobată folosește verdele #176C65, fundal crem și post-it-uri pastelate. Stilurile sunt separate în tokens.css (valori comune), site.css (componente), notes-board.css (tablă) și postit.css (hârtia). Decalajele cardurilor sunt clase CSS alese de server din ID-ul notei; notes-board.js se ocupă doar de comportament (notă nouă, renunțare, deschidere).
 
-Ghidul componentelor și contractul de integrare sunt în [docs/design-system.md](docs/design-system.md). Pagina principală este dashboardul utilizatorului autentificat: tablă goală și butonul Notă nouă (dezactivat până la implementarea modulului Notes). Subtitlul din header (de exemplu „Spațiul meu”) este dedus din secțiunea meniului curent prin WorkNotes.Web/Navigation/NavigationSections.cs.
+Ghidul componentelor și contractul de integrare sunt în [docs/design-system.md](docs/design-system.md). Pagina principală este dashboardul utilizatorului autentificat: notele vizibile pentru el, ca post-it-uri, și butonul Notă nouă (vezi „Note — version_0.01”). Subtitlul din header (de exemplu „Spațiul meu”) este dedus din secțiunea meniului curent prin WorkNotes.Web/Navigation/NavigationSections.cs.
 
 ## Localizare
 
@@ -61,6 +61,21 @@ Flux: `Pages/Contexts → IWorkContextService → WorkContextService → IWorkCo
 ```powershell
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\004_CreateWorkContexts.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\005_CreateContextMembers.sql'
+```
+
+## Note — version_0.01
+
+`dbo.Notes` (scriptul `006_CreateNotes.sql`) păstrează notele: contextul (obligatoriu), proprietarul, tipul (`Journal` / `Article`), titlul opțional, data jurnalului, vizibilitatea (`Private` / `Context`), auditul creării și al ultimei modificări, arhivarea și `RowVersion`. Deciziile confirmate:
+
+- jurnal zilnic: un singur jurnal per proprietar, context și zi (indexul unic filtrat `UX_Notes_DailyJournal`); data este ziua locală a aplicației (`TimeProvider`);
+- notele noi sunt private; o notă cu vizibilitatea `Context` este văzută de membrii contextului;
+- numai proprietarul editează nota; orice membru al contextului poate crea note în el;
+- un context care are note nu poate fi șters (cheie externă fără cascadă; mesaj „Contextul are note și nu poate fi șters.”).
+
+Flux: `Pages/Index → INoteService → NoteService → INoteRepository → NoteRepository → WorkNotesDbContext`. `NoteService` validează tipul și titlul și verifică apartenența la context prin `IWorkContextRepository`. Conținutul notelor (`NoteBlocks`) și editorul text urmează în pașii următori; tabla afișează deocamdată metadatele.
+
+```powershell
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\006_CreateNotes.sql'
 ```
 
 ## Modulul de conturi — version_0.01
@@ -158,7 +173,8 @@ E:\GitRepository\Vali\WorkNotes\       # Rădăcina Git
         ├── 001_InsertDatabaseVersion.sql
         ├── 002_AddIdentityUsers.sql
         ├── 004_CreateWorkContexts.sql
-        └── 005_CreateContextMembers.sql
+        ├── 005_CreateContextMembers.sql
+        └── 006_CreateNotes.sql
 ```
 
 Folderele `Scripts` și `Solution` fac parte din același repository Git. Comenzile dotnet se rulează din `Solution`, iar scripturile se referă de acolo ca `..\Scripts\version_0.01\...`.
@@ -194,6 +210,7 @@ Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scriptu
 3. `002_AddIdentityUsers.sql`: creează tabelele și indexurile Identity lipsă.
 4. `004_CreateWorkContexts.sql`: creează `dbo.WorkContexts` și indexul unic pe `Name`, dacă lipsesc.
 5. `005_CreateContextMembers.sql`: creează `dbo.ContextMembers`, cheile externe către `WorkContexts` și `Users` și indexul pe `UserId`, dacă lipsesc.
+6. `006_CreateNotes.sql`: creează `dbo.Notes`, constrângerile, indexul unic al jurnalului zilnic și indexul pentru tablă, dacă lipsesc.
 
 Alternativ, dacă `sqlcmd` este instalat:
 
@@ -203,6 +220,7 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\002_AddIdentityUsers.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\004_CreateWorkContexts.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\005_CreateContextMembers.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\006_CreateNotes.sql'
 ```
 
 Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
@@ -213,14 +231,14 @@ După modificarea schemei prin SQL, regenerează clasele din baza de date:
 
 ```powershell
 dotnet tool restore
-dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --table dbo.ContextMembers --no-onconfiguring --force
+dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --table dbo.ContextMembers --table dbo.Notes --no-onconfiguring --force
 dotnet build WorkNotes.sln
 dotnet test WorkNotes.sln --no-build --no-restore
 ```
 
 Comanda folosește Web pentru pornire și citirea configurației, dar generează fișierele numai în DataAccess. `--no-onconfiguring` păstrează conexiunea în configurație, fără să o scrie în clasele generate. Program.cs transmite connection string-ul extensiei AddDataAccess; această extensie înregistrează DbContext și providerul SQL Server.
 
-`--force` suprascrie fișierele generate `WorkNotes.DataAccess/Context/WorkNotesDbContext.cs`, `WorkNotes.DataAccess/Entities/DatabaseVersion.cs`, `WorkNotes.DataAccess/Entities/WorkContext.cs` și `WorkNotes.DataAccess/Entities/ContextMember.cs`. Extensiile scrise manual se pun în fișiere partial separate. Pentru tabele viitoare, extinde lista de opțiuni `--table` astfel încât regenerarea contextului să includă toate entitățile necesare.
+`--force` suprascrie fișierele generate `WorkNotes.DataAccess/Context/WorkNotesDbContext.cs`, `WorkNotes.DataAccess/Entities/DatabaseVersion.cs`, `WorkNotes.DataAccess/Entities/WorkContext.cs`, `WorkNotes.DataAccess/Entities/ContextMember.cs` și `WorkNotes.DataAccess/Entities/Note.cs`. Scaffolding-ul scrie fișierele cu CRLF; repository-ul folosește LF. Extensiile scrise manual se pun în fișiere partial separate. Pentru tabele viitoare, extinde lista de opțiuni `--table` astfel încât regenerarea contextului să includă toate entitățile necesare.
 
 Pachetul EF Core Design este referit cu PrivateAssets=all în DataAccess și în Web (startup project), exclusiv pentru tooling. Providerul SQL Server este referit direct de DataAccess. Business nu are pachete EF. Instrumentul local dotnet-ef este păstrat pentru scaffolding. Niciun context nu folosește migrări EF sau istoric de migrări. Aplicația nu creează sau modifică schema și nu inserează versiuni la pornire.
 

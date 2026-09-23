@@ -13,13 +13,39 @@
                 <h1 id="dashboard-title">@L["Dashboard_Title"]</h1>
                 <p class="help-text">@L["Dashboard_Description"]</p>
             </div>
-            @* Note creation is not implemented yet; the native disabled state prevents activation. *@
-            <button type="button" class="btn btn-primary" disabled>
-                <span aria-hidden="true">+</span> @L["Button_NewNote"]
-            </button>
+            @if (Model.Contexts.Count > 0)
+            {
+                @* Works as a link without JavaScript (?new=true); notes-board.js inserts the card in place instead. *@
+                <a class="btn btn-primary" asp-page="/Index" asp-route-new="true" data-note-new>
+                    <span aria-hidden="true">+</span> @L["Button_NewNote"]
+                </a>
+            }
+            else
+            {
+                <div class="dashboard-header__aside">
+                    <button type="button" class="btn btn-primary" disabled aria-describedby="new-note-help">
+                        <span aria-hidden="true">+</span> @L["Button_NewNote"]
+                    </button>
+                    <p id="new-note-help" class="help-text"><a asp-page="/Contexts/Index">@L["Notes_NoContexts"]</a></p>
+                </div>
+            }
         </div>
-        @* Notes will be rendered here, below the header, as ul.notes-board. *@
+        @* Newest first, in the order the service returns; the grid moves the other cards right and down. *@
+        <ul class="notes-board" data-notes-board>
+            @if (Model.IsNewNoteOpen)
+            {
+                <partial name="_NewNoteCard" model="Model.NewNoteCard" />
+            }
+            @foreach (var note in Model.Notes)
+            {
+                <partial name="_NoteCard" model="note" />
+            }
+        </ul>
         <p class="notes-board-empty">@L["Dashboard_EmptyBoard"]</p>
+        @if (!Model.IsNewNoteOpen && Model.Contexts.Count > 0)
+        {
+            <template id="new-note-template"><partial name="_NewNoteCard" model="Model.NewNoteCard" /></template>
+        }
     </section>
 }
 else

@@ -93,4 +93,20 @@
 <data name="Contexts_RemoveMemberNamed" xml:space="preserve"><value>Remove {0} from the context</value></data>
 <data name="Message_MemberRemoved" xml:space="preserve"><value>The member has been removed.</value></data>
 <data name="Message_MemberNotFound" xml:space="preserve"><value>This user is no longer a member of the context.</value></data>
+<data name="NoteType_Journal" xml:space="preserve"><value>Journal</value></data>
+<data name="NoteType_Article" xml:space="preserve"><value>Article</value></data>
+<data name="NoteVisibility_Private" xml:space="preserve"><value>Private</value></data>
+<data name="NoteVisibility_Context" xml:space="preserve"><value>In context</value></data>
+<data name="Field_Title" xml:space="preserve"><value>Title</value></data>
+<data name="Field_NoteType" xml:space="preserve"><value>Note type</value></data>
+<data name="Field_Context" xml:space="preserve"><value>Context</value></data>
+<data name="Notes_TitlePlaceholder" xml:space="preserve"><value>Title (optional)</value></data>
+<data name="Notes_Untitled" xml:space="preserve"><value>Untitled</value></data>
+<data name="Notes_OpenNamed" xml:space="preserve"><value>Open note “{0}”</value></data>
+<data name="Notes_NoContexts" xml:space="preserve"><value>Create a context first to add notes.</value></data>
+<data name="Validation_InvalidNoteTitle" xml:space="preserve"><value>The title must not exceed 200 characters and cannot contain control characters.</value></data>
+<data name="Validation_JournalExists" xml:space="preserve"><value>You already have today's journal in this context.</value></data>
+<data name="Validation_ContextUnavailable" xml:space="preserve"><value>The selected context is no longer available.</value></data>
+<data name="Message_NoteSaved" xml:space="preserve"><value>The note has been saved.</value></data>
+<data name="Message_ContextInUse" xml:space="preserve"><value>The context has notes and cannot be deleted.</value></data>
 </root>

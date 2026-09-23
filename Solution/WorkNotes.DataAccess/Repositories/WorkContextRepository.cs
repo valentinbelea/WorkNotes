@@ -44,8 +44,20 @@ public sealed class WorkContextRepository(WorkNotesDbContext dbContext) : IWorkC
         return await SaveAsync(entity, cancellationToken);
     }
 
-    public async Task<bool> DeleteAsync(int id, string userId, CancellationToken cancellationToken) =>
-        await ForMember(userId).Where(item => item.Id == id).ExecuteDeleteAsync(cancellationToken) > 0;
+    public async Task<WorkContextDeleteStatus> DeleteAsync(int id, string userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await ForMember(userId).Where(item => item.Id == id).ExecuteDeleteAsync(cancellationToken) > 0
+                ? WorkContextDeleteStatus.Deleted
+                : WorkContextDeleteStatus.NotFound;
+        }
+        catch (SqlException ex) when (ex.Number == 547)
+        {
+            // FK_Notes_WorkContexts_ContextId has no cascade: notes keep their context.
+            return WorkContextDeleteStatus.InUse;
+        }
+    }
 
     // Membership filter shared by every read and change; SQL Server applies it with IX_ContextMembers_UserId.
     private IQueryable<WorkContextEntity> ForMember(string userId) =>

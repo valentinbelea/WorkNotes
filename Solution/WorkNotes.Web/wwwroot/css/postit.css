@@ -25,6 +25,8 @@
     pointer-events: none;
 }
 .note-card--sage { --postit-color: var(--wn-note-sage); }
+/* Journals are paper yellow, articles sage; the unsaved card previews the colour of the chosen type. */
+.note-card--article, .note-card--draft:has(.note-type-switch input[value="Article"]:checked) { --postit-color: var(--wn-note-sage); }
 .note-card--peach { --postit-color: var(--wn-note-peach); }
 .note-card--blue { --postit-color: var(--wn-note-blue); }
 .note-card[aria-current="page"], .note-card[aria-pressed="true"] {

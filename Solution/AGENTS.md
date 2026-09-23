@@ -112,7 +112,7 @@ Utilizarea resurselor .resx este obligatorie pentru toate textele afișate utili
 - Utilizați tokenurile din tokens.css și componentele din site.css / notes-board.css. Nu duplicați paleta și stilurile butoanelor în pagini.
 - Păstrați stările hover, active, disabled, focus vizibil, selecție și eroare, cu contrast lizibil și suport pentru reduced-motion.
 - Toate textele rămân în .resx. Designul nu autorizează introducerea de date fictive sau implementarea unor module fără cerință.
-- Tabla afișează ordinea cronologică primită de la serviciu. Decalajele și rotațiile mici sunt deterministe din ID, încadrate în celula proprie; nu reordonează DOM și nu se recalculează aleatoriu la reîncărcare. Pe mobil sunt eliminate.
+- Tabla afișează ordinea cronologică primită de la serviciu. Decalajele și rotațiile mici sunt deterministe din ID, aplicate prin clasele note-card--tilt-* alese de server (fără stiluri inline din JavaScript), încadrate în celula proprie; nu reordonează DOM și nu se recalculează aleatoriu la reîncărcare. Pe mobil sunt eliminate.
 
 ## Verificarea livrării
 

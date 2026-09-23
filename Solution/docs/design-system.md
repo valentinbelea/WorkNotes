@@ -7,7 +7,7 @@ Design aprobat: varianta 1. Temă luminoasă, fond crem, verde închis, suprafe�
 1. wwwroot/css/tokens.css — paletă, font, raze, umbre, tranziții.
 2. wwwroot/css/site.css — layout, text, butoane, formulare, mesaje.
 3. wwwroot/css/notes-board.css — tabla și post-it-urile.
-4. wwwroot/js/notes-board.js — modul ES cu initializeNotesBoards(root).
+4. wwwroot/js/notes-board.js — modul ES pentru comportamentul tablei (notă nouă, renunțare, deschidere); nu schimbă aspectul sau poziția cardurilor.
 
 Nu duplicați culorile în pagini. Modificările de paletă se fac în tokens.css.
 
@@ -49,34 +49,39 @@ Paleta de bază este: accent #176C65, hover #10564F, fond #F5F3EB, note #FFF0B7 
 
 Focus vizibil pentru tastatură, ținte de minimum 44px pentru controalele principale, reducerea animației când utilizatorul solicită acest lucru și contururi în forced-colors.
 
-## Contractul viitoarei table
+## Tabla de note
 
-Nu există încă persistența Notes sau un dashboard cu note reale. Stilurile și poziționarea sunt pregătite; pagina principală nu afișează date fictive.
-
-Structura de integrare Razor (valorile provin din viitorul view model; etichetele fixe din resurse):
+Dashboardul (Pages/Index) afișează notele primite de la INoteService, cele mai noi primele. Cardurile sunt randate de server din partialele Pages/Shared/_NoteCard.cshtml (notă salvată) și Pages/Shared/_NewNoteCard.cshtml (notă nouă, nesalvată):
 
 ```html
-<ul class="notes-board">
-    <li class="note-cell" data-note-id="@note.Id">
-        <a class="note-card note-card--sage" href="@note.LocalUrl">
-            <span class="note-card__meta">@note.TypeLabel <time datetime="@note.IsoCreatedAt">@note.DisplayCreatedAt</time></span>
-            <h2 class="note-card__title">@note.Title</h2>
-            <p class="note-card__excerpt">@note.Excerpt</p>
-            <span class="note-card__footer">@note.ContextLabel</span>
-        </a>
+<ul class="notes-board" data-notes-board>
+    <li class="note-cell">
+        <article class="note-card note-card--journal note-card--tilt-3" data-note-id="12">
+            <p class="note-card__meta"><span>Jurnal</span> <time datetime="…">23 sept. · 09:40</time></p>
+            <h2 class="note-card__title">…</h2>
+            <div class="note-card__footer"><span>Context</span><span>Privat</span><button class="note-card__open" data-note-open>…</button></div>
+        </article>
     </li>
 </ul>
 ```
 
-- Serviciul livrează notele ordonate după creare descrescător, cu departajare stabilă. Ordinea DOM este ordinea cronologică și cea de navigare cu tastatura.
-- Fiecare celulă este pătrată pe desktop, cu o singură notă. Hashul ID-ului stabilește decalaje între -6 și +6px și rotație între -0.8 și +0.8 grade.
-- Identitatea, nu poziția în listă, determină decalajul: filtrarea și reîncărcarea nu schimbă aspectul notei. Nu se persistă coordonate în baza de date.
+- Culoarea urmează tipul: note-card--journal (galben #FFF0B7), note-card--article (salvie #DDEADB). Cardul nou arată culoarea tipului ales în switch, numai prin CSS (:has).
+- Decalajul și rotația sunt deterministe din ID: serverul alege una dintre clasele note-card--tilt-0 … note-card--tilt-7 (NoteCardStyle.TiltClass), în limitele ±6px și ±0.8°. Nu există stiluri inline și niciun script nu poziționează cardurile. Pe ecrane de maximum 450px notele sunt drepte, pe o coloană.
+- Ordinea DOM este ordinea cronologică și cea de navigare cu tastatura. Grila (auto-fill) mută celelalte carduri spre dreapta și în jos când apare un card nou la început.
 - Marginile de 16px rezervă spațiu pentru decalaj, rotație, hover și focus. Nu introduceți suprapuneri între celule.
-- Pe ecrane de maximum 450px notele sunt drepte, fără decalaje, pe o coloană.
-- Cardul poate fi link (navigare) sau button (selecție); nu puneți controale interactive în interiorul unui alt control. Pentru selecție folosiți aria-pressed pe button, iar pentru pagina curentă aria-current=page pe link.
-- După randarea dinamică, importați initializeNotesBoards din /js/notes-board.js și apelați funcția cu rădăcina noului conținut.
-- Culorile și selecția nu sunt atribuite de script. Scriptul nu schimbă textul, ordinea sau datele.
-- Exemplul nu definește modelul final al notelor și nu introduce drag-and-drop.
+- Cardul salvat este article; singurul control din el este butonul Open (note-card__open). Nu puneți controale interactive unul în altul.
+
+### Notă nouă
+
+- Butonul „Notă nouă” este un link către /?new=true. Fără JavaScript, serverul randează cardul nou primul pe tablă; Renunță este un link înapoi la tablă.
+- Cu JavaScript, wwwroot/js/notes-board.js copiază cardul din &lt;template id="new-note-template"&gt; (randat de server, cu textele din .resx și tokenul antiforgery) la începutul listei și mută focusul pe titlu. Renunță sau Escape elimină cardul și readuc focusul pe buton.
+- Cardul nou conține: switch-ul de tip cu iconuri (jurnal / articol; radio-uri cu etichete ascunse vizual), contextul (listă doar dacă utilizatorul are mai multe contexte), titlul editabil pe loc (opțional), Salvează și Renunță.
+- Salvează trimite formularul (POST ?handler=CreateNote); după salvare tabla se reîncarcă, iar nota apare prima, fără butoanele de editare inițială, cu iconul Open. La erori (de exemplu jurnalul de azi există deja) cardul rămâne primul, cu valorile introduse.
+- Mesajul „Tabla este goală” dispare prin CSS cât timp lista are cel puțin un card.
+
+### Deschiderea unei note
+
+Butonul Open și dublu-click pe card apelează aceeași funcție, openNoteEditor(noteId) din notes-board.js. Până la implementarea editorului, funcția emite evenimentul worknotes:open-note cu noteId (TODO în cod); editorul va înlocui doar corpul acestei funcții.
 
 ## Verificare vizuală
 

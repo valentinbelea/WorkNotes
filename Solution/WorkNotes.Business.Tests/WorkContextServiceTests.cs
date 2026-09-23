@@ -242,12 +242,12 @@ public sealed class WorkContextServiceTests
             return Task.FromResult(outcome);
         }
 
-        public Task<bool> DeleteAsync(int id, string userId, CancellationToken cancellationToken)
+        public Task<WorkContextDeleteStatus> DeleteAsync(int id, string userId, CancellationToken cancellationToken)
         {
             Record(cancellationToken);
             Member = userId;
             Changed = true;
-            return Task.FromResult(true);
+            return Task.FromResult(WorkContextDeleteStatus.Deleted);
         }
 
         private void Record(CancellationToken cancellationToken)

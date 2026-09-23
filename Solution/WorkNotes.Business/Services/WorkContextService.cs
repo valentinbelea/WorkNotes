@@ -47,9 +47,7 @@ public sealed class WorkContextService(IWorkContextRepository repository) : IWor
         var context = await repository.GetByIdAsync(id, userId, cancellationToken);
         if (context is null) return WorkContextDeleteStatus.NotFound;
         if (!context.IsOwner) return WorkContextDeleteStatus.Forbidden;
-        return await repository.DeleteAsync(id, userId, cancellationToken)
-            ? WorkContextDeleteStatus.Deleted
-            : WorkContextDeleteStatus.NotFound;
+        return await repository.DeleteAsync(id, userId, cancellationToken);
     }
 
     private static WorkContextSaveStatus? Validate(string? name, string? description) =>

@@ -93,4 +93,20 @@
 <data name="Contexts_RemoveMemberNamed" xml:space="preserve"><value>Usuń {0} z kontekstu</value></data>
 <data name="Message_MemberRemoved" xml:space="preserve"><value>Członek został usunięty.</value></data>
 <data name="Message_MemberNotFound" xml:space="preserve"><value>Ten użytkownik nie jest już członkiem kontekstu.</value></data>
+<data name="NoteType_Journal" xml:space="preserve"><value>Dziennik</value></data>
+<data name="NoteType_Article" xml:space="preserve"><value>Artykuł</value></data>
+<data name="NoteVisibility_Private" xml:space="preserve"><value>Prywatna</value></data>
+<data name="NoteVisibility_Context" xml:space="preserve"><value>W kontekście</value></data>
+<data name="Field_Title" xml:space="preserve"><value>Tytuł</value></data>
+<data name="Field_NoteType" xml:space="preserve"><value>Typ notatki</value></data>
+<data name="Field_Context" xml:space="preserve"><value>Kontekst</value></data>
+<data name="Notes_TitlePlaceholder" xml:space="preserve"><value>Tytuł (opcjonalny)</value></data>
+<data name="Notes_Untitled" xml:space="preserve"><value>Bez tytułu</value></data>
+<data name="Notes_OpenNamed" xml:space="preserve"><value>Otwórz notatkę „{0}”</value></data>
+<data name="Notes_NoContexts" xml:space="preserve"><value>Najpierw utwórz kontekst, aby dodawać notatki.</value></data>
+<data name="Validation_InvalidNoteTitle" xml:space="preserve"><value>Tytuł może mieć maksymalnie 200 znaków i nie może zawierać znaków sterujących.</value></data>
+<data name="Validation_JournalExists" xml:space="preserve"><value>Masz już dzisiejszy dziennik w tym kontekście.</value></data>
+<data name="Validation_ContextUnavailable" xml:space="preserve"><value>Wybrany kontekst nie jest już dostępny.</value></data>
+<data name="Message_NoteSaved" xml:space="preserve"><value>Notatka została zapisana.</value></data>
+<data name="Message_ContextInUse" xml:space="preserve"><value>Kontekst zawiera notatki i nie można go usunąć.</value></data>
 </root>

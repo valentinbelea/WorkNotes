@@ -1,0 +1,25 @@
+@model WorkNotes.Business.Models.NoteSummary
+@using System.Globalization
+@using WorkNotes.Business.Models
+@using WorkNotes.Web.Notes
+@{
+    var created = Model.CreatedAtUtc.ToLocalTime();
+    var title = Model.Title ?? L["Notes_Untitled"].Value;
+}
+@* A saved note. Double-click on the card or the Open button opens the note (see openNoteEditor in notes-board.js). *@
+<li class="note-cell">
+    <article class="note-card @NoteCardStyle.TypeClass(Model.NoteType) @NoteCardStyle.TiltClass(Model.Id)" data-note-id="@Model.Id" aria-labelledby="note-@Model.Id-title">
+        <p class="note-card__meta">
+            <span>@(Model.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
+            <time datetime="@created.ToString("yyyy-MM-ddTHH:mmzzz", CultureInfo.InvariantCulture)">@created.ToString("d MMM · HH:mm", CultureInfo.CurrentCulture)</time>
+        </p>
+        <h2 class="note-card__title @(Model.Title is null ? "note-card__title--untitled" : null)" id="note-@Model.Id-title">@title</h2>
+        <div class="note-card__footer">
+            <span>@Model.ContextName</span>
+            <span>@(Model.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>
+            <button type="button" class="note-card__open" data-note-open aria-label="@L["Notes_OpenNamed", title]" title="@L["Notes_OpenNamed", title]">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4.5h5.5V10M19.5 4.5 11 13M17 14v5.5H4.5V7H10" /></svg>
+            </button>
+        </div>
+    </article>
+</li>

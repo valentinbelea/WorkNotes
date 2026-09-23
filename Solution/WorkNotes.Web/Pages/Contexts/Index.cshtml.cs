@@ -97,6 +97,9 @@ public sealed class IndexModel(IWorkContextService contexts, IContextMemberServi
                 return NotFound();
             case WorkContextDeleteStatus.Forbidden:
                 return Forbidden();
+            case WorkContextDeleteStatus.InUse:
+                TempData["StatusMessage"] = "Message_ContextInUse";
+                return RedirectToPage();
         }
         TempData["StatusMessage"] = "Message_ContextDeleted";
         return RedirectToPage();
