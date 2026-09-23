@@ -7,7 +7,10 @@
     /* A single shadow layer on the element: a second offset layer shows as a doubled bottom edge. */
     box-shadow: var(--wn-shadow-paper);
 }
-.postit-panel { position: relative; }
+.postit-panel { position: relative; --postit-color: var(--wn-panel-paper); }
+/* Panels share the selection green, so selections and ghost hovers on them use the note yellow. */
+.postit-panel ::selection { background: var(--wn-note-paper); }
+.postit-panel .btn-ghost:hover { background: var(--wn-note-paper); }
 /* Decorative image straddles the top edge and never captures pointer input. */
 .postit-panel::before, .note-card::before {
     content: "";

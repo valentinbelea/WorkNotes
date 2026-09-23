@@ -1,7 +1,7 @@
 :root {
     color-scheme: light;
     --wn-font: "Segoe UI", system-ui, sans-serif;
-    --wn-bg: #f5f0e3;
+    --wn-bg: #f5f3eb;
     --wn-surface: #fff;
     --wn-text: #243a36;
     --wn-muted: #576960;
@@ -15,6 +15,7 @@
     --wn-active-line: #e7f1ec;
     --wn-highlight: #f5df93;
     --wn-note-paper: #fff0b7;
+    --wn-panel-paper: #cce6df;
     --wn-note-sage: #ddeadb;
     --wn-note-peach: #f6e2d3;
     --wn-note-blue: #deebee;
