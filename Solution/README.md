@@ -79,10 +79,9 @@ Din folderul soluției, aplicați în ordine:
 
 ```powershell
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\002_AddIdentityUsers.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\003_RemoveIdentityMigrationsHistory.sql'
 ```
 
-002 creează numai tabelele/indexurile lipsă, fără dependență de istoric EF. 003 elimină exclusiv vechea tabelă __IdentityMigrationsHistory; conturile, hashurile și DatabaseVersion rămân intacte. Ambele scripturi pot fi executate repetat. Pentru modificări viitoare folosiți scripturi ALTER dedicate în folderul versiunii curente, apoi aliniați mapările din DataAccess.
+002 creează numai tabelele/indexurile lipsă, fără dependență de istoric EF; conturile, hashurile și DatabaseVersion rămân intacte. Scriptul poate fi executat repetat. Pentru modificări viitoare folosiți scripturi ALTER dedicate în folderul versiunii curente, apoi aliniați mapările din DataAccess.
 
 Nu folosiți comenzile EF migrations/database update și nu creați schema la pornire prin Migrate/EnsureCreated. Instrumentul dotnet-ef rămâne disponibil pentru reverse engineering Database First al tabelelor obișnuite.
 
@@ -152,8 +151,6 @@ E:\GitRepository\Vali\WorkNotes\       # Rădăcina Git
         ├── 000_CreateDatabaseVersion.sql
         ├── 001_InsertDatabaseVersion.sql
         ├── 002_AddIdentityUsers.sql
-        ├── 003_RemoveIdentityMigrationsHistory.sql
-        ├── temp_002_RemoveEFMigrationsHistory.sql
         └── 004_CreateWorkContexts.sql
 ```
 
@@ -187,17 +184,19 @@ Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scriptu
 
 1. `000_CreateDatabaseVersion.sql`: creează `dbo.DatabaseVersion` numai dacă lipsește, cu `Version nvarchar(50) NOT NULL` și cheia primară `PK_DatabaseVersion`.
 2. `001_InsertDatabaseVersion.sql`: inserează `v.0.01` numai dacă lipsește.
-3. `temp_002_RemoveEFMigrationsHistory.sql`: elimină istoricul EF rămas de la abordarea anterioară; dacă tabela nu există, nu face nimic. Acesta este un script de tranziție, nu este necesar la fiecare versiune viitoare.
+3. `002_AddIdentityUsers.sql`: creează tabelele și indexurile Identity lipsă.
+4. `004_CreateWorkContexts.sql`: creează `dbo.WorkContexts` și indexul unic pe `Name`, dacă lipsesc.
 
 Alternativ, dacă `sqlcmd` este instalat:
 
 ```powershell
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\000_CreateDatabaseVersion.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\001_InsertDatabaseVersion.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\temp_002_RemoveEFMigrationsHistory.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\002_AddIdentityUsers.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\004_CreateWorkContexts.sql'
 ```
 
-Scriptul de creare păstrează tabela și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
+Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
 
 ## Actualizarea modelului EF — Database First
 
