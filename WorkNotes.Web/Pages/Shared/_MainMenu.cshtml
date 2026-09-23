@@ -11,6 +11,10 @@
     </div>
     <nav aria-label="@L["Navigation_Menu"]">
         <a class="menu-item" asp-page="/Index" aria-current="@(currentPage == "/Index" ? "page" : null)">@L["Navigation_Dashboard"]</a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="menu-item" asp-page="/Contexts/Index" aria-current="@(currentPage == "/Contexts/Index" ? "page" : null)">@L["Navigation_Contexts"]</a>
+        }
         <details class="menu-account" open="@isAccountPage">
             <summary class="menu-item">@L["Navigation_MyAccount"]</summary>
             <div class="menu-subitems" role="group" aria-label="@L["Navigation_Account"]">

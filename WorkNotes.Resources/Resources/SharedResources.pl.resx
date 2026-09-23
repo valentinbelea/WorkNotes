@@ -58,4 +58,24 @@
 <data name="Dashboard_Description" xml:space="preserve"><value>Twoje notatki, od najnowszych.</value></data>
 <data name="Dashboard_EmptyBoard" xml:space="preserve"><value>Tablica jest pusta.</value></data>
 <data name="Button_NewNote" xml:space="preserve"><value>Nowa notatka</value></data>
+<data name="Navigation_Contexts" xml:space="preserve"><value>Konteksty</value></data>
+<data name="Contexts_Description" xml:space="preserve"><value>Konteksty, w których porządkujesz notatki.</value></data>
+<data name="Contexts_Empty" xml:space="preserve"><value>Nie ma jeszcze żadnych kontekstów.</value></data>
+<data name="Contexts_Actions" xml:space="preserve"><value>Akcje</value></data>
+<data name="Contexts_EditTitle" xml:space="preserve"><value>Edytuj kontekst</value></data>
+<data name="Contexts_EditNamed" xml:space="preserve"><value>Edytuj kontekst {0}</value></data>
+<data name="Contexts_DeleteTitle" xml:space="preserve"><value>Usuń kontekst</value></data>
+<data name="Contexts_DeleteNamed" xml:space="preserve"><value>Usuń kontekst {0}</value></data>
+<data name="Contexts_DeleteConfirm" xml:space="preserve"><value>Czy na pewno chcesz usunąć kontekst „{0}”? Tej operacji nie można cofnąć.</value></data>
+<data name="Field_Name" xml:space="preserve"><value>Nazwa</value></data>
+<data name="Field_Description" xml:space="preserve"><value>Opis</value></data>
+<data name="Button_NewContext" xml:space="preserve"><value>Nowy kontekst</value></data>
+<data name="Button_Edit" xml:space="preserve"><value>Edytuj</value></data>
+<data name="Button_Delete" xml:space="preserve"><value>Usuń</value></data>
+<data name="Button_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+<data name="Validation_ContextNameTaken" xml:space="preserve"><value>Kontekst o tej nazwie już istnieje.</value></data>
+<data name="Validation_InvalidContextName" xml:space="preserve"><value>Nazwa kontekstu jest wymagana, może mieć maksymalnie 100 znaków i nie może zawierać znaków sterujących.</value></data>
+<data name="Validation_InvalidDescription" xml:space="preserve"><value>Opis może mieć maksymalnie 1000 znaków i nie może zawierać znaków sterujących.</value></data>
+<data name="Message_ContextSaved" xml:space="preserve"><value>Kontekst został zapisany.</value></data>
+<data name="Message_ContextDeleted" xml:space="preserve"><value>Kontekst został usunięty.</value></data>
 </root>

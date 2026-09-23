@@ -58,4 +58,24 @@
 <data name="Dashboard_Description" xml:space="preserve"><value>Your notes, newest first.</value></data>
 <data name="Dashboard_EmptyBoard" xml:space="preserve"><value>The board is empty.</value></data>
 <data name="Button_NewNote" xml:space="preserve"><value>New note</value></data>
+<data name="Navigation_Contexts" xml:space="preserve"><value>Contexts</value></data>
+<data name="Contexts_Description" xml:space="preserve"><value>The contexts in which you organise your notes.</value></data>
+<data name="Contexts_Empty" xml:space="preserve"><value>There are no contexts yet.</value></data>
+<data name="Contexts_Actions" xml:space="preserve"><value>Actions</value></data>
+<data name="Contexts_EditTitle" xml:space="preserve"><value>Edit context</value></data>
+<data name="Contexts_EditNamed" xml:space="preserve"><value>Edit context {0}</value></data>
+<data name="Contexts_DeleteTitle" xml:space="preserve"><value>Delete context</value></data>
+<data name="Contexts_DeleteNamed" xml:space="preserve"><value>Delete context {0}</value></data>
+<data name="Contexts_DeleteConfirm" xml:space="preserve"><value>Are you sure you want to delete the context “{0}”? This cannot be undone.</value></data>
+<data name="Field_Name" xml:space="preserve"><value>Name</value></data>
+<data name="Field_Description" xml:space="preserve"><value>Description</value></data>
+<data name="Button_NewContext" xml:space="preserve"><value>New context</value></data>
+<data name="Button_Edit" xml:space="preserve"><value>Edit</value></data>
+<data name="Button_Delete" xml:space="preserve"><value>Delete</value></data>
+<data name="Button_Cancel" xml:space="preserve"><value>Cancel</value></data>
+<data name="Validation_ContextNameTaken" xml:space="preserve"><value>A context with this name already exists.</value></data>
+<data name="Validation_InvalidContextName" xml:space="preserve"><value>The context name is required, must not exceed 100 characters and cannot contain control characters.</value></data>
+<data name="Validation_InvalidDescription" xml:space="preserve"><value>The description must not exceed 1000 characters and cannot contain control characters.</value></data>
+<data name="Message_ContextSaved" xml:space="preserve"><value>The context has been saved.</value></data>
+<data name="Message_ContextDeleted" xml:space="preserve"><value>The context has been deleted.</value></data>
 </root>

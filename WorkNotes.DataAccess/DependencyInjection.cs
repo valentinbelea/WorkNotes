@@ -18,6 +18,7 @@ public static class DependencyInjection
 
         services.AddDbContext<WorkNotesDbContext>(options => options.UseSqlServer(connectionString));
         services.AddScoped<IApplicationVersionRepository, ApplicationVersionRepository>();
+        services.AddScoped<IWorkContextRepository, WorkContextRepository>();
         services.AddDbContext<AccountsDbContext>(options => options.UseSqlServer(connectionString));
         services.AddIdentityCore<ApplicationUser>(options =>
         {

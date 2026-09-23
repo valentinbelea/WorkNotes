@@ -43,6 +43,8 @@ Piersica și albastrul sunt variante opționale. Nu atribuiți aleatoriu culori 
 - Evidențiere: mark sau text-highlight; rând activ: active-line.
 - Formulare: field, check, field-error; stările invalide acceptă aria-invalid și input-validation-error.
 - Mesaje: status-message și validation-summary-errors; asociați role=status / role=alert în markup.
+- Pagini de listă: page-panel postit-panel, cu page-heading (titlu, descriere și acțiunea principală în dreapta). Formularele de adăugare/editare/confirmare folosesc account-card postit-panel.
+- Tabele: data-table; numele rândului este th scope=row, iar acțiunile sunt aliniate la dreapta. Sub 700px rândurile devin blocuri. Etichetele doar pentru cititoare de ecran folosesc visually-hidden.
 
 Focus vizibil pentru tastatură, ținte de minimum 44px pentru controalele principale, reducerea animației când utilizatorul solicită acest lucru și contururi în forced-colors.
 

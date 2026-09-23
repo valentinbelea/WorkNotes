@@ -14,6 +14,8 @@ public partial class WorkNotesDbContext : DbContext
 
     public virtual DbSet<DatabaseVersion> DatabaseVersions { get; set; }
 
+    public virtual DbSet<WorkContext> WorkContexts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<DatabaseVersion>(entity =>
@@ -23,6 +25,14 @@ public partial class WorkNotesDbContext : DbContext
             entity.ToTable("DatabaseVersion");
 
             entity.Property(e => e.Version).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<WorkContext>(entity =>
+        {
+            entity.HasIndex(e => e.Name, "UX_WorkContexts_Name").IsUnique();
+
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Name).HasMaxLength(100);
         });
 
         OnModelCreatingPartial(modelBuilder);

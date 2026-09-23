@@ -43,6 +43,20 @@ Verificare reproductibilă a catalogului (chei identice, valori, fallback, param
 
 Nu sunt necesare schimbări SQL; versiunea rămâne v.0.01, iar regulile Database First rămân valabile.
 
+## Contexte — version_0.01
+
+Contextele (de exemplu SD Worx, TopDev) sunt prima condiție a modulului Notes. Tabela `dbo.WorkContexts` are `Id`, `Name` (nvarchar(100), unic prin `UX_WorkContexts_Name`) și `Description` (nvarchar(1000), opțională). Numele tabelei nu este `Contexts`: entitatea generată ar fi `Context`, în conflict cu namespace-ul `WorkNotes.DataAccess.Context`.
+
+- /Contexts: listă ordonată după nume, cu Editează / Șterge; linkul „Contexte” din meniu apare pentru utilizatorii autentificați.
+- /Contexts/Edit: context nou; /Contexts/Edit/{id}: editare.
+- /Contexts/Delete/{id}: confirmare; ștergerea se face numai prin POST cu antiforgery.
+
+Flux: `Pages/Contexts → IWorkContextService → WorkContextService → IWorkContextRepository → WorkContextRepository → WorkNotesDbContext`. Business validează și normalizează (Trim, descriere goală → NULL) și întoarce coduri `WorkContextSaveStatus`; Web le traduce. Unicitatea numelui este garantată de indexul unic, inclusiv la salvări concurente. În această etapă orice utilizator autentificat poate administra contextele; ContextMembers și rolurile vin ulterior.
+
+```powershell
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\004_CreateWorkContexts.sql'
+```
+
 ## Modulul de conturi — version_0.01
 
 - /Account/Register: prenume, nume, e-mail unic, parolă și confirmare; după creare se deschide autentificarea.
@@ -137,7 +151,8 @@ E:\GitRepository\Vali\WorkNotes\
         ├── 001_InsertDatabaseVersion.sql
         ├── 002_AddIdentityUsers.sql
         ├── 003_RemoveIdentityMigrationsHistory.sql
-        └── temp_002_RemoveEFMigrationsHistory.sql
+        ├── temp_002_RemoveEFMigrationsHistory.sql
+        └── 004_CreateWorkContexts.sql
 ```
 
 Folderul `Scripts` este în afara repository-ului Git actual, conform amplasării solicitate lângă folderul soluției. Un commit din folderul soluției nu îl va include automat.
@@ -188,14 +203,14 @@ După modificarea schemei prin SQL, regenerează clasele din baza de date:
 
 ```powershell
 dotnet tool restore
-dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --no-onconfiguring --force
+dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --no-onconfiguring --force
 dotnet build WorkNotes.sln
 dotnet test WorkNotes.sln --no-build --no-restore
 ```
 
 Comanda folosește Web pentru pornire și citirea configurației, dar generează fișierele numai în DataAccess. `--no-onconfiguring` păstrează conexiunea în configurație, fără să o scrie în clasele generate. Program.cs transmite connection string-ul extensiei AddDataAccess; această extensie înregistrează DbContext și providerul SQL Server.
 
-`--force` suprascrie fișierele generate `WorkNotes.DataAccess/Context/WorkNotesDbContext.cs` și `WorkNotes.DataAccess/Entities/DatabaseVersion.cs`. Extensiile scrise manual se pun în fișiere partial separate. Pentru tabele viitoare, extinde lista de opțiuni `--table` astfel încât regenerarea contextului să includă toate entitățile necesare.
+`--force` suprascrie fișierele generate `WorkNotes.DataAccess/Context/WorkNotesDbContext.cs`, `WorkNotes.DataAccess/Entities/DatabaseVersion.cs` și `WorkNotes.DataAccess/Entities/WorkContext.cs`. Extensiile scrise manual se pun în fișiere partial separate. Pentru tabele viitoare, extinde lista de opțiuni `--table` astfel încât regenerarea contextului să includă toate entitățile necesare.
 
 Pachetul EF Core Design este referit cu PrivateAssets=all în DataAccess și în Web (startup project), exclusiv pentru tooling. Providerul SQL Server este referit direct de DataAccess. Business nu are pachete EF. Instrumentul local dotnet-ef este păstrat pentru scaffolding. Niciun context nu folosește migrări EF sau istoric de migrări. Aplicația nu creează sau modifică schema și nu inserează versiuni la pornire.
 

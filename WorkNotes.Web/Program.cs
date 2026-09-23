@@ -34,6 +34,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 builder.Services.AddScoped<IApplicationVersionService, ApplicationVersionService>();
+builder.Services.AddScoped<IWorkContextService, WorkContextService>();
 builder.Services.AddDataAccess(builder.Configuration.GetConnectionString("WorkNotes")
     ?? throw new InvalidOperationException("ConnectionStrings:WorkNotes is required."));
 

@@ -1,7 +1,7 @@
 // Progressive enhancement of Razor's validation metadata; server validation remains authoritative.
 document.querySelectorAll("form[data-validate]").forEach(form => {
     form.noValidate = true;
-    const fields = [...form.querySelectorAll("input[data-val='true']")];
+    const fields = [...form.querySelectorAll("input[data-val='true'], textarea[data-val='true']")];
     function validate(input) {
         const d = input.dataset;
         const value = input.value;
