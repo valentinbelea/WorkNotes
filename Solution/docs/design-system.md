@@ -44,6 +44,7 @@ Paleta de bază este: accent #176C65, hover #10564F, fond #F5F3EB, note #FFF0B7 
 - Formulare: field, check, field-error; stările invalide acceptă aria-invalid și input-validation-error.
 - Mesaje: status-message și validation-summary-errors; asociați role=status / role=alert în markup.
 - Pagini de listă: page-panel postit-panel, cu page-heading (titlu, descriere și acțiunea principală în dreapta). Formularele de adăugare/editare/confirmare folosesc account-card postit-panel.
+- Overlay pentru formulare deschise peste o pagină: dialog.modal cu open și data-modal, conținutul în modal-panel postit-panel. Starea este în URL (de exemplu ?add=true, ?edit={id}), deci funcționează și fără JavaScript ca overlay CSS; wwwroot/js/modal.js îl transformă în dialog modal (focus captiv, Escape și click pe fundal revin la data-close-url). Renunță este un link către aceeași adresă.
 - Tabele: data-table; numele rândului este th scope=row, iar acțiunile sunt aliniate la dreapta. Sub 700px rândurile devin blocuri. Etichetele doar pentru cititoare de ecran folosesc visually-hidden.
 
 Focus vizibil pentru tastatură, ținte de minimum 44px pentru controalele principale, reducerea animației când utilizatorul solicită acest lucru și contururi în forced-colors.

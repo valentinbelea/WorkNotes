@@ -7,7 +7,7 @@
             <h1 id="contexts-title">@L["Navigation_Contexts"]</h1>
             <p class="help-text">@L["Contexts_Description"]</p>
         </div>
-        <a class="btn btn-primary" asp-page="Edit"><span aria-hidden="true">+</span> @L["Button_NewContext"]</a>
+        <a class="btn btn-primary" asp-page="Index" asp-route-add="true"><span aria-hidden="true">+</span> @L["Button_NewContext"]</a>
     </div>
     @if (Model.Contexts.Count == 0)
     {
@@ -31,7 +31,7 @@
                         <td class="data-table__text">@context.Description</td>
                         <td>
                             <div class="actions">
-                                <a class="btn btn-secondary" asp-page="Edit" asp-route-id="@context.Id" aria-label="@L["Contexts_EditNamed", context.Name]">@L["Button_Edit"]</a>
+                                <a class="btn btn-secondary" asp-page="Index" asp-route-edit="@context.Id" aria-label="@L["Contexts_EditNamed", context.Name]">@L["Button_Edit"]</a>
                                 <a class="btn btn-ghost" asp-page="Delete" asp-route-id="@context.Id" aria-label="@L["Contexts_DeleteNamed", context.Name]">@L["Button_Delete"]</a>
                             </div>
                         </td>
@@ -41,3 +41,24 @@
         </table>
     }
 </section>
+@if (Model.IsEditorOpen)
+{
+    var title = Model.EditingId is null ? L["Button_NewContext"] : L["Contexts_EditTitle"];
+    ViewData["Title"] = title;
+    var closeUrl = Url.Page("Index");
+    @* Without JavaScript the open dialog is a CSS overlay; modal.js upgrades it to a modal dialog. *@
+    <dialog class="modal" open data-modal data-close-url="@closeUrl" aria-labelledby="context-editor-title">
+        <div class="modal-panel postit-panel">
+            <h2 id="context-editor-title">@title</h2>
+            <form method="post" asp-page="Index" asp-route-edit="@Model.EditingId" asp-route-add="@(Model.EditingId is null ? "true" : null)" data-validate>
+                <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+                <div class="field"><label asp-for="Input.Name"></label><input asp-for="Input.Name" autocomplete="off" autofocus /><span asp-validation-for="Input.Name" class="field-error"></span></div>
+                <div class="field"><label asp-for="Input.Description"></label><textarea asp-for="Input.Description" rows="5"></textarea><span asp-validation-for="Input.Description" class="field-error"></span></div>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">@L["Button_Save"]</button>
+                    <a class="btn btn-secondary" href="@closeUrl">@L["Button_Cancel"]</a>
+                </div>
+            </form>
+        </div>
+    </dialog>
+}
