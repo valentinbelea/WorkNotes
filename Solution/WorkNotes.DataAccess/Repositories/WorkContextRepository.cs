@@ -14,14 +14,16 @@ public sealed class WorkContextRepository(WorkNotesDbContext dbContext) : IWorkC
         await ForMember(userId)
             .AsNoTracking()
             .OrderBy(item => item.Name)
-            .Select(item => new WorkContext(item.Id, item.Name, item.Description))
+            .Select(item => new WorkContext(item.Id, item.Name, item.Description,
+                item.ContextMembers.Any(member => member.UserId == userId && member.Role == ContextRoles.Owner)))
             .ToListAsync(cancellationToken);
 
     public async Task<WorkContext?> GetByIdAsync(int id, string userId, CancellationToken cancellationToken) =>
         await ForMember(userId)
             .AsNoTracking()
             .Where(item => item.Id == id)
-            .Select(item => new WorkContext(item.Id, item.Name, item.Description))
+            .Select(item => new WorkContext(item.Id, item.Name, item.Description,
+                item.ContextMembers.Any(member => member.UserId == userId && member.Role == ContextRoles.Owner)))
             .SingleOrDefaultAsync(cancellationToken);
 
     public async Task<WorkContextSaveStatus> AddAsync(string name, string? description, string ownerUserId, CancellationToken cancellationToken)

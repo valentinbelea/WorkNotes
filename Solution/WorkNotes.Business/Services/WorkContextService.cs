@@ -29,21 +29,27 @@ public sealed class WorkContextService(IWorkContextRepository repository) : IWor
             : repository.AddAsync(name.Trim(), WorkContextRules.NormalizeDescription(description), creatorUserId, cancellationToken);
     }
 
-    public Task<WorkContextSaveStatus> UpdateAsync(int id, string userId, string name, string? description, CancellationToken cancellationToken)
+    public async Task<WorkContextSaveStatus> UpdateAsync(int id, string userId, string name, string? description, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        var invalid = Validate(name, description);
-        return invalid is { } status
-            ? Task.FromResult(status)
-            : repository.UpdateAsync(id, userId, name.Trim(), WorkContextRules.NormalizeDescription(description), cancellationToken);
+        if (Validate(name, description) is { } invalid) return invalid;
+        var context = await repository.GetByIdAsync(id, userId, cancellationToken);
+        if (context is null) return WorkContextSaveStatus.NotFound;
+        if (!context.IsOwner) return WorkContextSaveStatus.Forbidden;
+        return await repository.UpdateAsync(id, userId, name.Trim(), WorkContextRules.NormalizeDescription(description), cancellationToken);
     }
 
-    public Task<bool> DeleteAsync(int id, string userId, CancellationToken cancellationToken)
+    public async Task<WorkContextDeleteStatus> DeleteAsync(int id, string userId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        return repository.DeleteAsync(id, userId, cancellationToken);
+        var context = await repository.GetByIdAsync(id, userId, cancellationToken);
+        if (context is null) return WorkContextDeleteStatus.NotFound;
+        if (!context.IsOwner) return WorkContextDeleteStatus.Forbidden;
+        return await repository.DeleteAsync(id, userId, cancellationToken)
+            ? WorkContextDeleteStatus.Deleted
+            : WorkContextDeleteStatus.NotFound;
     }
 
     private static WorkContextSaveStatus? Validate(string? name, string? description) =>

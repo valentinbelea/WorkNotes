@@ -139,6 +139,38 @@ public sealed class WorkContextServiceTests
     }
 
     [Fact]
+    public async Task OwnerCanEditAndDelete()
+    {
+        var repository = new StubRepository();
+        var service = new WorkContextService(repository);
+
+        Assert.Equal(WorkContextSaveStatus.Saved, await service.UpdateAsync(1, Creator, "TopDev", null, CancellationToken.None));
+        Assert.Equal(WorkContextDeleteStatus.Deleted, await service.DeleteAsync(1, Creator, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task MemberWhoIsNotOwnerCannotEditOrDelete()
+    {
+        var repository = new StubRepository(isOwner: false);
+        var service = new WorkContextService(repository);
+
+        Assert.Equal(WorkContextSaveStatus.Forbidden, await service.UpdateAsync(1, Creator, "TopDev", null, CancellationToken.None));
+        Assert.Equal(WorkContextDeleteStatus.Forbidden, await service.DeleteAsync(1, Creator, CancellationToken.None));
+        Assert.False(repository.Changed);
+    }
+
+    [Fact]
+    public async Task EditOrDeleteOfContextOutsideMembershipIsNotFound()
+    {
+        var repository = new StubRepository(exists: false);
+        var service = new WorkContextService(repository);
+
+        Assert.Equal(WorkContextSaveStatus.NotFound, await service.UpdateAsync(1, Creator, "TopDev", null, CancellationToken.None));
+        Assert.Equal(WorkContextDeleteStatus.NotFound, await service.DeleteAsync(1, Creator, CancellationToken.None));
+        Assert.False(repository.Changed);
+    }
+
+    [Fact]
     public async Task PassesCancellationTokenToDataAccess()
     {
         using var cancellation = new CancellationTokenSource();
@@ -165,8 +197,12 @@ public sealed class WorkContextServiceTests
         Assert.False(repository.WasCalled);
     }
 
-    private sealed class StubRepository(WorkContextSaveStatus outcome = WorkContextSaveStatus.Saved) : IWorkContextRepository
+    private sealed class StubRepository(WorkContextSaveStatus outcome = WorkContextSaveStatus.Saved, bool exists = true, bool isOwner = true) : IWorkContextRepository
     {
+        // By default the requested context exists and the current user owns it.
+        private readonly WorkContext? existing = exists ? new WorkContext(1, "TopDev", null, isOwner) : null;
+        public bool Changed { get; private set; }
+
         public (string Name, string? Description)? Saved { get; private set; }
         public bool WasCalled { get; private set; }
         public CancellationToken ReceivedToken { get; private set; }
@@ -184,7 +220,7 @@ public sealed class WorkContextServiceTests
         {
             Record(cancellationToken);
             Member = userId;
-            return Task.FromResult<WorkContext?>(null);
+            return Task.FromResult(existing);
         }
 
         public string? Owner { get; private set; }
@@ -202,6 +238,7 @@ public sealed class WorkContextServiceTests
             Record(cancellationToken);
             Member = userId;
             Saved = (name, description);
+            Changed = true;
             return Task.FromResult(outcome);
         }
 
@@ -209,6 +246,7 @@ public sealed class WorkContextServiceTests
         {
             Record(cancellationToken);
             Member = userId;
+            Changed = true;
             return Task.FromResult(true);
         }
 

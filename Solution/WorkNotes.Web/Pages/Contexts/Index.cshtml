@@ -30,10 +30,13 @@
                         <th scope="row">@context.Name</th>
                         <td class="data-table__text">@context.Description</td>
                         <td>
-                            <div class="actions">
-                                <a class="btn btn-secondary" asp-page="Index" asp-route-edit="@context.Id" aria-label="@L["Contexts_EditNamed", context.Name]">@L["Button_Edit"]</a>
-                                <a class="btn btn-ghost" asp-page="Index" asp-route-delete="@context.Id" aria-label="@L["Contexts_DeleteNamed", context.Name]">@L["Button_Delete"]</a>
-                            </div>
+                            @if (context.IsOwner)
+                            {
+                                <div class="actions">
+                                    <a class="btn btn-secondary" asp-page="Index" asp-route-edit="@context.Id" aria-label="@L["Contexts_EditNamed", context.Name]">@L["Button_Edit"]</a>
+                                    <a class="btn btn-ghost" asp-page="Index" asp-route-delete="@context.Id" aria-label="@L["Contexts_DeleteNamed", context.Name]">@L["Button_Delete"]</a>
+                                </div>
+                            }
                         </td>
                     </tr>
                 }

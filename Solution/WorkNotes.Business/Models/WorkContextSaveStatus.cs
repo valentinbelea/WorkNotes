@@ -5,6 +5,7 @@ public enum WorkContextSaveStatus
 {
     Saved,
     NotFound,
+    Forbidden,
     DuplicateName,
     InvalidName,
     InvalidDescription

@@ -28,11 +28,13 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
         {
             DeletingContext = await contexts.GetByIdAsync(deleteId, UserId, cancellationToken);
             if (DeletingContext is null) return NotFound();
+            if (!DeletingContext.IsOwner) return Forbidden();
         }
         else if (edit is { } contextId)
         {
             var context = await contexts.GetByIdAsync(contextId, UserId, cancellationToken);
             if (context is null) return NotFound();
+            if (!context.IsOwner) return Forbidden();
             Input = new() { Name = context.Name, Description = context.Description };
             OpenEditor(contextId);
         }
@@ -59,6 +61,8 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
                     return RedirectToPage();
                 case WorkContextSaveStatus.NotFound:
                     return NotFound();
+                case WorkContextSaveStatus.Forbidden:
+                    return Forbidden();
                 case WorkContextSaveStatus.DuplicateName:
                     ModelState.AddModelError("Input.Name", localizer["Validation_ContextNameTaken"]);
                     break;
@@ -78,10 +82,19 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
 
     public async Task<IActionResult> OnPostDeleteAsync(int delete, CancellationToken cancellationToken)
     {
-        if (!await contexts.DeleteAsync(delete, UserId, cancellationToken)) return NotFound();
+        switch (await contexts.DeleteAsync(delete, UserId, cancellationToken))
+        {
+            case WorkContextDeleteStatus.NotFound:
+                return NotFound();
+            case WorkContextDeleteStatus.Forbidden:
+                return Forbidden();
+        }
         TempData["StatusMessage"] = "Message_ContextDeleted";
         return RedirectToPage();
     }
+
+    // A member who is not the Owner may see the context but not change it. Forbid() would redirect to the login page.
+    private StatusCodeResult Forbidden() => StatusCode(StatusCodes.Status403Forbidden);
 
     private void OpenEditor(int? id)
     {
