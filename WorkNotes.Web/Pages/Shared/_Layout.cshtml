@@ -1,4 +1,7 @@
 @using System.Security.Claims
+@{
+    var sectionKey = NavigationSections.GetSectionKey(ViewContext.RouteData.Values["page"]?.ToString());
+}
 <!DOCTYPE html>
 <html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name">
 <head>
@@ -13,10 +16,16 @@
 </head>
 <body>
     <header class="site-header">
-        <button type="button" class="brand brand-menu" data-menu-open aria-controls="main-menu" aria-expanded="false" aria-haspopup="dialog" title="@L["Navigation_Menu"]" hidden>
-            <span aria-hidden="true">☰</span> WorkNotes
-        </button>
-        <noscript><a class="brand" href="#main-menu">WorkNotes</a></noscript>
+        <div class="site-identity">
+            <button type="button" class="brand brand-menu" data-menu-open aria-controls="main-menu" aria-expanded="false" aria-haspopup="dialog" title="@L["Navigation_Menu"]" hidden>
+                <span aria-hidden="true">☰</span> WorkNotes
+            </button>
+            <noscript><a class="brand" href="#main-menu">WorkNotes</a></noscript>
+            @if (sectionKey is not null)
+            {
+                <span class="site-section">@L[sectionKey]</span>
+            }
+        </div>
         <div class="header-actions">
             @if (User.Identity?.IsAuthenticated == true)
             {

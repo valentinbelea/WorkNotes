@@ -1,6 +1,6 @@
 @{
     var currentPage = ViewContext.RouteData.Values["page"]?.ToString();
-    var isAccountPage = currentPage?.StartsWith("/Account/", StringComparison.OrdinalIgnoreCase) == true;
+    var isAccountPage = NavigationSections.IsAccountPage(currentPage);
 }
 <dialog id="main-menu" class="main-menu" aria-labelledby="main-menu-title" open>
     <div class="main-menu-heading">

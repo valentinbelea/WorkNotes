@@ -53,5 +53,9 @@
 <data name="Navigation_CloseMenu" xml:space="preserve"><value>Close menu</value></data>
 <data name="Navigation_Dashboard" xml:space="preserve"><value>Dashboard</value></data>
 <data name="Navigation_AccountDetails" xml:space="preserve"><value>Account details</value></data>
+<data name="Navigation_MySpace" xml:space="preserve"><value>My space</value></data>
+<data name="Dashboard_Title" xml:space="preserve"><value>On my board</value></data>
+<data name="Dashboard_Description" xml:space="preserve"><value>Your notes, newest first.</value></data>
+<data name="Dashboard_EmptyBoard" xml:space="preserve"><value>The board is empty.</value></data>
+<data name="Button_NewNote" xml:space="preserve"><value>New note</value></data>
 </root>
-

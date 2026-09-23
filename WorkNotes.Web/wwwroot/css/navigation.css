@@ -24,3 +24,5 @@ summary.menu-item { display: list-item; list-style-position: inside; font-weight
 .brand-menu:hover { color: var(--wn-primary-hover); background: var(--wn-active-line); }
 .brand-menu:active, .brand-menu[aria-expanded="true"] { background: var(--wn-selection); }
 .brand-menu > span { font-size: 1.05rem; letter-spacing: normal; }
+.site-identity { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; min-width: 0; }
+.site-section { padding-inline-start: 1rem; border-inline-start: 1px solid var(--wn-border); font-size: .875rem; color: var(--wn-muted); overflow-wrap: anywhere; }

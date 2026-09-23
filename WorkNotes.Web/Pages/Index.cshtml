@@ -1,22 +1,36 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = L["Navigation_Home"];
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    ViewData["Title"] = isAuthenticated ? L["Navigation_Dashboard"] : L["Navigation_Home"];
 }
 
-<section class="welcome postit-panel">
-    <h1>WorkNotes</h1>
-    <p>@L["Home_Introduction"]</p>
-    <div class="actions">
-        @if (User.Identity?.IsAuthenticated == true)
-        {
-            <a class="btn btn-primary" asp-page="/Account/Index">@L["Navigation_MyAccount"]</a>
-        }
-        else
-        {
+@if (isAuthenticated)
+{
+    <section class="dashboard" aria-labelledby="dashboard-title">
+        <div class="dashboard-header">
+            <div>
+                <h1 id="dashboard-title">@L["Dashboard_Title"]</h1>
+                <p class="help-text">@L["Dashboard_Description"]</p>
+            </div>
+            @* Note creation is not implemented yet; the native disabled state prevents activation. *@
+            <button type="button" class="btn btn-primary" disabled>
+                <span aria-hidden="true">+</span> @L["Button_NewNote"]
+            </button>
+        </div>
+        <div class="notes-board-empty">
+            <p>@L["Dashboard_EmptyBoard"]</p>
+        </div>
+    </section>
+}
+else
+{
+    <section class="welcome postit-panel">
+        <h1>WorkNotes</h1>
+        <p>@L["Home_Introduction"]</p>
+        <div class="actions">
             <a class="btn btn-primary" asp-page="/Account/Login">@L["Navigation_Login"]</a>
             <a class="btn btn-secondary" asp-page="/Account/Register">@L["Navigation_Register"]</a>
-        }
-    </div>
-</section>
-
+        </div>
+    </section>
+}

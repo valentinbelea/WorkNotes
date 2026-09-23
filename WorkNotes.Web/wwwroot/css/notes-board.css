@@ -11,3 +11,11 @@
 .note-card__footer { margin-top: auto; }
 @media(max-width: 450px) { .notes-board { gap: .5rem; } .note-cell { aspect-ratio: auto; min-height: 17rem; } .note-card, .note-card:hover { inset: 6px; transform: none; } }
 @media(forced-colors: active) { .note-card[aria-pressed="true"] { outline: 3px solid Highlight; } }
+.dashboard-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem 1.5rem; }
+.dashboard-header h1 { margin-bottom: .25rem; font-size: clamp(1.5rem, 3vw, 1.9rem); }
+.dashboard-header p { margin: 0; }
+/* The empty board keeps the space that future notes will occupy. */
+.notes-board-empty { display: grid; place-items: center; min-height: 24rem; margin: 1.5rem 0; padding: 1.5rem; border: 2px dashed var(--wn-border); border-radius: var(--wn-radius-panel); color: var(--wn-muted); text-align: center; }
+.notes-board-empty p { margin: 0; }
+@media(max-width: 450px) { .notes-board-empty { min-height: 14rem; } }
+@media(forced-colors: active) { .notes-board-empty { border-color: CanvasText; } }
