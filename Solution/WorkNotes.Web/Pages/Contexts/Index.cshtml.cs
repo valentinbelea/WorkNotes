@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -48,7 +49,7 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
         {
             var status = edit is { } contextId
                 ? await contexts.UpdateAsync(contextId, Input.Name, Input.Description, cancellationToken)
-                : await contexts.CreateAsync(Input.Name, Input.Description, cancellationToken);
+                : await contexts.CreateAsync(Input.Name, Input.Description, User.FindFirstValue(ClaimTypes.NameIdentifier)!, cancellationToken);
             switch (status)
             {
                 case WorkContextSaveStatus.Saved:

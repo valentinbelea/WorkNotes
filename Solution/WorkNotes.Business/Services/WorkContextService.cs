@@ -17,13 +17,14 @@ public sealed class WorkContextService(IWorkContextRepository repository) : IWor
         return repository.GetByIdAsync(id, cancellationToken);
     }
 
-    public Task<WorkContextSaveStatus> CreateAsync(string name, string? description, CancellationToken cancellationToken)
+    public Task<WorkContextSaveStatus> CreateAsync(string name, string? description, string creatorUserId, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(creatorUserId);
         cancellationToken.ThrowIfCancellationRequested();
         var invalid = Validate(name, description);
         return invalid is { } status
             ? Task.FromResult(status)
-            : repository.AddAsync(name.Trim(), WorkContextRules.NormalizeDescription(description), cancellationToken);
+            : repository.AddAsync(name.Trim(), WorkContextRules.NormalizeDescription(description), creatorUserId, cancellationToken);
     }
 
     public Task<WorkContextSaveStatus> UpdateAsync(int id, string name, string? description, CancellationToken cancellationToken)

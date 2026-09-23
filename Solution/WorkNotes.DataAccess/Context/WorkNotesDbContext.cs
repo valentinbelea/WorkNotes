@@ -12,12 +12,29 @@ public partial class WorkNotesDbContext : DbContext
     {
     }
 
+    public virtual DbSet<ContextMember> ContextMembers { get; set; }
+
     public virtual DbSet<DatabaseVersion> DatabaseVersions { get; set; }
 
     public virtual DbSet<WorkContext> WorkContexts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<ContextMember>(entity =>
+        {
+            entity.HasKey(e => new { e.ContextId, e.UserId });
+
+            entity.HasIndex(e => e.UserId, "IX_ContextMembers_UserId");
+
+            entity.Property(e => e.UserId).HasMaxLength(128);
+            entity.Property(e => e.AddedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_ContextMembers_AddedAtUtc");
+            entity.Property(e => e.Role).HasMaxLength(20);
+
+            entity.HasOne(d => d.Context).WithMany(p => p.ContextMembers).HasForeignKey(d => d.ContextId);
+        });
+
         modelBuilder.Entity<DatabaseVersion>(entity =>
         {
             entity.HasKey(e => e.Version);

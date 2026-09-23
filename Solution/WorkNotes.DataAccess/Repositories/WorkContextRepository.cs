@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using WorkNotes.Business.Abstractions;
 using WorkNotes.Business.Models;
 using WorkNotes.DataAccess.Context;
+using ContextMemberEntity = WorkNotes.DataAccess.Entities.ContextMember;
 using WorkContextEntity = WorkNotes.DataAccess.Entities.WorkContext;
 
 namespace WorkNotes.DataAccess.Repositories;
@@ -23,9 +24,11 @@ public sealed class WorkContextRepository(WorkNotesDbContext dbContext) : IWorkC
             .Select(item => new WorkContext(item.Id, item.Name, item.Description))
             .SingleOrDefaultAsync(cancellationToken);
 
-    public async Task<WorkContextSaveStatus> AddAsync(string name, string? description, CancellationToken cancellationToken)
+    public async Task<WorkContextSaveStatus> AddAsync(string name, string? description, string ownerUserId, CancellationToken cancellationToken)
     {
         var entity = new WorkContextEntity { Name = name, Description = description };
+        // One SaveChanges inserts the context and the owner membership in a single transaction.
+        entity.ContextMembers.Add(new ContextMemberEntity { UserId = ownerUserId, Role = ContextRoles.Owner });
         dbContext.WorkContexts.Add(entity);
         return await SaveAsync(entity, cancellationToken);
     }

@@ -6,17 +6,42 @@ namespace WorkNotes.Business.Tests;
 
 public sealed class WorkContextServiceTests
 {
+    private const string Creator = "user-1";
+
     [Fact]
     public async Task CreateTrimsNameAndDescription()
     {
         var repository = new StubRepository();
         var service = new WorkContextService(repository);
 
-        var status = await service.CreateAsync("  SD Worx ", "  Proiecte client  ", CancellationToken.None);
+        var status = await service.CreateAsync("  SD Worx ", "  Proiecte client  ", Creator, CancellationToken.None);
 
         Assert.Equal(WorkContextSaveStatus.Saved, status);
         Assert.Equal("SD Worx", repository.Saved?.Name);
         Assert.Equal("Proiecte client", repository.Saved?.Description);
+    }
+
+    [Fact]
+    public async Task CreatorBecomesOwner()
+    {
+        var repository = new StubRepository();
+        var service = new WorkContextService(repository);
+
+        await service.CreateAsync("TopDev", null, Creator, CancellationToken.None);
+
+        Assert.Equal(Creator, repository.Owner);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task CreateRequiresCreator(string creator)
+    {
+        var repository = new StubRepository();
+        var service = new WorkContextService(repository);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync("TopDev", null, creator, CancellationToken.None));
+        Assert.False(repository.WasCalled);
     }
 
     [Theory]
@@ -28,7 +53,7 @@ public sealed class WorkContextServiceTests
         var repository = new StubRepository();
         var service = new WorkContextService(repository);
 
-        await service.CreateAsync("TopDev", description, CancellationToken.None);
+        await service.CreateAsync("TopDev", description, Creator, CancellationToken.None);
 
         Assert.Null(repository.Saved?.Description);
     }
@@ -39,7 +64,7 @@ public sealed class WorkContextServiceTests
         var repository = new StubRepository();
         var service = new WorkContextService(repository);
 
-        var status = await service.CreateAsync("TopDev", "Rând 1\r\nRând 2", CancellationToken.None);
+        var status = await service.CreateAsync("TopDev", "Rând 1\r\nRând 2", Creator, CancellationToken.None);
 
         Assert.Equal(WorkContextSaveStatus.Saved, status);
     }
@@ -53,7 +78,7 @@ public sealed class WorkContextServiceTests
         var repository = new StubRepository();
         var service = new WorkContextService(repository);
 
-        Assert.Equal(WorkContextSaveStatus.InvalidName, await service.CreateAsync(name, null, CancellationToken.None));
+        Assert.Equal(WorkContextSaveStatus.InvalidName, await service.CreateAsync(name, null, Creator, CancellationToken.None));
         Assert.Equal(WorkContextSaveStatus.InvalidName, await service.UpdateAsync(1, name, null, CancellationToken.None));
         Assert.False(repository.WasCalled);
     }
@@ -65,11 +90,11 @@ public sealed class WorkContextServiceTests
         var service = new WorkContextService(repository);
 
         Assert.Equal(WorkContextSaveStatus.InvalidName,
-            await service.CreateAsync(new string('a', WorkContextRules.NameMaxLength + 1), null, CancellationToken.None));
+            await service.CreateAsync(new string('a', WorkContextRules.NameMaxLength + 1), null, Creator, CancellationToken.None));
         Assert.Equal(WorkContextSaveStatus.InvalidDescription,
-            await service.CreateAsync("TopDev", new string('a', WorkContextRules.DescriptionMaxLength + 1), CancellationToken.None));
+            await service.CreateAsync("TopDev", new string('a', WorkContextRules.DescriptionMaxLength + 1), Creator, CancellationToken.None));
         Assert.Equal(WorkContextSaveStatus.Saved,
-            await service.CreateAsync(new string('a', WorkContextRules.NameMaxLength), null, CancellationToken.None));
+            await service.CreateAsync(new string('a', WorkContextRules.NameMaxLength), null, Creator, CancellationToken.None));
     }
 
     [Theory]
@@ -103,7 +128,7 @@ public sealed class WorkContextServiceTests
         var service = new WorkContextService(repository);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => service.CreateAsync("TopDev", null, cancellation.Token));
+            () => service.CreateAsync("TopDev", null, Creator, cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => service.DeleteAsync(1, cancellation.Token));
         Assert.False(repository.WasCalled);
@@ -127,10 +152,13 @@ public sealed class WorkContextServiceTests
             return Task.FromResult<WorkContext?>(null);
         }
 
-        public Task<WorkContextSaveStatus> AddAsync(string name, string? description, CancellationToken cancellationToken)
+        public string? Owner { get; private set; }
+
+        public Task<WorkContextSaveStatus> AddAsync(string name, string? description, string ownerUserId, CancellationToken cancellationToken)
         {
             Record(cancellationToken);
             Saved = (name, description);
+            Owner = ownerUserId;
             return Task.FromResult(outcome);
         }
 
