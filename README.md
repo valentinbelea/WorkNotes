@@ -51,10 +51,10 @@ Contextele (de exemplu SD Worx, TopDev) sunt prima condiție a modulului Notes. 
 - /Contexts/Edit: context nou; /Contexts/Edit/{id}: editare.
 - /Contexts/Delete/{id}: confirmare; ștergerea se face numai prin POST cu antiforgery.
 
-Flux: `Pages/Contexts → IWorkContextService → WorkContextService → IWorkContextRepository → WorkContextRepository → WorkNotesDbContext`. Business validează și normalizează (Trim, descriere goală → NULL) și întoarce coduri `WorkContextSaveStatus`; Web le traduce. Unicitatea numelui este garantată de indexul unic, inclusiv la salvări concurente. În această etapă orice utilizator autentificat poate administra contextele; ContextMembers și rolurile vin ulterior.
+Flux: `Pages/Contexts → IWorkContextService → WorkContextService → IWorkContextRepository → WorkContextRepository → WorkNotesDbContext`. Scriptul este în repository, în `sql.Scripts/version_0.01/004_CreateWorkContexts.sql`; se rulează din folderul soluției. Business validează și normalizează (Trim, descriere goală → NULL) și întoarce coduri `WorkContextSaveStatus`; Web le traduce. Unicitatea numelui este garantată de indexul unic, inclusiv la salvări concurente. În această etapă orice utilizator autentificat poate administra contextele; ContextMembers și rolurile vin ulterior.
 
 ```powershell
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\004_CreateWorkContexts.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i 'sql.Scripts\version_0.01\004_CreateWorkContexts.sql'
 ```
 
 ## Modulul de conturi — version_0.01
@@ -151,8 +151,7 @@ E:\GitRepository\Vali\WorkNotes\
         ├── 001_InsertDatabaseVersion.sql
         ├── 002_AddIdentityUsers.sql
         ├── 003_RemoveIdentityMigrationsHistory.sql
-        ├── temp_002_RemoveEFMigrationsHistory.sql
-        └── 004_CreateWorkContexts.sql
+        └── temp_002_RemoveEFMigrationsHistory.sql
 ```
 
 Folderul `Scripts` este în afara repository-ului Git actual, conform amplasării solicitate lângă folderul soluției. Un commit din folderul soluției nu îl va include automat.
