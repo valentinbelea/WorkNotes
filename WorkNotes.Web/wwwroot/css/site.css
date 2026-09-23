@@ -26,8 +26,7 @@ mark, .text-highlight { color: var(--wn-text); background: var(--wn-highlight); 
 .site-main { flex: 1; width: 100%; max-width: 78rem; margin-inline: auto; padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem); }
 .site-footer { display: flex; flex-wrap: wrap; gap: .5rem 1rem; padding: .75rem clamp(1rem, 4vw, 3rem); background: var(--wn-surface); border-top: 1px solid var(--wn-border); font-size: .8rem; color: var(--wn-muted); }
 .application-version { margin-inline-start: auto; text-align: end; }
-.welcome { max-width: 48rem; margin: 2rem auto; padding: clamp(1.5rem, 5vw, 3rem);  }
-/* Apply paper treatment to content panels, not nested field/layout containers. */
+.welcome { max-width: 48rem; margin: 2rem auto; padding: clamp(1.5rem, 5vw, 3rem); }
 .welcome .actions { margin-top: 1.5rem; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .55rem 1rem; border: 1px solid transparent; border-radius: var(--wn-radius); font-weight: 600; line-height: 1.4; text-decoration: none; cursor: pointer; transition: background var(--wn-motion), color var(--wn-motion), border-color var(--wn-motion); }
 .btn-primary { color: var(--wn-on-primary); background: var(--wn-primary); border-color: var(--wn-primary); }
@@ -41,7 +40,7 @@ mark, .text-highlight { color: var(--wn-text); background: var(--wn-highlight); 
 .btn-danger:hover { color: var(--wn-danger); background: var(--wn-danger-bg); border-color: var(--wn-danger); }
 .btn:disabled, .btn[aria-disabled="true"] { background: var(--wn-disabled-bg); color: var(--wn-disabled-text); border-color: transparent; box-shadow: none; cursor: not-allowed; }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
-.account-card { width: 100%; max-width: 33rem; margin-inline: auto; padding: clamp(1.25rem, 4vw, 2.5rem);  }
+.account-card { width: 100%; max-width: 33rem; margin-inline: auto; padding: clamp(1.25rem, 4vw, 2.5rem); }
 .account-card h1 { font-size: 1.8rem; margin-bottom: 1.75rem; }
 .account-card form > .btn { margin-top: .75rem; }
 .field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: 1rem; }
@@ -61,4 +60,4 @@ mark, .text-highlight { color: var(--wn-text); background: var(--wn-highlight); 
 .status-message { box-shadow: var(--wn-shadow-note); max-width: 48rem; margin: 0 auto 1.5rem; padding: .8rem 1rem; border-inline-start: 3px solid var(--wn-primary); border-radius: var(--wn-radius); background: var(--wn-success-bg); }
 @media (max-width: 700px) { .language-selector { margin-inline-start: auto; } .welcome { margin-block: .5rem; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
-@media (forced-colors: active) { .btn, .account-card, .welcome { border: 1px solid ButtonText; } }
+@media (forced-colors: active) { .btn { border: 1px solid ButtonText; } }
