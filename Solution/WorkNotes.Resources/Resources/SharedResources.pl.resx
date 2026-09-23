@@ -89,4 +89,8 @@
 <data name="Message_MemberAdded" xml:space="preserve"><value>Członek został dodany.</value></data>
 <data name="Validation_UserNotFound" xml:space="preserve"><value>Nie ma konta z tym adresem e-mail.</value></data>
 <data name="Validation_AlreadyMember" xml:space="preserve"><value>Ten użytkownik jest już członkiem kontekstu.</value></data>
+<data name="Button_Remove" xml:space="preserve"><value>Usuń</value></data>
+<data name="Contexts_RemoveMemberNamed" xml:space="preserve"><value>Usuń {0} z kontekstu</value></data>
+<data name="Message_MemberRemoved" xml:space="preserve"><value>Członek został usunięty.</value></data>
+<data name="Message_MemberNotFound" xml:space="preserve"><value>Ten użytkownik nie jest już członkiem kontekstu.</value></data>
 </root>

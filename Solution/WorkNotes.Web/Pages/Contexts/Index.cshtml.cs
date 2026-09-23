@@ -132,8 +132,28 @@ public sealed class IndexModel(IWorkContextService contexts, IContextMemberServi
         return Page();
     }
 
-    // The add-member form posts with ?handler=AddMember; opening that address directly shows the member list.
+    public async Task<IActionResult> OnPostRemoveMemberAsync(int members, string memberUserId, CancellationToken cancellationToken)
+    {
+        switch (await memberService.RemoveMemberAsync(members, UserId, memberUserId, cancellationToken))
+        {
+            case ContextMemberRemoveStatus.NotFound:
+                return NotFound();
+            case ContextMemberRemoveStatus.Forbidden:
+                return Forbidden();
+            case ContextMemberRemoveStatus.MemberNotFound:
+                // Already removed, for example from another tab: show the current list.
+                TempData["MembersMessage"] = "Message_MemberNotFound";
+                break;
+            default:
+                TempData["MembersMessage"] = "Message_MemberRemoved";
+                break;
+        }
+        return RedirectToPage(new { members });
+    }
+
+    // The member forms post with ?handler=AddMember or RemoveMember; opening those addresses directly shows the member list.
     public IActionResult OnGetAddMember(int members) => RedirectToPage(new { members });
+    public IActionResult OnGetRemoveMember(int members) => RedirectToPage(new { members });
 
     private async Task<IActionResult?> LoadMembersAsync(int contextId, CancellationToken cancellationToken)
     {

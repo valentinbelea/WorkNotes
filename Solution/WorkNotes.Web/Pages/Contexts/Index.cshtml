@@ -101,6 +101,7 @@
                         <th scope="col">@L["Field_Name"]</th>
                         <th scope="col">@L["Field_Email"]</th>
                         <th scope="col">@L["Field_Role"]</th>
+                        <th scope="col"><span class="visually-hidden">@L["Contexts_Actions"]</span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -109,7 +110,16 @@
                         <tr>
                             <th scope="row">@member.FirstName @member.LastName</th>
                             <td>@member.Email</td>
-                            <td>@(member.Role == ContextRoles.Owner ? L["ContextRole_Owner"] : L["ContextRole_Member"])</td>
+                            <td class="data-table__nowrap">@(member.Role == ContextRoles.Owner ? L["ContextRole_Owner"] : L["ContextRole_Member"])</td>
+                            <td>
+                                @if (member.Role == ContextRoles.Member)
+                                {
+                                    <form method="post" asp-page="Index" asp-page-handler="RemoveMember" asp-route-members="@managed.Id" class="actions">
+                                        <input type="hidden" name="memberUserId" value="@member.UserId" />
+                                        <button type="submit" class="btn btn-ghost" aria-label="@L["Contexts_RemoveMemberNamed", $"{member.FirstName} {member.LastName}"]">@L["Button_Remove"]</button>
+                                    </form>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>

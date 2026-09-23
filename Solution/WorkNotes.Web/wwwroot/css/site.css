@@ -51,6 +51,7 @@ mark, .text-highlight { color: var(--wn-text); background: var(--wn-highlight); 
 .data-table thead th { font-size: .8rem; font-weight: 650; color: var(--wn-muted); text-transform: uppercase; letter-spacing: .04em; }
 .data-table tbody th { font-weight: 600; }
 .data-table__text { white-space: pre-line; }
+.data-table__nowrap { white-space: nowrap; overflow-wrap: normal; }
 .data-table .actions { justify-content: flex-end; flex-wrap: nowrap; }
 /* Action labels stay whole; the text columns absorb the remaining width. */
 .data-table td:has(> .actions) { width: 1%; }

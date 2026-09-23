@@ -76,6 +76,56 @@ public sealed class ContextMemberServiceTests
         Assert.Equal(Owner, Assert.Single(list!).UserId);
     }
 
+    [Fact]
+    public async Task OwnerRemovesMember()
+    {
+        var members = new StubMembers();
+        var service = new ContextMemberService(new StubContexts(isOwner: true), members);
+
+        Assert.Equal(ContextMemberRemoveStatus.Removed, await service.RemoveMemberAsync(1, Owner, "user-2", CancellationToken.None));
+        Assert.Equal("user-2", members.Removed);
+    }
+
+    [Fact]
+    public async Task OwnerCannotRemoveThemselves()
+    {
+        var members = new StubMembers();
+        var service = new ContextMemberService(new StubContexts(isOwner: true), members);
+
+        Assert.Equal(ContextMemberRemoveStatus.Forbidden, await service.RemoveMemberAsync(1, Owner, Owner, CancellationToken.None));
+        Assert.False(members.WasCalled);
+    }
+
+    [Fact]
+    public async Task MemberWhoIsNotOwnerCannotRemove()
+    {
+        var members = new StubMembers();
+        var service = new ContextMemberService(new StubContexts(isOwner: false), members);
+
+        Assert.Equal(ContextMemberRemoveStatus.Forbidden, await service.RemoveMemberAsync(1, Owner, "user-2", CancellationToken.None));
+        Assert.False(members.WasCalled);
+    }
+
+    [Fact]
+    public async Task RemovingFromContextOutsideMembershipIsNotFound()
+    {
+        var members = new StubMembers();
+        var service = new ContextMemberService(new StubContexts(exists: false), members);
+
+        Assert.Equal(ContextMemberRemoveStatus.NotFound, await service.RemoveMemberAsync(1, Owner, "user-2", CancellationToken.None));
+        Assert.False(members.WasCalled);
+    }
+
+    [Theory]
+    [InlineData(true, "")]
+    [InlineData(false, "user-2")]
+    public async Task MissingMembershipIsReported(bool removes, string memberUserId)
+    {
+        var service = new ContextMemberService(new StubContexts(isOwner: true), new StubMembers(removes: removes));
+
+        Assert.Equal(ContextMemberRemoveStatus.MemberNotFound, await service.RemoveMemberAsync(1, Owner, memberUserId, CancellationToken.None));
+    }
+
     private sealed class StubContexts(bool exists = true, bool isOwner = true) : IWorkContextRepository
     {
         public bool WasCalled { get; private set; }
@@ -92,9 +142,17 @@ public sealed class ContextMemberServiceTests
         public Task<bool> DeleteAsync(int id, string userId, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
-    private sealed class StubMembers(ContextMemberAddStatus outcome = ContextMemberAddStatus.Added) : IContextMemberRepository
+    private sealed class StubMembers(ContextMemberAddStatus outcome = ContextMemberAddStatus.Added, bool removes = true) : IContextMemberRepository
     {
         public bool WasCalled { get; private set; }
+        public string? Removed { get; private set; }
+
+        public Task<bool> RemoveMemberAsync(int contextId, string memberUserId, CancellationToken cancellationToken)
+        {
+            WasCalled = true;
+            Removed = memberUserId;
+            return Task.FromResult(removes);
+        }
         public (string Email, string Role)? Added { get; private set; }
 
         public Task<IReadOnlyList<ContextMemberDetails>> GetMembersAsync(int contextId, CancellationToken cancellationToken)

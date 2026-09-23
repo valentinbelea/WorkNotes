@@ -63,4 +63,10 @@ public sealed class ContextMemberRepository(WorkNotesDbContext dbContext, Accoun
             return sql.Number == 2627 ? ContextMemberAddStatus.AlreadyMember : ContextMemberAddStatus.UserNotFound;
         }
     }
+
+    public async Task<bool> RemoveMemberAsync(int contextId, string memberUserId, CancellationToken cancellationToken) =>
+        // The Role filter keeps Owner memberships out of reach even if called with an Owner's id.
+        await dbContext.ContextMembers
+            .Where(member => member.ContextId == contextId && member.UserId == memberUserId && member.Role == ContextRoles.Member)
+            .ExecuteDeleteAsync(cancellationToken) > 0;
 }

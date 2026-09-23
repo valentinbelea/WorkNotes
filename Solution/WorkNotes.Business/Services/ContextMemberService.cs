@@ -26,4 +26,18 @@ public sealed class ContextMemberService(IWorkContextRepository contexts, IConte
         // Members added by the Owner get the Member role; ownership is not transferred here.
         return await members.AddByEmailAsync(contextId, email.Trim(), ContextRoles.Member, cancellationToken);
     }
+
+    public async Task<ContextMemberRemoveStatus> RemoveMemberAsync(int contextId, string userId, string memberUserId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(memberUserId)) return ContextMemberRemoveStatus.MemberNotFound;
+        var context = await contexts.GetByIdAsync(contextId, userId, cancellationToken);
+        if (context is null) return ContextMemberRemoveStatus.NotFound;
+        // Only the Owner removes members, and never themselves: a context always keeps its Owner.
+        if (!context.IsOwner || memberUserId == userId) return ContextMemberRemoveStatus.Forbidden;
+        return await members.RemoveMemberAsync(contextId, memberUserId, cancellationToken)
+            ? ContextMemberRemoveStatus.Removed
+            : ContextMemberRemoveStatus.MemberNotFound;
+    }
 }

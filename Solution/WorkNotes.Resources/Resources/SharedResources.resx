@@ -89,4 +89,8 @@
 <data name="Message_MemberAdded" xml:space="preserve"><value>Membrul a fost adăugat.</value></data>
 <data name="Validation_UserNotFound" xml:space="preserve"><value>Nu există niciun cont cu acest e-mail.</value></data>
 <data name="Validation_AlreadyMember" xml:space="preserve"><value>Utilizatorul este deja membru al contextului.</value></data>
+<data name="Button_Remove" xml:space="preserve"><value>Elimină</value></data>
+<data name="Contexts_RemoveMemberNamed" xml:space="preserve"><value>Elimină pe {0} din context</value></data>
+<data name="Message_MemberRemoved" xml:space="preserve"><value>Membrul a fost eliminat.</value></data>
+<data name="Message_MemberNotFound" xml:space="preserve"><value>Utilizatorul nu mai este membru al contextului.</value></data>
 </root>
