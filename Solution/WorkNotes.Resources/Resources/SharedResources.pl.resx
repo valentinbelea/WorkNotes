@@ -78,4 +78,15 @@
 <data name="Validation_InvalidDescription" xml:space="preserve"><value>Opis może mieć maksymalnie 1000 znaków i nie może zawierać znaków sterujących.</value></data>
 <data name="Message_ContextSaved" xml:space="preserve"><value>Kontekst został zapisany.</value></data>
 <data name="Message_ContextDeleted" xml:space="preserve"><value>Kontekst został usunięty.</value></data>
+<data name="Button_Members" xml:space="preserve"><value>Członkowie</value></data>
+<data name="Button_AddMember" xml:space="preserve"><value>Dodaj członka</value></data>
+<data name="Button_Close" xml:space="preserve"><value>Zamknij</value></data>
+<data name="Contexts_MembersTitle" xml:space="preserve"><value>Członkowie kontekstu „{0}”</value></data>
+<data name="Contexts_MembersNamed" xml:space="preserve"><value>Członkowie kontekstu {0}</value></data>
+<data name="Field_Role" xml:space="preserve"><value>Rola</value></data>
+<data name="ContextRole_Owner" xml:space="preserve"><value>Właściciel</value></data>
+<data name="ContextRole_Member" xml:space="preserve"><value>Członek</value></data>
+<data name="Message_MemberAdded" xml:space="preserve"><value>Członek został dodany.</value></data>
+<data name="Validation_UserNotFound" xml:space="preserve"><value>Nie ma konta z tym adresem e-mail.</value></data>
+<data name="Validation_AlreadyMember" xml:space="preserve"><value>Ten użytkownik jest już członkiem kontekstu.</value></data>
 </root>

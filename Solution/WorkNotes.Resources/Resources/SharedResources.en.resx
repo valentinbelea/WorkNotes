@@ -78,4 +78,15 @@
 <data name="Validation_InvalidDescription" xml:space="preserve"><value>The description must not exceed 1000 characters and cannot contain control characters.</value></data>
 <data name="Message_ContextSaved" xml:space="preserve"><value>The context has been saved.</value></data>
 <data name="Message_ContextDeleted" xml:space="preserve"><value>The context has been deleted.</value></data>
+<data name="Button_Members" xml:space="preserve"><value>Members</value></data>
+<data name="Button_AddMember" xml:space="preserve"><value>Add member</value></data>
+<data name="Button_Close" xml:space="preserve"><value>Close</value></data>
+<data name="Contexts_MembersTitle" xml:space="preserve"><value>Members of “{0}”</value></data>
+<data name="Contexts_MembersNamed" xml:space="preserve"><value>Members of context {0}</value></data>
+<data name="Field_Role" xml:space="preserve"><value>Role</value></data>
+<data name="ContextRole_Owner" xml:space="preserve"><value>Owner</value></data>
+<data name="ContextRole_Member" xml:space="preserve"><value>Member</value></data>
+<data name="Message_MemberAdded" xml:space="preserve"><value>The member has been added.</value></data>
+<data name="Validation_UserNotFound" xml:space="preserve"><value>There is no account with this email address.</value></data>
+<data name="Validation_AlreadyMember" xml:space="preserve"><value>This user is already a member of the context.</value></data>
 </root>

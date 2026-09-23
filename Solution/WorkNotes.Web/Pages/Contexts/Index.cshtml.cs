@@ -10,21 +10,29 @@ using WorkNotes.Web.ViewModels;
 
 namespace WorkNotes.Web.Pages.Contexts;
 
-// Lists contexts; ?add=true, ?edit={id} or ?delete={id} opens the form or the delete confirmation in an overlay on the same page.
+// Lists contexts; ?add=true, ?edit={id}, ?delete={id} or ?members={id} opens the matching form in an overlay on the same page.
 [Authorize]
-public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<SharedResources> localizer) : PageModel
+public sealed class IndexModel(IWorkContextService contexts, IContextMemberService memberService, IStringLocalizer<SharedResources> localizer) : PageModel
 {
     public IReadOnlyList<WorkContext> Contexts { get; private set; } = [];
-    [BindProperty] public WorkContextInput Input { get; set; } = new();
+    // Each form binds its own input as a handler parameter, so one form's validation never affects the other.
+    public WorkContextInput Input { get; set; } = new();
+    public ContextMemberInput MemberInput { get; set; } = new();
     public bool IsEditorOpen { get; private set; }
     public int? EditingId { get; private set; }
     public WorkContext? DeletingContext { get; private set; }
+    public WorkContext? MembersContext { get; private set; }
+    public IReadOnlyList<ContextMemberDetails> Members { get; private set; } = [];
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-    public async Task<IActionResult> OnGetAsync(bool add, int? edit, int? delete, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnGetAsync(bool add, int? edit, int? delete, int? members, CancellationToken cancellationToken)
     {
-        if (delete is { } deleteId)
+        if (members is { } membersId)
+        {
+            if (await LoadMembersAsync(membersId, cancellationToken) is { } error) return error;
+        }
+        else if (delete is { } deleteId)
         {
             DeletingContext = await contexts.GetByIdAsync(deleteId, UserId, cancellationToken);
             if (DeletingContext is null) return NotFound();
@@ -47,8 +55,9 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
     }
 
     // The form posts back to the URL that opened it, so a refresh after a validation error reopens the same form.
-    public async Task<IActionResult> OnPostAsync(int? edit, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostAsync(int? edit, WorkContextInput input, CancellationToken cancellationToken)
     {
+        Input = input;
         if (ModelState.IsValid)
         {
             var status = edit is { } contextId
@@ -91,6 +100,48 @@ public sealed class IndexModel(IWorkContextService contexts, IStringLocalizer<Sh
         }
         TempData["StatusMessage"] = "Message_ContextDeleted";
         return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostAddMemberAsync(int members, ContextMemberInput memberInput, CancellationToken cancellationToken)
+    {
+        MemberInput = memberInput;
+        if (ModelState.IsValid)
+        {
+            switch (await memberService.AddMemberAsync(members, UserId, memberInput.Email, cancellationToken))
+            {
+                case ContextMemberAddStatus.Added:
+                    TempData["MembersMessage"] = "Message_MemberAdded";
+                    return RedirectToPage(new { members });
+                case ContextMemberAddStatus.NotFound:
+                    return NotFound();
+                case ContextMemberAddStatus.Forbidden:
+                    return Forbidden();
+                case ContextMemberAddStatus.InvalidEmail:
+                    ModelState.AddModelError("MemberInput.Email", localizer["Validation_InvalidEmail"]);
+                    break;
+                case ContextMemberAddStatus.UserNotFound:
+                    ModelState.AddModelError("MemberInput.Email", localizer["Validation_UserNotFound"]);
+                    break;
+                case ContextMemberAddStatus.AlreadyMember:
+                    ModelState.AddModelError("MemberInput.Email", localizer["Validation_AlreadyMember"]);
+                    break;
+            }
+        }
+        if (await LoadMembersAsync(members, cancellationToken) is { } error) return error;
+        Contexts = await contexts.GetForMemberAsync(UserId, cancellationToken);
+        return Page();
+    }
+
+    // The add-member form posts with ?handler=AddMember; opening that address directly shows the member list.
+    public IActionResult OnGetAddMember(int members) => RedirectToPage(new { members });
+
+    private async Task<IActionResult?> LoadMembersAsync(int contextId, CancellationToken cancellationToken)
+    {
+        MembersContext = await contexts.GetByIdAsync(contextId, UserId, cancellationToken);
+        if (MembersContext is null) return NotFound();
+        if (!MembersContext.IsOwner) return Forbidden();
+        Members = await memberService.GetMembersAsync(contextId, UserId, cancellationToken) ?? [];
+        return null;
     }
 
     // A member who is not the Owner may see the context but not change it. Forbid() would redirect to the login page.

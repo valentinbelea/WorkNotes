@@ -78,4 +78,15 @@
 <data name="Validation_InvalidDescription" xml:space="preserve"><value>Descrierea are maximum 1000 de caractere și nu poate conține caractere de control.</value></data>
 <data name="Message_ContextSaved" xml:space="preserve"><value>Contextul a fost salvat.</value></data>
 <data name="Message_ContextDeleted" xml:space="preserve"><value>Contextul a fost șters.</value></data>
+<data name="Button_Members" xml:space="preserve"><value>Membri</value></data>
+<data name="Button_AddMember" xml:space="preserve"><value>Adaugă membru</value></data>
+<data name="Button_Close" xml:space="preserve"><value>Închide</value></data>
+<data name="Contexts_MembersTitle" xml:space="preserve"><value>Membrii contextului „{0}”</value></data>
+<data name="Contexts_MembersNamed" xml:space="preserve"><value>Membrii contextului {0}</value></data>
+<data name="Field_Role" xml:space="preserve"><value>Rol</value></data>
+<data name="ContextRole_Owner" xml:space="preserve"><value>Proprietar</value></data>
+<data name="ContextRole_Member" xml:space="preserve"><value>Membru</value></data>
+<data name="Message_MemberAdded" xml:space="preserve"><value>Membrul a fost adăugat.</value></data>
+<data name="Validation_UserNotFound" xml:space="preserve"><value>Nu există niciun cont cu acest e-mail.</value></data>
+<data name="Validation_AlreadyMember" xml:space="preserve"><value>Utilizatorul este deja membru al contextului.</value></data>
 </root>
