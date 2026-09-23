@@ -4,7 +4,19 @@
     ViewData["Title"] = L["Navigation_Home"];
 }
 
-<section class="welcome">
+<section class="welcome postit-panel">
     <h1>WorkNotes</h1>
     <p>@L["Home_Introduction"]</p>
+    <div class="actions">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="btn btn-primary" asp-page="/Account/Index">@L["Navigation_MyAccount"]</a>
+        }
+        else
+        {
+            <a class="btn btn-primary" asp-page="/Account/Login">@L["Navigation_Login"]</a>
+            <a class="btn btn-secondary" asp-page="/Account/Register">@L["Navigation_Register"]</a>
+        }
+    </div>
 </section>
+

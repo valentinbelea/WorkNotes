@@ -106,7 +106,15 @@ Utilizarea resurselor .resx este obligatorie pentru toate textele afișate utili
 - Brandul WorkNotes, datele introduse de utilizatori și identificatorii tehnici nu se traduc. Mesajele tehnice din loguri și detaliile interne ale excepțiilor nu se localizează și nu devin texte de interfață.
 - Rulați tools/Test-Resources.ps1 și verificați cele trei limbi, validările client/server, mesajele Identity și paginile protejate când modificați localizarea.
 
-## Verificări înainte de predare
+## Design obligatoriu — Hârtie & salvie
+
+- Varianta 1 este designul aprobat: fond crem, verde închis #176C65, hârtie și salvie. Ghidul este docs/design-system.md.
+- Utilizați tokenurile din tokens.css și componentele din site.css / notes-board.css. Nu duplicați paleta și stilurile butoanelor în pagini.
+- Păstrați stările hover, active, disabled, focus vizibil, selecție și eroare, cu contrast lizibil și suport pentru reduced-motion.
+- Toate textele rămân în .resx. Designul nu autorizează introducerea de date fictive sau implementarea unor module fără cerință.
+- Tabla afișează ordinea cronologică primită de la serviciu. Decalajele și rotațiile mici sunt deterministe din ID, încadrate în celula proprie; nu reordonează DOM și nu se recalculează aleatoriu la reîncărcare. Pe mobil sunt eliminate.
+
+## Verificarea livrării
 
 După fiecare set coerent de modificări și înainte de predare:
 

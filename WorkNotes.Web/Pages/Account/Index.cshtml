@@ -1,14 +1,15 @@
 @page
 @model WorkNotes.Web.Pages.Account.IndexModel
 @{ ViewData["Title"] = L["Navigation_MyAccount"]; }
-<section class="account-card">
+<section class="account-card postit-panel">
 <h1>@L["Navigation_MyAccount"]</h1>
 <form method="post" data-validate>
 <div asp-validation-summary="All" class="validation-summary" role="alert"></div>
 <p><strong>@L["Field_Email"]:</strong> @Model.Email</p>
 <div class="field"><label asp-for="Input.FirstName"></label><input asp-for="Input.FirstName" autocomplete="given-name" /><span asp-validation-for="Input.FirstName" class="field-error"></span></div>
 <div class="field"><label asp-for="Input.LastName"></label><input asp-for="Input.LastName" autocomplete="family-name" /><span asp-validation-for="Input.LastName" class="field-error"></span></div>
-<button type="submit">@L["Button_Save"]</button>
+<button type="submit" class="btn btn-primary">@L["Button_Save"]</button>
 </form>
 </section>
+
 

@@ -49,4 +49,9 @@
 <data name="Identity_PasswordRequiresLower" xml:space="preserve"><value>Parola trebuie să conțină o literă mică.</value></data>
 <data name="Identity_PasswordRequiresUpper" xml:space="preserve"><value>Parola trebuie să conțină o literă mare.</value></data>
 <data name="Identity_PasswordRequiresNonAlphanumeric" xml:space="preserve"><value>Parola trebuie să conțină un caracter special.</value></data>
+<data name="Navigation_Menu" xml:space="preserve"><value>Meniu principal</value></data>
+<data name="Navigation_CloseMenu" xml:space="preserve"><value>Închide meniul</value></data>
+<data name="Navigation_Dashboard" xml:space="preserve"><value>Dashboard</value></data>
+<data name="Navigation_AccountDetails" xml:space="preserve"><value>Datele contului</value></data>
 </root>
+

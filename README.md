@@ -1,5 +1,11 @@
 # WorkNotes
 
+## Design — Hârtie & salvie
+
+Tema aprobată folosește verdele #176C65, fundal crem și post-it-uri pastelate. Stilurile sunt separate în tokens.css (valori comune), site.css (componente) și notes-board.css (tablă). Modulul notes-board.js calculează poziții stabile din ID-ul notei, fără reordonare sau persistență.
+
+Ghidul componentelor și contractul de integrare sunt în [docs/design-system.md](docs/design-system.md). Pagina principală și paginile de cont folosesc tema; dashboardul cu note reale va fi conectat după implementarea modulului Notes.
+
 ## Localizare
 
 WorkNotes.Resources este proiectul independent de resurse, referit de Web:

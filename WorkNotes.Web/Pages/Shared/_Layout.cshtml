@@ -5,28 +5,28 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] — WorkNotes</title>
+    <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/navigation.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notes-board.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/postit.css" asp-append-version="true" />
 </head>
 <body>
     <header class="site-header">
-        <a class="brand" asp-page="/Index">WorkNotes</a>
-        <nav aria-label="@L["Navigation_Account"]">
-        @if (User.Identity?.IsAuthenticated == true)
-        {
-            <span>@User.FindFirstValue(ClaimTypes.GivenName) @User.FindFirstValue(ClaimTypes.Surname)</span>
-            <a asp-page="/Account/Index">@L["Navigation_MyAccount"]</a>
-            <a asp-page="/Account/ChangePassword">@L["Navigation_ChangePassword"]</a>
-            <form method="post" asp-page="/Account/Logout"><button type="submit" class="link-button">@L["Navigation_Logout"]</button></form>
-        }
-        else
-        {
-            <a asp-page="/Account/Register">@L["Navigation_Register"]</a>
-            <a asp-page="/Account/Login">@L["Navigation_Login"]</a>
-        }
-        </nav>
-        <partial name="_LanguageSelector" />
+        <button type="button" class="brand brand-menu" data-menu-open aria-controls="main-menu" aria-expanded="false" aria-haspopup="dialog" title="@L["Navigation_Menu"]" hidden>
+            <span aria-hidden="true">☰</span> WorkNotes
+        </button>
+        <noscript><a class="brand" href="#main-menu">WorkNotes</a></noscript>
+        <div class="header-actions">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <span class="user-name">@User.FindFirstValue(ClaimTypes.GivenName) @User.FindFirstValue(ClaimTypes.Surname)</span>
+            }
+            <partial name="_LanguageSelector" />
+        </div>
     </header>
 
+    <partial name="_MainMenu" />
     <main class="site-main">
         @if (TempData["StatusMessage"] is string message)
         {
@@ -40,6 +40,8 @@
         @await Component.InvokeAsync("ApplicationVersion")
     </footer>
     <script src="~/js/validation.js" asp-append-version="true" defer></script>
+    <script src="~/js/navigation.js" asp-append-version="true" defer></script>
     <script src="~/js/language.js" asp-append-version="true" defer></script>
+    <script src="~/js/notes-board.js" asp-append-version="true" type="module"></script>
 </body>
 </html>

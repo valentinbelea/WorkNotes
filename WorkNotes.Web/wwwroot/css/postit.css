@@ -1,0 +1,36 @@
+/* One paper surface per content panel; inner fields stay on the same sheet. */
+.postit-panel, .note-card {
+    overflow: visible;
+    background-color: var(--postit-color, var(--wn-note-paper));
+    background-image: linear-gradient(180deg,
+        var(--wn-paper-glue) 0,
+        transparent 5rem);
+    border: 0;
+    border-radius: 1px 2px 3px 2px;
+    box-shadow: 0 1px 2px var(--wn-paper-contact), 0 12px 12px -9px var(--wn-paper-shadow);
+}
+.postit-panel { position: relative; }
+/* Decorative image straddles the top edge and never captures pointer input. */
+.postit-panel::before, .note-card::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    top: -1rem;
+    left: 50%;
+    width: 5rem;
+    height: 2.2rem;
+    background: url("../images/postit-tape.svg") center / contain no-repeat;
+    transform: translateX(-50%) rotate(-2deg);
+    pointer-events: none;
+}
+.note-card--sage { --postit-color: var(--wn-note-sage); }
+.note-card--peach { --postit-color: var(--wn-note-peach); }
+.note-card--blue { --postit-color: var(--wn-note-blue); }
+.note-card[aria-current="page"], .note-card[aria-pressed="true"] {
+    outline: 2px solid var(--wn-primary);
+    outline-offset: 2px;
+}
+@media (forced-colors: active) {
+    .postit-panel, .note-card { background: Canvas; border: 1px solid CanvasText; }
+    .postit-panel::before, .note-card::before { display: none; }
+}

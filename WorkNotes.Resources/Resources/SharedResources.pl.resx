@@ -49,4 +49,9 @@
 <data name="Identity_PasswordRequiresLower" xml:space="preserve"><value>Hasło musi zawierać małą literę.</value></data>
 <data name="Identity_PasswordRequiresUpper" xml:space="preserve"><value>Hasło musi zawierać wielką literę.</value></data>
 <data name="Identity_PasswordRequiresNonAlphanumeric" xml:space="preserve"><value>Hasło musi zawierać znak specjalny.</value></data>
+<data name="Navigation_Menu" xml:space="preserve"><value>Menu główne</value></data>
+<data name="Navigation_CloseMenu" xml:space="preserve"><value>Zamknij menu</value></data>
+<data name="Navigation_Dashboard" xml:space="preserve"><value>Pulpit</value></data>
+<data name="Navigation_AccountDetails" xml:space="preserve"><value>Dane konta</value></data>
 </root>
+
