@@ -6,12 +6,12 @@
     var titleId = $"note-{Model.Id}-title";
 }
 @* A saved note. The colour says whether it is a journal or an article (the type is also read out to screen readers);
-   the board names the context. The header shows the creation date and, below it, the last change, in the same format;
-   their labels are only read out to screen readers. The owner renames the title in place (Enter saves, Escape restores) and has Delete.
+   the board names the context. The header shows the creation date on the left and the last change on the right of
+   the same line, in the same format; their labels are only read out to screen readers. The owner renames the title in place (Enter saves, Escape restores) and has Delete.
    The Open link (/?note={id}) and double-click open the editor over the board (openNoteEditor in notes-board.js). *@
 <li class="note-cell">
     <article class="note-card @NoteCardStyle.TypeClass(Model.NoteType) @NoteCardStyle.TiltClass(Model.Id)" data-note-id="@Model.Id" aria-labelledby="@titleId">
-        <p class="note-card__meta">
+        <p class="note-card__meta note-card__meta--dates">
             <span class="visually-hidden">@(Model.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
             <span class="note-card__date">
                 <span class="visually-hidden">@L["Notes_Created"]</span>

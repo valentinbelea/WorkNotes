@@ -18,10 +18,14 @@
 .note-card--tilt-10 { --note-x: -3px; --note-y: 12px; --note-rotation: -1.1deg; }
 .note-card--tilt-11 { --note-x: 6px; --note-y: -8px; --note-rotation: .9deg; }
 .note-card__meta, .note-card__footer { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: .25rem .5rem; margin: 0; font-size: .75rem; }
-/* The colour tells journals from articles. The meta line shows the creation date and, below it once the note was changed,
-   the last change: the same format, no visible labels; tabular digits keep the two dates aligned. */
-.note-card__meta { justify-content: flex-start; font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
-.note-card__date { flex-basis: 100%; }
+.note-card__meta { justify-content: flex-start; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* The colour tells journals from articles. A saved card's header shows the creation date on the left and, once the
+   note was changed, the last change on the right of the same line: the same format, no visible labels. The dates
+   scale with the card (container query units, 9-12px) so both fit; with a much wider font the last change moves to
+   the next line, still on the right. */
+.note-card__meta--dates { container-type: inline-size; }
+.note-card__date { font-size: clamp(.5625rem, calc((100cqi - .5rem) / 18), 1em); white-space: nowrap; }
+.note-card__date + .note-card__date { margin-inline-start: auto; }
 .note-card__date[hidden] { display: none; }
 .note-card__title { margin: 0; font-size: 1.15rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .note-card__title--untitled { color: var(--wn-muted); font-style: italic; font-weight: 500; }
@@ -70,8 +74,6 @@
 .dashboard-header p { margin: 0; }
 /* The empty-state message disappears as soon as the board has a card, including an unsaved one. */
 .dashboard:has(.notes-board > li) .notes-board-empty { display: none; }
-.board-status { max-width: none; margin: 1rem 0 0; }
-.board-status[hidden] { display: none; }
 /* One group per month; the current month is always rendered for new cards but hidden while it is empty. */
 .notes-month { margin-top: 1.5rem; }
 .notes-month:not(:has(.notes-board > li)) { display: none; }

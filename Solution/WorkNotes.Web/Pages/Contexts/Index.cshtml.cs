@@ -6,6 +6,7 @@ using Microsoft.Extensions.Localization;
 using WorkNotes.Business.Abstractions;
 using WorkNotes.Business.Models;
 using WorkNotes.Resources.Resources;
+using WorkNotes.Web.Messages;
 using WorkNotes.Web.ViewModels;
 
 namespace WorkNotes.Web.Pages.Contexts;
@@ -66,7 +67,7 @@ public sealed class IndexModel(IWorkContextService contexts, IContextMemberServi
             switch (status)
             {
                 case WorkContextSaveStatus.Saved:
-                    TempData["StatusMessage"] = "Message_ContextSaved";
+                    TempData.SetStatusMessage("Message_ContextSaved");
                     return RedirectToPage();
                 case WorkContextSaveStatus.NotFound:
                     return NotFound();
@@ -98,10 +99,10 @@ public sealed class IndexModel(IWorkContextService contexts, IContextMemberServi
             case WorkContextDeleteStatus.Forbidden:
                 return Forbidden();
             case WorkContextDeleteStatus.InUse:
-                TempData["StatusMessage"] = "Message_ContextInUse";
+                TempData.SetStatusMessage("Message_ContextInUse", StatusMessageKind.Warning);
                 return RedirectToPage();
         }
-        TempData["StatusMessage"] = "Message_ContextDeleted";
+        TempData.SetStatusMessage("Message_ContextDeleted");
         return RedirectToPage();
     }
 
@@ -113,7 +114,7 @@ public sealed class IndexModel(IWorkContextService contexts, IContextMemberServi
             switch (await memberService.AddMemberAsync(members, UserId, memberInput.Email, cancellationToken))
             {
                 case ContextMemberAddStatus.Added:
-                    TempData["MembersMessage"] = "Message_MemberAdded";
+                    TempData.SetStatusMessage("Message_MemberAdded", entry: StatusMessageTempData.Members);
                     return RedirectToPage(new { members });
                 case ContextMemberAddStatus.NotFound:
                     return NotFound();
@@ -145,10 +146,10 @@ public sealed class IndexModel(IWorkContextService contexts, IContextMemberServi
                 return Forbidden();
             case ContextMemberRemoveStatus.MemberNotFound:
                 // Already removed, for example from another tab: show the current list.
-                TempData["MembersMessage"] = "Message_MemberNotFound";
+                TempData.SetStatusMessage("Message_MemberNotFound", StatusMessageKind.Warning, StatusMessageTempData.Members);
                 break;
             default:
-                TempData["MembersMessage"] = "Message_MemberRemoved";
+                TempData.SetStatusMessage("Message_MemberRemoved", entry: StatusMessageTempData.Members);
                 break;
         }
         return RedirectToPage(new { members });

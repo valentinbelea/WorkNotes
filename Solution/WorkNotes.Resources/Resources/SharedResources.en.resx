@@ -153,4 +153,8 @@
 <data name="Notes_RenameFailed" xml:space="preserve"><value>The title could not be saved. Please try again.</value></data>
 <data name="Notes_Created" xml:space="preserve"><value>Created</value></data>
 <data name="Notes_Modified" xml:space="preserve"><value>Modified</value></data>
+<data name="Button_CloseMessage" xml:space="preserve"><value>Close message</value></data>
+<data name="Message_KindSuccess" xml:space="preserve"><value>Success</value></data>
+<data name="Message_KindWarning" xml:space="preserve"><value>Warning</value></data>
+<data name="Message_KindError" xml:space="preserve"><value>Error</value></data>
 </root>

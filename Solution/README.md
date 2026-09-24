@@ -6,6 +6,8 @@ Tema aprobată folosește verdele #176C65, fundal crem și post-it-uri pastelate
 
 Ghidul componentelor și contractul de integrare sunt în [docs/design-system.md](docs/design-system.md). Pagina principală este dashboardul utilizatorului autentificat: notele vizibile pentru el, ca post-it-uri, și butonul Notă nouă (vezi „Note — version_0.01”). Subtitlul din header (de exemplu „Spațiul meu”) este dedus din secțiunea meniului curent prin WorkNotes.Web/Navigation/NavigationSections.cs.
 
+Mesajele de salvare (succes, avertisment, eroare) apar fixe în colțul din dreapta-jos al ferestrei, cu buton de închidere, și rămân până le închide utilizatorul, cu sau fără JavaScript (`Pages/Shared/_StatusMessage.cshtml`). Paginile le setează prin `TempData.SetStatusMessage(cheie, tip)` (`WorkNotes.Web/Messages`).
+
 ## Localizare
 
 WorkNotes.Resources este proiectul independent de resurse, referit de Web:
@@ -94,7 +96,7 @@ Salvarea trimite toată nota (paragrafele în ordine) prin POST JSON cu antiforg
 
 Biblioteca este inclusă local în `wwwroot/lib/codemirror/codemirror.js`, cu `THIRD-PARTY-NOTICES.txt` (copyright și licențe). Pentru actualizare: din `tools/codemirror`, `npm ci` apoi `npm run build` (versiuni fixate în `package.json` / `package-lock.json`).
 
-Pe tablă, fiecare post-it arată în header data creării și, sub ea, data ultimei modificări (același format, cu anul, fără etichete vizibile; data modificării lipsește cât timp nota nu a fost modificată), începutul primelor paragrafe și, pentru proprietar, titlul editabil pe loc (Enter salvează, Escape anulează) și ștergerea cu confirmare (`/?delete={id}`; paragrafele se șterg în cascadă). `NoteService.RenameAsync` și `DeleteAsync` permit aceste operații numai proprietarului.
+Pe tablă, fiecare post-it arată în header data creării în stânga și data ultimei modificări în dreapta, pe același rând (același format, cu anul, fără etichete vizibile; data modificării lipsește cât timp nota nu a fost modificată), începutul primelor paragrafe și, pentru proprietar, titlul editabil pe loc (Enter salvează, Escape anulează) și ștergerea cu confirmare (`/?delete={id}`; paragrafele se șterg în cascadă). `NoteService.RenameAsync` și `DeleteAsync` permit aceste operații numai proprietarului.
 
 Nu sunt încă implementate: referințele CR/bug, linkurile, autocomplete-ul și popup-urile (necesită `WorkReferences`), salvarea automată.
 

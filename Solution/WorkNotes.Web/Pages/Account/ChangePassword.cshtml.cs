@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WorkNotes.Business.Abstractions;
+using WorkNotes.Web.Messages;
 using WorkNotes.Web.ViewModels;
 namespace WorkNotes.Web.Pages.Account;
 
@@ -22,7 +23,7 @@ public sealed class ChangePasswordModel(IAccountService accounts, IStringLocaliz
             foreach (var error in result.Errors) ModelState.AddModelError("", localizer[error]);
             return Page();
         }
-        TempData["StatusMessage"] = "Message_PasswordChanged";
+        TempData.SetStatusMessage("Message_PasswordChanged");
         return RedirectToPage("/Account/Index");
     }
 }

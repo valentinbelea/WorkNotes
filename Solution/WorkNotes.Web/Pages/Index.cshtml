@@ -40,8 +40,9 @@
                 </div>
             }
         </div>
-        @* Result of an in-place rename, shown for a few seconds by notes-board.js. *@
-        <p class="status-message board-status" role="status" data-board-status hidden></p>
+        @* Results of an in-place rename: notes-board.js fills a copy of these in and adds it to the layout's status region. *@
+        <template data-status-template="success"><partial name="_StatusMessage" model="new StatusMessage(StatusMessageKind.Success)" /></template>
+        <template data-status-template="error"><partial name="_StatusMessage" model="new StatusMessage(StatusMessageKind.Error)" /></template>
         @foreach (var month in Model.Months)
         {
             var isCurrent = (month.Year, month.Month) == Model.CurrentMonth;

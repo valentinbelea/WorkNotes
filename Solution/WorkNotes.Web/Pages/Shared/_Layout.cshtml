@@ -38,10 +38,14 @@
 
     <partial name="_MainMenu" />
     <main class="site-main">
-        @if (TempData["StatusMessage"] is string message)
-        {
-            <p class="status-message" role="status">@L[message]</p>
-        }
+        @* Save results (success, warning, error), fixed in the corner of the window until the user closes them.
+           notes-board.js adds the results of in-place changes here, so the region is always rendered. *@
+        <div class="status-region" aria-live="polite" data-status-region>
+            @if (TempData.TakeStatusMessage() is { } message)
+            {
+                <partial name="_StatusMessage" model="message" />
+            }
+        </div>
         @RenderBody()
     </main>
 

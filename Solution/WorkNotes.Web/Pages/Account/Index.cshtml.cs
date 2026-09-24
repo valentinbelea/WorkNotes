@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WorkNotes.Business.Abstractions;
+using WorkNotes.Web.Messages;
 using WorkNotes.Web.ViewModels;
 namespace WorkNotes.Web.Pages.Account;
 
@@ -34,7 +35,7 @@ public sealed class IndexModel(IAccountService accounts, IStringLocalizer<Shared
             foreach (var error in result.Errors) ModelState.AddModelError("", localizer[error]);
             return Page();
         }
-        TempData["StatusMessage"] = "Message_SaveSucceeded";
+        TempData.SetStatusMessage("Message_SaveSucceeded");
         return RedirectToPage();
     }
 }

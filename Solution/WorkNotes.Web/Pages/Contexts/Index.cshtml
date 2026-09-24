@@ -91,9 +91,10 @@
     <dialog class="modal" open data-modal data-close-url="@closeUrl" aria-labelledby="context-members-title">
         <div class="modal-panel modal-panel--wide postit-panel">
             <h2 id="context-members-title">@title</h2>
-            @if (TempData["MembersMessage"] is string membersMessage)
+            @if (TempData.TakeStatusMessage(StatusMessageTempData.Members) is { } membersMessage)
             {
-                <p class="status-message" role="status">@L[membersMessage]</p>
+                @* Inside the dialog, so it shows above the overlay and stays usable while the dialog is modal. *@
+                <div class="status-region"><partial name="_StatusMessage" model="membersMessage" /></div>
             }
             <table class="data-table">
                 <thead>

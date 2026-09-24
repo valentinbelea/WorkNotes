@@ -5,6 +5,7 @@ using Microsoft.Extensions.Localization;
 using WorkNotes.Business.Abstractions;
 using WorkNotes.Business.Models;
 using WorkNotes.Resources.Resources;
+using WorkNotes.Web.Messages;
 using WorkNotes.Web.Notes;
 using WorkNotes.Web.ViewModels;
 
@@ -62,7 +63,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
             switch (await notes.CreateAsync(UserId, input.ContextId, input.NoteType, input.Title, cancellationToken))
             {
                 case NoteCreateStatus.Created:
-                    TempData["StatusMessage"] = "Message_NoteSaved";
+                    TempData.SetStatusMessage("Message_NoteSaved");
                     return RedirectToPage(new { context = input.ContextId });
                 case NoteCreateStatus.InvalidType:
                     ModelState.AddModelError("Input.NoteType", localizer["Validation_InvalidValue"]);
@@ -145,7 +146,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                     _ => StatusCodes.Status404NotFound
                 }, messageKey);
         }
-        TempData["StatusMessage"] = messageKey;
+        TempData.SetStatusMessage(messageKey, result.Status == NoteSaveStatus.Saved ? StatusMessageKind.Success : StatusMessageKind.Error);
         return RedirectToPage(new { context });
     }
 
@@ -159,7 +160,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
             case NoteDeleteStatus.Forbidden:
                 return StatusCode(StatusCodes.Status403Forbidden);
         }
-        TempData["StatusMessage"] = "Message_NoteDeleted";
+        TempData.SetStatusMessage("Message_NoteDeleted");
         return RedirectToPage(new { context });
     }
 

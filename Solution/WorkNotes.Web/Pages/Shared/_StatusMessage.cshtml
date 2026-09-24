@@ -1,0 +1,38 @@
+@model WorkNotes.Web.Messages.StatusMessage
+@{
+    var (kindClass, kindKey) = Model.Kind switch
+    {
+        StatusMessageKind.Warning => ("status-message--warning", "Message_KindWarning"),
+        StatusMessageKind.Error => ("status-message--error", "Message_KindError"),
+        _ => ("status-message--success", "Message_KindSuccess")
+    };
+    var text = Model.Key is { } key ? L[key].Value : null;
+}
+@* A save result: success, warning or error. Its status-region keeps it fixed in the corner of the window until the
+   user closes it; the close button needs no JavaScript (a form with method="dialog" closes the message). The kind is
+   shown by the icon and the colour and named to screen readers; an error is announced at once (role=alert). *@
+<dialog open class="status-message @kindClass" aria-label="@L[kindKey]">
+    <svg class="status-message__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        @switch (Model.Kind)
+        {
+            case StatusMessageKind.Warning:
+                <path d="M12 3.8 21.2 19.8H2.8Z" />
+                <path d="M12 9.5v4.5M12 16.8v.2" />
+                break;
+            case StatusMessageKind.Error:
+                <circle cx="12" cy="12" r="8.5" />
+                <path d="M12 7.8v5.2M12 16v.2" />
+                break;
+            default:
+                <circle cx="12" cy="12" r="8.5" />
+                <path d="m8.3 12.3 2.5 2.5 5-5.3" />
+                break;
+        }
+    </svg>
+    <p class="status-message__text" role="@(Model.Kind == StatusMessageKind.Error ? "alert" : null)" data-status-text>@text</p>
+    <form method="dialog" class="status-message__actions">
+        <button type="submit" class="status-message__close" aria-label="@L["Button_CloseMessage"]" title="@L["Button_CloseMessage"]">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
+        </button>
+    </form>
+</dialog>

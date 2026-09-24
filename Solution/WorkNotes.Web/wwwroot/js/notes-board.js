@@ -65,19 +65,20 @@ function showLastChange(card, modified) {
     date.hidden = !modified.shown;
 }
 
+// A save result in the layout's status region, copied from a template rendered by the server (success or error).
+// It stays until the user closes it: its close button is a form with method="dialog", no script needed.
+// The newest message is shown first.
+function showStatusMessage(kind, text) {
+    const region = document.querySelector("[data-status-region]");
+    const message = document.querySelector(`template[data-status-template="${kind}"]`)?.content.firstElementChild?.cloneNode(true);
+    if (!region || !message || !text) return;
+    message.querySelector("[data-status-text]").textContent = text;
+    region.prepend(message);
+}
+
 // Titles are renamed in place. Enter (or leaving the field with a changed title) saves in the background;
 // Escape restores the saved title. Without JavaScript, Enter submits the same form and the board reloads.
 function initializeRename(dashboard) {
-    const status = dashboard.querySelector("[data-board-status]");
-    let statusTimer = 0;
-    const announce = text => {
-        if (!status || !text) return;
-        status.textContent = text;
-        status.hidden = false;
-        clearTimeout(statusTimer);
-        statusTimer = setTimeout(() => { status.hidden = true; }, 4000);
-    };
-
     async function rename(form) {
         const input = form.querySelector("[data-note-title]");
         if (!input || input.value === input.defaultValue || form.dataset.saving) return;
@@ -91,13 +92,14 @@ function initializeRename(dashboard) {
                 input.defaultValue = input.value;
                 input.title = input.value || input.placeholder;
                 showLastChange(form.closest(".note-card"), body.modified);
+                showStatusMessage("success", body.message);
             } else {
                 input.value = input.defaultValue;
+                showStatusMessage("error", body.message ?? dashboard.dataset.renameFailed);
             }
-            announce(body.message ?? dashboard.dataset.renameFailed);
         } catch {
             input.value = input.defaultValue;
-            announce(dashboard.dataset.renameFailed);
+            showStatusMessage("error", dashboard.dataset.renameFailed);
         } finally {
             delete form.dataset.saving;
         }

@@ -153,4 +153,8 @@
 <data name="Notes_RenameFailed" xml:space="preserve"><value>Titlul nu a putut fi salvat. Încearcă din nou.</value></data>
 <data name="Notes_Created" xml:space="preserve"><value>Creată</value></data>
 <data name="Notes_Modified" xml:space="preserve"><value>Modificată</value></data>
+<data name="Button_CloseMessage" xml:space="preserve"><value>Închide mesajul</value></data>
+<data name="Message_KindSuccess" xml:space="preserve"><value>Succes</value></data>
+<data name="Message_KindWarning" xml:space="preserve"><value>Avertisment</value></data>
+<data name="Message_KindError" xml:space="preserve"><value>Eroare</value></data>
 </root>
