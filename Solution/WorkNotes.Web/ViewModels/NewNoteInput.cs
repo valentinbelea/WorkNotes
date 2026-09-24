@@ -5,7 +5,7 @@ namespace WorkNotes.Web.ViewModels;
 
 public class NewNoteInput
 {
-    [Display(Name = "Field_Context"), Range(1, int.MaxValue, ErrorMessage = "Validation_Required")]
+    [Range(1, int.MaxValue, ErrorMessage = "Validation_Required")]
     public int ContextId { get; set; }
 
     [Display(Name = "Field_NoteType"), Required(ErrorMessage = "Validation_Required")]

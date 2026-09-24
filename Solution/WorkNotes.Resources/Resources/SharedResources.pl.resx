@@ -55,7 +55,7 @@
 <data name="Navigation_AccountDetails" xml:space="preserve"><value>Dane konta</value></data>
 <data name="Navigation_MySpace" xml:space="preserve"><value>Moja przestrzeń</value></data>
 <data name="Dashboard_Title" xml:space="preserve"><value>Na mojej tablicy</value></data>
-<data name="Dashboard_Description" xml:space="preserve"><value>Twoje notatki, od najnowszych.</value></data>
+<data name="Dashboard_Description" xml:space="preserve"><value>Notatki kontekstu, pogrupowane według miesięcy: najpierw dzienniki, potem artykuły.</value></data>
 <data name="Dashboard_EmptyBoard" xml:space="preserve"><value>Tablica jest pusta.</value></data>
 <data name="Button_NewNote" xml:space="preserve"><value>Nowa notatka</value></data>
 <data name="Navigation_Contexts" xml:space="preserve"><value>Konteksty</value></data>
@@ -105,8 +105,8 @@
 <data name="Notes_OpenNamed" xml:space="preserve"><value>Otwórz notatkę „{0}”</value></data>
 <data name="Notes_NoContexts" xml:space="preserve"><value>Najpierw utwórz kontekst, aby dodawać notatki.</value></data>
 <data name="Validation_InvalidNoteTitle" xml:space="preserve"><value>Tytuł może mieć maksymalnie 200 znaków i nie może zawierać znaków sterujących.</value></data>
-<data name="Validation_JournalExists" xml:space="preserve"><value>Masz już dzisiejszy dziennik w tym kontekście.</value></data>
 <data name="Validation_ContextUnavailable" xml:space="preserve"><value>Wybrany kontekst nie jest już dostępny.</value></data>
 <data name="Message_NoteSaved" xml:space="preserve"><value>Notatka została zapisana.</value></data>
 <data name="Message_ContextInUse" xml:space="preserve"><value>Kontekst zawiera notatki i nie można go usunąć.</value></data>
+<data name="Button_ShowBoard" xml:space="preserve"><value>Pokaż</value></data>
 </root>

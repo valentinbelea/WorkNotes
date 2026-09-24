@@ -67,15 +67,18 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 
 `dbo.Notes` (scriptul `006_CreateNotes.sql`) păstrează notele: contextul (obligatoriu), proprietarul, tipul (`Journal` / `Article`), titlul opțional, data jurnalului, vizibilitatea (`Private` / `Context`), auditul creării și al ultimei modificări, arhivarea și `RowVersion`. Deciziile confirmate:
 
-- jurnal zilnic: un singur jurnal per proprietar, context și zi (indexul unic filtrat `UX_Notes_DailyJournal`); data este ziua locală a aplicației (`TimeProvider`);
+- se pot crea mai multe jurnale pe zi: scriptul `007_AllowSeveralJournalsPerDay.sql` elimină indexul unic creat de 006; `JournalDate` rămâne ziua locală a aplicației (`TimeProvider`);
 - notele noi sunt private; o notă cu vizibilitatea `Context` este văzută de membrii contextului;
 - numai proprietarul editează nota; orice membru al contextului poate crea note în el;
 - un context care are note nu poate fi șters (cheie externă fără cascadă; mesaj „Contextul are note și nu poate fi șters.”).
+
+Există câte o tablă pentru fiecare context: lista de contexte înlocuiește titlul tablei (`/?context={id}`, implicit primul context). Pe tablă notele sunt grupate pe luni, după data locală a creării, cele mai noi luni primele; în fiecare lună apar întâi jurnalele, apoi articolele, fiecare de la cel mai nou. Gruparea și ordinea sunt în `NoteService`.
 
 Flux: `Pages/Index → INoteService → NoteService → INoteRepository → NoteRepository → WorkNotesDbContext`. `NoteService` validează tipul și titlul și verifică apartenența la context prin `IWorkContextRepository`. Conținutul notelor (`NoteBlocks`) și editorul text urmează în pașii următori; tabla afișează deocamdată metadatele.
 
 ```powershell
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\006_CreateNotes.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\007_AllowSeveralJournalsPerDay.sql'
 ```
 
 ## Modulul de conturi — version_0.01
@@ -174,7 +177,8 @@ E:\GitRepository\Vali\WorkNotes\       # Rădăcina Git
         ├── 002_AddIdentityUsers.sql
         ├── 004_CreateWorkContexts.sql
         ├── 005_CreateContextMembers.sql
-        └── 006_CreateNotes.sql
+        ├── 006_CreateNotes.sql
+        └── 007_AllowSeveralJournalsPerDay.sql
 ```
 
 Folderele `Scripts` și `Solution` fac parte din același repository Git. Comenzile dotnet se rulează din `Solution`, iar scripturile se referă de acolo ca `..\Scripts\version_0.01\...`.
@@ -210,7 +214,8 @@ Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scriptu
 3. `002_AddIdentityUsers.sql`: creează tabelele și indexurile Identity lipsă.
 4. `004_CreateWorkContexts.sql`: creează `dbo.WorkContexts` și indexul unic pe `Name`, dacă lipsesc.
 5. `005_CreateContextMembers.sql`: creează `dbo.ContextMembers`, cheile externe către `WorkContexts` și `Users` și indexul pe `UserId`, dacă lipsesc.
-6. `006_CreateNotes.sql`: creează `dbo.Notes`, constrângerile, indexul unic al jurnalului zilnic și indexul pentru tablă, dacă lipsesc.
+6. `006_CreateNotes.sql`: creează `dbo.Notes`, constrângerile și indexurile, dacă lipsesc.
+7. `007_AllowSeveralJournalsPerDay.sql`: elimină indexul unic `UX_Notes_DailyJournal`, astfel încât sunt permise mai multe jurnale pe zi.
 
 Alternativ, dacă `sqlcmd` este instalat:
 
@@ -221,6 +226,7 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\004_CreateWorkContexts.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\005_CreateContextMembers.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\006_CreateNotes.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\007_AllowSeveralJournalsPerDay.sql'
 ```
 
 Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.

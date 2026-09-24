@@ -1,5 +1,6 @@
 @page
 @model IndexModel
+@using System.Globalization
 @{
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
     ViewData["Title"] = isAuthenticated ? L["Navigation_Dashboard"] : L["Navigation_Home"];
@@ -7,16 +8,25 @@
 
 @if (isAuthenticated)
 {
-    <section class="dashboard" aria-labelledby="dashboard-title">
+    <section class="dashboard" aria-labelledby="dashboard-title" data-notes-dashboard>
+        <h1 id="dashboard-title" class="visually-hidden">@L["Dashboard_Title"]</h1>
         <div class="dashboard-header">
-            <div>
-                <h1 id="dashboard-title">@L["Dashboard_Title"]</h1>
-                <p class="help-text">@L["Dashboard_Description"]</p>
-            </div>
-            @if (Model.Contexts.Count > 0)
+            @if (Model.SelectedContext is { } selected)
             {
+                @* One board per context; the list replaces the board title. *@
+                <form method="get" asp-page="/Index" class="board-switch">
+                    <label class="visually-hidden" for="board-context">@L["Field_Context"]</label>
+                    <select id="board-context" name="context" class="board-switch__select" data-board-switch>
+                        @foreach (var context in Model.Contexts)
+                        {
+                            <option value="@context.Id" selected="@(context.Id == selected.Id)">@context.Name</option>
+                        }
+                    </select>
+                    <noscript><button type="submit" class="btn btn-secondary">@L["Button_ShowBoard"]</button></noscript>
+                    <p class="help-text">@L["Dashboard_Description"]</p>
+                </form>
                 @* Works as a link without JavaScript (?new=true); notes-board.js inserts the card in place instead. *@
-                <a class="btn btn-primary" asp-page="/Index" asp-route-new="true" data-note-new>
+                <a class="btn btn-primary" asp-page="/Index" asp-route-new="true" asp-route-context="@selected.Id" data-note-new>
                     <span aria-hidden="true">+</span> @L["Button_NewNote"]
                 </a>
             }
@@ -30,21 +40,29 @@
                 </div>
             }
         </div>
-        @* Newest first, in the order the service returns; the grid moves the other cards right and down. *@
-        <ul class="notes-board" data-notes-board>
-            @if (Model.IsNewNoteOpen)
-            {
-                <partial name="_NewNoteCard" model="Model.NewNoteCard" />
-            }
-            @foreach (var note in Model.Notes)
-            {
-                <partial name="_NoteCard" model="note" />
-            }
-        </ul>
-        <p class="notes-board-empty">@L["Dashboard_EmptyBoard"]</p>
-        @if (!Model.IsNewNoteOpen && Model.Contexts.Count > 0)
+        @foreach (var month in Model.Months)
         {
-            <template id="new-note-template"><partial name="_NewNoteCard" model="Model.NewNoteCard" /></template>
+            var isCurrent = (month.Year, month.Month) == Model.CurrentMonth;
+            var monthId = $"month-{month.Year}-{month.Month:00}";
+            @* Months newest first; within a month journals come before articles, as the service orders them. *@
+            <section class="notes-month" aria-labelledby="@monthId">
+                <h2 class="notes-month__title" id="@monthId">@(new DateTime(month.Year, month.Month, 1).ToString("MMMM yyyy", CultureInfo.CurrentCulture))</h2>
+                <ul class="notes-board" data-new-note-target="@(isCurrent ? "true" : null)">
+                    @if (isCurrent && Model.IsNewNoteOpen)
+                    {
+                        <partial name="_NewNoteCard" model="Model" />
+                    }
+                    @foreach (var note in month.Notes)
+                    {
+                        <partial name="_NoteCard" model="note" />
+                    }
+                </ul>
+            </section>
+        }
+        <p class="notes-board-empty">@L["Dashboard_EmptyBoard"]</p>
+        @if (!Model.IsNewNoteOpen && Model.SelectedContext is not null)
+        {
+            <template id="new-note-template"><partial name="_NewNoteCard" model="Model" /></template>
         }
     </section>
 }

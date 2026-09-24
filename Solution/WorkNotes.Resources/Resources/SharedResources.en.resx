@@ -55,7 +55,7 @@
 <data name="Navigation_AccountDetails" xml:space="preserve"><value>Account details</value></data>
 <data name="Navigation_MySpace" xml:space="preserve"><value>My space</value></data>
 <data name="Dashboard_Title" xml:space="preserve"><value>On my board</value></data>
-<data name="Dashboard_Description" xml:space="preserve"><value>Your notes, newest first.</value></data>
+<data name="Dashboard_Description" xml:space="preserve"><value>Notes of the context, grouped by month: journals first, then articles.</value></data>
 <data name="Dashboard_EmptyBoard" xml:space="preserve"><value>The board is empty.</value></data>
 <data name="Button_NewNote" xml:space="preserve"><value>New note</value></data>
 <data name="Navigation_Contexts" xml:space="preserve"><value>Contexts</value></data>
@@ -105,8 +105,8 @@
 <data name="Notes_OpenNamed" xml:space="preserve"><value>Open note “{0}”</value></data>
 <data name="Notes_NoContexts" xml:space="preserve"><value>Create a context first to add notes.</value></data>
 <data name="Validation_InvalidNoteTitle" xml:space="preserve"><value>The title must not exceed 200 characters and cannot contain control characters.</value></data>
-<data name="Validation_JournalExists" xml:space="preserve"><value>You already have today's journal in this context.</value></data>
 <data name="Validation_ContextUnavailable" xml:space="preserve"><value>The selected context is no longer available.</value></data>
 <data name="Message_NoteSaved" xml:space="preserve"><value>The note has been saved.</value></data>
 <data name="Message_ContextInUse" xml:space="preserve"><value>The context has notes and cannot be deleted.</value></data>
+<data name="Button_ShowBoard" xml:space="preserve"><value>Show</value></data>
 </root>

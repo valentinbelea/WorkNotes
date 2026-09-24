@@ -1,42 +1,32 @@
-@model WorkNotes.Web.ViewModels.NewNoteCardViewModel
+@model WorkNotes.Web.Pages.IndexModel
 @using WorkNotes.Business.Models
-@* Unsaved note, first on the board. Rendered inside <template id="new-note-template"> for notes-board.js,
-   or directly when the page is opened with ?new=true (no JavaScript) or after a validation error. *@
+@* Unsaved note, first in the current month of the selected board. Rendered inside <template id="new-note-template">
+   for notes-board.js, or directly with ?new=true (no JavaScript) or after a validation error. *@
 <li class="note-cell" data-new-note>
     <form method="post" asp-page="/Index" asp-page-handler="CreateNote" class="note-card note-card--draft" aria-label="@L["Button_NewNote"]">
+        <input type="hidden" asp-for="Input.ContextId" />
         <div class="note-card__meta">
             <fieldset class="note-type-switch">
                 <legend class="visually-hidden">@L["Field_NoteType"]</legend>
-                <label class="note-type-switch__option" title="@L["NoteType_Journal"]">
+                <label class="note-type-switch__option">
                     <input type="radio" asp-for="Input.NoteType" value="@NoteTypes.Journal" />
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4M8 14h3" /></svg>
-                    <span class="visually-hidden">@L["NoteType_Journal"]</span>
+                    <span class="note-type-switch__tip">@L["NoteType_Journal"]</span>
                 </label>
-                <label class="note-type-switch__option" title="@L["NoteType_Article"]">
+                <label class="note-type-switch__option">
                     <input type="radio" asp-for="Input.NoteType" value="@NoteTypes.Article" />
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3.5h7l4 4v13H7z" /><path d="M14 3.5v4h4M10 12h5M10 15.5h5" /></svg>
-                    <span class="visually-hidden">@L["NoteType_Article"]</span>
+                    <span class="note-type-switch__tip">@L["NoteType_Article"]</span>
                 </label>
             </fieldset>
-            @if (Model.Contexts.Count > 1)
-            {
-                <label class="visually-hidden" asp-for="Input.ContextId"></label>
-                <select class="note-card__context" asp-for="Input.ContextId" asp-items="@(new SelectList(Model.Contexts, nameof(WorkContext.Id), nameof(WorkContext.Name)))"></select>
-            }
-            else
-            {
-                <input type="hidden" asp-for="Input.ContextId" />
-                <span>@Model.Contexts.FirstOrDefault()?.Name</span>
-            }
         </div>
         <label class="visually-hidden" asp-for="Input.Title"></label>
         <input class="note-card__title-input" asp-for="Input.Title" placeholder="@L["Notes_TitlePlaceholder"]" autocomplete="off" autofocus data-new-note-title />
         <span asp-validation-for="Input.Title" class="field-error"></span>
         <span asp-validation-for="Input.NoteType" class="field-error"></span>
-        <span asp-validation-for="Input.ContextId" class="field-error"></span>
         <div class="note-card__footer actions">
             <button type="submit" class="btn btn-primary">@L["Button_Save"]</button>
-            <a class="btn btn-ghost" asp-page="/Index" data-new-note-cancel>@L["Button_Cancel"]</a>
+            <a class="btn btn-ghost" asp-page="/Index" asp-route-context="@Model.Input.ContextId" data-new-note-cancel>@L["Button_Cancel"]</a>
         </div>
     </form>
 </li>

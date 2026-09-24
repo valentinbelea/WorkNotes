@@ -50,10 +50,6 @@ public partial class WorkNotesDbContext : DbContext
         {
             entity.HasIndex(e => new { e.ContextId, e.CreatedAtUtc }, "IX_Notes_ContextId_CreatedAtUtc").IsDescending(false, true);
 
-            entity.HasIndex(e => new { e.OwnerUserId, e.ContextId, e.JournalDate }, "UX_Notes_DailyJournal")
-                .IsUnique()
-                .HasFilter("([NoteType]=N'Journal')");
-
             entity.Property(e => e.ArchivedAtUtc).HasPrecision(0);
             entity.Property(e => e.CreatedAtUtc)
                 .HasPrecision(0)

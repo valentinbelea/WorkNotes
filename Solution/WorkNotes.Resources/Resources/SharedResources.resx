@@ -55,7 +55,7 @@
 <data name="Navigation_AccountDetails" xml:space="preserve"><value>Datele contului</value></data>
 <data name="Navigation_MySpace" xml:space="preserve"><value>Spațiul meu</value></data>
 <data name="Dashboard_Title" xml:space="preserve"><value>Pe tabla mea</value></data>
-<data name="Dashboard_Description" xml:space="preserve"><value>Notele tale, cele mai recente mai întâi.</value></data>
+<data name="Dashboard_Description" xml:space="preserve"><value>Notele contextului, grupate pe luni: întâi jurnalele, apoi articolele.</value></data>
 <data name="Dashboard_EmptyBoard" xml:space="preserve"><value>Tabla este goală.</value></data>
 <data name="Button_NewNote" xml:space="preserve"><value>Notă nouă</value></data>
 <data name="Navigation_Contexts" xml:space="preserve"><value>Contexte</value></data>
@@ -105,8 +105,8 @@
 <data name="Notes_OpenNamed" xml:space="preserve"><value>Deschide nota „{0}”</value></data>
 <data name="Notes_NoContexts" xml:space="preserve"><value>Creează mai întâi un context pentru a adăuga note.</value></data>
 <data name="Validation_InvalidNoteTitle" xml:space="preserve"><value>Titlul are maximum 200 de caractere și nu poate conține caractere de control.</value></data>
-<data name="Validation_JournalExists" xml:space="preserve"><value>Ai deja jurnalul de azi în acest context.</value></data>
 <data name="Validation_ContextUnavailable" xml:space="preserve"><value>Contextul ales nu mai este disponibil.</value></data>
 <data name="Message_NoteSaved" xml:space="preserve"><value>Nota a fost salvată.</value></data>
 <data name="Message_ContextInUse" xml:space="preserve"><value>Contextul are note și nu poate fi șters.</value></data>
+<data name="Button_ShowBoard" xml:space="preserve"><value>Afișează</value></data>
 </root>

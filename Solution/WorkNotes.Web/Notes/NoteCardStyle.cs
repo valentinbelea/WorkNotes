@@ -6,7 +6,7 @@ namespace WorkNotes.Web.Notes;
 // from the note's id so it never changes between reloads and needs no inline style.
 public static class NoteCardStyle
 {
-    public const int TiltVariants = 8;
+    public const int TiltVariants = 12;
 
     public static string TypeClass(string noteType) =>
         noteType == NoteTypes.Article ? "note-card--article" : "note-card--journal";

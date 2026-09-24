@@ -51,32 +51,38 @@ Focus vizibil pentru tastatură, ținte de minimum 44px pentru controalele princ
 
 ## Tabla de note
 
-Dashboardul (Pages/Index) afișează notele primite de la INoteService, cele mai noi primele. Cardurile sunt randate de server din partialele Pages/Shared/_NoteCard.cshtml (notă salvată) și Pages/Shared/_NewNoteCard.cshtml (notă nouă, nesalvată):
+Există câte o tablă pentru fiecare context. În locul titlului, dashboardul (Pages/Index) are lista de contexte (board-switch, cu bordură întreruptă ca tabla); primul context este selectat implicit, iar alegerea altuia încarcă /?context={id} (fără JavaScript, cu butonul Afișează). Titlul „Pe tabla mea” rămâne numai pentru cititoarele de ecran. Contextul nu mai apare pe post-it.
+
+Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul lunii), după data locală a creării, lunile cele mai noi primele; în fiecare lună apar întâi jurnalele, apoi articolele, fiecare de la cel mai nou. Cardurile sunt randate de server din partialele Pages/Shared/_NoteCard.cshtml (notă salvată) și Pages/Shared/_NewNoteCard.cshtml (notă nouă, nesalvată):
 
 ```html
-<ul class="notes-board" data-notes-board>
-    <li class="note-cell">
-        <article class="note-card note-card--journal note-card--tilt-3" data-note-id="12">
-            <p class="note-card__meta"><span>Jurnal</span> <time datetime="…">23 sept. · 09:40</time></p>
-            <h2 class="note-card__title">…</h2>
-            <div class="note-card__footer"><span>Context</span><span>Privat</span><button class="note-card__open" data-note-open>…</button></div>
-        </article>
-    </li>
-</ul>
+<section class="notes-month">
+    <h2 class="notes-month__title">septembrie 2026</h2>
+    <ul class="notes-board" data-new-note-target="true">
+        <li class="note-cell">
+            <article class="note-card note-card--journal note-card--tilt-3" data-note-id="12">
+                <p class="note-card__meta"><span>Jurnal</span> <time datetime="…">23.09 · 09:40</time></p>
+                <h3 class="note-card__title">…</h3>
+                <div class="note-card__footer"><span>Privat</span><button class="note-card__open" data-note-open>…</button></div>
+            </article>
+        </li>
+    </ul>
+</section>
 ```
 
+- Data are formatul zz.LL · HH:mm (de exemplu 23.09 · 17:44).
 - Culoarea urmează tipul: note-card--journal (galben #FFF0B7), note-card--article (salvie #DDEADB). Cardul nou arată culoarea tipului ales în switch, numai prin CSS (:has).
-- Decalajul și rotația sunt deterministe din ID: serverul alege una dintre clasele note-card--tilt-0 … note-card--tilt-7 (NoteCardStyle.TiltClass), în limitele ±6px și ±0.8°. Nu există stiluri inline și niciun script nu poziționează cardurile. Pe ecrane de maximum 450px notele sunt drepte, pe o coloană.
-- Ordinea DOM este ordinea cronologică și cea de navigare cu tastatura. Grila (auto-fill) mută celelalte carduri spre dreapta și în jos când apare un card nou la început.
-- Marginile de 16px rezervă spațiu pentru decalaj, rotație, hover și focus. Nu introduceți suprapuneri între celule.
+- Decalajul și rotația sunt deterministe din ID: serverul alege una dintre clasele note-card--tilt-0 … note-card--tilt-11 (NoteCardStyle.TiltClass), în limitele ±12px și ±2°. Marginea de 22px a celulei păstrează cardul în celula proprie. Nu există stiluri inline și niciun script nu poziționează cardurile. Pe ecrane de maximum 450px notele sunt drepte, pe o coloană.
+- Ordinea DOM este ordinea din serviciu și cea de navigare cu tastatura. Grila (auto-fill) mută celelalte carduri spre dreapta și în jos când apare un card nou la început.
+- Luna curentă este randată întotdeauna (ca țintă pentru cardul nou) și ascunsă prin CSS cât timp nu are carduri.
 - Cardul salvat este article; singurul control din el este butonul Open (note-card__open). Nu puneți controale interactive unul în altul.
 
 ### Notă nouă
 
 - Butonul „Notă nouă” este un link către /?new=true. Fără JavaScript, serverul randează cardul nou primul pe tablă; Renunță este un link înapoi la tablă.
-- Cu JavaScript, wwwroot/js/notes-board.js copiază cardul din &lt;template id="new-note-template"&gt; (randat de server, cu textele din .resx și tokenul antiforgery) la începutul listei și mută focusul pe titlu. Renunță sau Escape elimină cardul și readuc focusul pe buton.
-- Cardul nou conține: switch-ul de tip cu iconuri (jurnal / articol; radio-uri cu etichete ascunse vizual), contextul (listă doar dacă utilizatorul are mai multe contexte), titlul editabil pe loc (opțional), Salvează și Renunță.
-- Salvează trimite formularul (POST ?handler=CreateNote); după salvare tabla se reîncarcă, iar nota apare prima, fără butoanele de editare inițială, cu iconul Open. La erori (de exemplu jurnalul de azi există deja) cardul rămâne primul, cu valorile introduse.
+- Cu JavaScript, wwwroot/js/notes-board.js copiază cardul din &lt;template id="new-note-template"&gt; (randat de server, cu textele din .resx și tokenul antiforgery) la începutul lunii curente a tablei alese și mută focusul pe titlu. Renunță sau Escape elimină cardul și readuc focusul pe buton.
+- Cardul nou conține: switch-ul de tip cu iconuri (jurnal / articol), fără bordură și fundal; tipul ales are iconul colorat și subliniat, iar numele tipului apare ca popover la hover și la focus (este și eticheta accesibilă a radio-ului). Urmează titlul editabil pe loc (opțional), Salvează și Renunță. Nota se salvează în contextul tablei selectate.
+- Salvează trimite formularul (POST ?handler=CreateNote); după salvare tabla se reîncarcă, iar nota apare prima, fără butoanele de editare inițială, cu iconul Open. La erori (de exemplu un titlu prea lung) cardul rămâne primul, cu valorile introduse.
 - Mesajul „Tabla este goală” dispare prin CSS cât timp lista are cel puțin un card.
 
 ### Deschiderea unei note

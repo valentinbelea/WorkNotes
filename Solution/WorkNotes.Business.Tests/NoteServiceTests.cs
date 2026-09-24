@@ -83,12 +83,42 @@ public sealed class NoteServiceTests
     }
 
     [Fact]
-    public async Task ExistingDailyJournalIsReported()
+    public async Task SeveralJournalsPerDayAreAllowed()
     {
-        var service = new NoteService(new StubNotes(NoteCreateStatus.JournalExists), new StubContexts(), TimeProvider.System);
+        var notes = new StubNotes();
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
 
-        Assert.Equal(NoteCreateStatus.JournalExists, await service.CreateAsync(User, 5, NoteTypes.Journal, null, CancellationToken.None));
+        Assert.Equal(NoteCreateStatus.Created, await service.CreateAsync(User, 5, NoteTypes.Journal, "Dimineața", CancellationToken.None));
+        Assert.Equal(NoteCreateStatus.Created, await service.CreateAsync(User, 5, NoteTypes.Journal, "După-amiaza", CancellationToken.None));
     }
+
+    [Fact]
+    public async Task BoardIsGroupedByLocalMonthWithJournalsBeforeArticles()
+    {
+        var utc = (int month, int day, int hour) => new DateTime(2026, month, day, hour, 0, 0, DateTimeKind.Utc);
+        var notes = new StubNotes(board:
+        [
+            Note(1, NoteTypes.Journal, utc(8, 20, 9)),
+            Note(2, NoteTypes.Article, utc(9, 2, 9)),
+            Note(3, NoteTypes.Journal, utc(9, 1, 9)),
+            Note(4, NoteTypes.Article, utc(9, 5, 9)),
+            // 22:30 UTC on 31 August is already September at UTC+3.
+            Note(5, NoteTypes.Journal, new DateTime(2026, 8, 31, 22, 30, 0, DateTimeKind.Utc)),
+        ]);
+        var time = new FixedTime(new DateTimeOffset(2026, 9, 10, 12, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
+        var service = new NoteService(notes, new StubContexts(), time);
+
+        var months = await service.GetBoardAsync(User, 5, CancellationToken.None);
+
+        Assert.Equal([(2026, 9), (2026, 8)], months.Select(month => (month.Year, month.Month)));
+        Assert.Equal([3, 5, 4, 2], months[0].Notes.Select(note => note.Id));
+        Assert.Equal([1], months[1].Notes.Select(note => note.Id));
+        Assert.Equal(5, notes.BoardContext);
+        Assert.Equal((2026, 9), service.GetCurrentMonth());
+    }
+
+    private static NoteSummary Note(int id, string type, DateTime createdAtUtc) =>
+        new(id, type, null, null, NoteVisibilities.Private, createdAtUtc, IsOwner: true);
 
     [Fact]
     public async Task BoardIsReadForTheCurrentUser()
@@ -96,10 +126,10 @@ public sealed class NoteServiceTests
         var notes = new StubNotes();
         var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
 
-        await service.GetBoardAsync(User, CancellationToken.None);
+        await service.GetBoardAsync(User, 5, CancellationToken.None);
 
         Assert.Equal(User, notes.BoardUser);
-        await Assert.ThrowsAsync<ArgumentException>(() => service.GetBoardAsync(" ", CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.GetBoardAsync(" ", 5, CancellationToken.None));
     }
 
     private sealed class FixedTime(DateTimeOffset utcNow, TimeSpan offset) : TimeProvider
@@ -108,15 +138,17 @@ public sealed class NoteServiceTests
         public override TimeZoneInfo LocalTimeZone { get; } = TimeZoneInfo.CreateCustomTimeZone("Test", offset, "Test", "Test");
     }
 
-    private sealed class StubNotes(NoteCreateStatus outcome = NoteCreateStatus.Created) : INoteRepository
+    private sealed class StubNotes(NoteCreateStatus outcome = NoteCreateStatus.Created, IReadOnlyList<NoteSummary>? board = null) : INoteRepository
     {
         public NewNote? Added { get; private set; }
         public string? BoardUser { get; private set; }
+        public int? BoardContext { get; private set; }
 
-        public Task<IReadOnlyList<NoteSummary>> GetBoardAsync(string userId, CancellationToken cancellationToken)
+        public Task<IReadOnlyList<NoteSummary>> GetBoardAsync(string userId, int contextId, CancellationToken cancellationToken)
         {
             BoardUser = userId;
-            return Task.FromResult<IReadOnlyList<NoteSummary>>([]);
+            BoardContext = contextId;
+            return Task.FromResult(board ?? []);
         }
 
         public Task<NoteCreateStatus> AddAsync(NewNote note, CancellationToken cancellationToken)

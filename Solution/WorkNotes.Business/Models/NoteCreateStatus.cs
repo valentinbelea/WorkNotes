@@ -6,6 +6,5 @@ public enum NoteCreateStatus
     Created,
     InvalidType,
     InvalidTitle,
-    ContextNotFound,
-    JournalExists
+    ContextNotFound
 }
