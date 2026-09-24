@@ -6,7 +6,7 @@ Tema aprobată folosește verdele #176C65, fundal crem și post-it-uri pastelate
 
 Ghidul componentelor și contractul de integrare sunt în [docs/design-system.md](docs/design-system.md). Pagina principală este dashboardul utilizatorului autentificat: notele vizibile pentru el, ca post-it-uri, și butonul Notă nouă (vezi „Note — version_0.01”). Subtitlul din header (de exemplu „Spațiul meu”) este dedus din secțiunea meniului curent prin WorkNotes.Web/Navigation/NavigationSections.cs.
 
-Mesajele de salvare (succes, avertisment, eroare) apar fixe în colțul din dreapta-jos al ferestrei, cu buton de închidere, și rămân până le închide utilizatorul, cu sau fără JavaScript (`Pages/Shared/_StatusMessage.cshtml`). Paginile le setează prin `TempData.SetStatusMessage(cheie, tip)` (`WorkNotes.Web/Messages`).
+Mesajele de salvare (succes, avertisment, eroare) apar fixe în partea de sus a ferestrei, centrate, cu buton de închidere, și rămân până le închide utilizatorul, cu sau fără JavaScript (`Pages/Shared/_StatusMessage.cshtml`). Paginile le setează prin `TempData.SetStatusMessage(cheie, tip)` (`WorkNotes.Web/Messages`).
 
 ## Localizare
 
@@ -92,7 +92,7 @@ Conținutul se păstrează pe paragrafe în `dbo.NoteBlocks` (scriptul `008_Crea
 
 Bara de informații de sub editor afișează, pentru paragraful de sub mouse (sau, fără mouse, pentru cel cu cursorul), data creării și a ultimei modificări din coloanele de audit `NoteBlocks` (`CreatedAtUtc`, `ModifiedAtUtc`), cu „modificări nesalvate” sau „paragraf nou” când este cazul; paragraful descris este evidențiat discret. Textele sunt compuse de server din `.resx` (`NoteDates.BlockAudit`) și actualizate după fiecare salvare.
 
-Salvarea trimite toată nota (paragrafele în ordine) prin POST JSON cu antiforgery (`/?handler=SaveNote&note={id}`). `NoteService` permite salvarea numai proprietarului, validează textul și limitele, iar `NoteRepository` compară paragrafele cu cele stocate (păstrate, modificate, noi, eliminate). `RowVersion` al notei detectează salvările din ferestre diferite: salvarea învechită este refuzată cu un mesaj, fără a suprascrie. Rezultatul fiecărei salvări apare și ca mesaj fix în colțul ferestrei, deasupra editorului („Nota a fost salvată.” sau eroarea), până îl închide utilizatorul. Membrii contextului pot citi o notă partajată, numai pentru citire. Fără JavaScript pagina afișează paragrafele doar pentru citire.
+Salvarea trimite toată nota (paragrafele în ordine) prin POST JSON cu antiforgery (`/?handler=SaveNote&note={id}`). `NoteService` permite salvarea numai proprietarului, validează textul și limitele, iar `NoteRepository` compară paragrafele cu cele stocate (păstrate, modificate, noi, eliminate). `RowVersion` al notei detectează salvările din ferestre diferite: salvarea învechită este refuzată cu un mesaj, fără a suprascrie. Rezultatul fiecărei salvări apare și ca mesaj fix sus, pe centru, deasupra editorului („Nota a fost salvată.” sau eroarea), până îl închide utilizatorul. Membrii contextului pot citi o notă partajată, numai pentru citire. Fără JavaScript pagina afișează paragrafele doar pentru citire.
 
 Biblioteca este inclusă local în `wwwroot/lib/codemirror/codemirror.js`, cu `THIRD-PARTY-NOTICES.txt` (copyright și licențe). Pentru actualizare: din `tools/codemirror`, `npm ci` apoi `npm run build` (versiuni fixate în `package.json` / `package-lock.json`).
 

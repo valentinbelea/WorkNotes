@@ -8,7 +8,7 @@
     };
     var text = Model.Key is { } key ? L[key].Value : null;
 }
-@* A save result: success, warning or error. Its status-region keeps it fixed in the corner of the window until the
+@* A save result: success, warning or error. Its status-region keeps it fixed at the top centre of the window until the
    user closes it; the close button needs no JavaScript (a form with method="dialog" closes the message). The kind is
    shown by the icon and the colour and named to screen readers; an error is announced at once (role=alert). *@
 <dialog open class="status-message @kindClass" aria-label="@L[kindKey]">

@@ -38,7 +38,7 @@
 
     <partial name="_MainMenu" />
     <main class="site-main">
-        @* Save results (success, warning, error), fixed in the corner of the window until the user closes them.
+        @* Save results (success, warning, error), fixed at the top centre of the window until the user closes them.
            notes-board.js adds the results of in-place changes here, so the region is always rendered. *@
         <div class="status-region" aria-live="polite" data-status-region>
             @if (TempData.TakeStatusMessage() is { } message)
