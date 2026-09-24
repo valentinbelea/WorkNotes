@@ -1,5 +1,7 @@
 /* One paper surface per content panel; inner fields stay on the same sheet. */
 .postit-panel, .note-card {
+    /* Yellow paper has the cream tape; green paper sets the green tape together with its colour. */
+    --postit-tape: url("../images/postit-tape.svg");
     overflow: visible;
     background: var(--postit-color, var(--wn-note-paper));
     border: 0;
@@ -7,7 +9,7 @@
     /* A single shadow layer on the element: a second offset layer shows as a doubled bottom edge. */
     box-shadow: var(--wn-shadow-paper);
 }
-.postit-panel { position: relative; --postit-color: var(--wn-note-sage); }
+.postit-panel { position: relative; --postit-color: var(--wn-note-sage); --postit-tape: url("../images/postit-tape-sage.svg"); }
 /* The sage panel is close to the selection green, so selections and ghost hovers on it use the note yellow. */
 .postit-panel ::selection { background: var(--wn-note-paper); }
 .postit-panel .btn-ghost:hover { background: var(--wn-note-paper); }
@@ -20,13 +22,16 @@
     left: 50%;
     width: 5rem;
     height: 2.2rem;
-    background: url("../images/postit-tape.svg") center / contain no-repeat;
+    background: var(--postit-tape) center / contain no-repeat;
     transform: translateX(-50%) rotate(-2deg);
     pointer-events: none;
 }
-.note-card--sage { --postit-color: var(--wn-note-sage); }
+.note-card--sage { --postit-color: var(--wn-note-sage); --postit-tape: url("../images/postit-tape-sage.svg"); }
 /* Journals are paper yellow, articles sage; the unsaved card previews the colour of the chosen type. */
-.note-card--article, .note-card--draft:has(.note-type-switch input[value="Article"]:checked) { --postit-color: var(--wn-note-sage); }
+.note-card--article, .note-card--draft:has(.note-type-switch input[value="Article"]:checked) {
+    --postit-color: var(--wn-note-sage);
+    --postit-tape: url("../images/postit-tape-sage.svg");
+}
 .note-card--peach { --postit-color: var(--wn-note-peach); }
 .note-card--blue { --postit-color: var(--wn-note-blue); }
 .note-card[aria-current="page"], .note-card[aria-pressed="true"] {

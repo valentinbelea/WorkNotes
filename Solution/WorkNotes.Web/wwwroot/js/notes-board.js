@@ -1,5 +1,6 @@
 // Dashboard behaviour only: all appearance comes from CSS classes rendered by the server.
-// Switches the board, inserts the server-rendered new-note card, removes it on Cancel, and opens saved notes on double-click.
+// Switches the board, inserts the server-rendered new-note card, removes it on Cancel, renames titles in place,
+// and opens saved notes on double-click.
 // Positions come from the grid; this module never moves cards or writes inline styles.
 
 // Single entry point for opening a note from its card: double-click follows the card's Open link,
@@ -45,9 +46,67 @@ export function initializeDashboard(dashboard) {
         if (card && event.key === "Escape") cancel(card);
     });
 
+    initializeRename(dashboard);
+
     dashboard.addEventListener("dblclick", event => {
         const card = event.target.closest(".note-card[data-note-id]");
         if (card && !event.target.closest("button, a, input, select, textarea")) openNoteEditor(card);
+    });
+}
+
+// Titles are renamed in place. Enter (or leaving the field with a changed title) saves in the background;
+// Escape restores the saved title. Without JavaScript, Enter submits the same form and the board reloads.
+function initializeRename(dashboard) {
+    const status = dashboard.querySelector("[data-board-status]");
+    let statusTimer = 0;
+    const announce = text => {
+        if (!status || !text) return;
+        status.textContent = text;
+        status.hidden = false;
+        clearTimeout(statusTimer);
+        statusTimer = setTimeout(() => { status.hidden = true; }, 4000);
+    };
+
+    async function rename(form) {
+        const input = form.querySelector("[data-note-title]");
+        if (!input || input.value === input.defaultValue || form.dataset.saving) return;
+        form.dataset.saving = "true";
+        try {
+            const response = await fetch(form.action, { method: "POST", body: new FormData(form), headers: { Accept: "application/json" } });
+            const body = await response.json().catch(() => ({}));
+            if (response.ok) {
+                // The stored title is normalized (trimmed); an empty title means "untitled".
+                input.value = body.title ?? "";
+                input.defaultValue = input.value;
+                input.title = input.value || input.placeholder;
+            } else {
+                input.value = input.defaultValue;
+            }
+            announce(body.message ?? dashboard.dataset.renameFailed);
+        } catch {
+            input.value = input.defaultValue;
+            announce(dashboard.dataset.renameFailed);
+        } finally {
+            delete form.dataset.saving;
+        }
+    }
+
+    dashboard.addEventListener("submit", event => {
+        const form = event.target.closest("[data-note-rename]");
+        if (!form) return;
+        event.preventDefault();
+        rename(form);
+    });
+    dashboard.addEventListener("keydown", event => {
+        const input = event.target.closest("[data-note-title]");
+        if (input && event.key === "Escape") {
+            input.value = input.defaultValue;
+            input.blur();
+        }
+    });
+    dashboard.addEventListener("focusout", event => {
+        const input = event.target.closest("[data-note-title]");
+        if (input) rename(input.form);
     });
 }
 

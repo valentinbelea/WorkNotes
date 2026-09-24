@@ -92,6 +92,8 @@ Salvarea trimite toată nota (paragrafele în ordine) prin POST JSON cu antiforg
 
 Biblioteca este inclusă local în `wwwroot/lib/codemirror/codemirror.js`, cu `THIRD-PARTY-NOTICES.txt` (copyright și licențe). Pentru actualizare: din `tools/codemirror`, `npm ci` apoi `npm run build` (versiuni fixate în `package.json` / `package-lock.json`).
 
+Pe tablă, fiecare post-it arată data creării cu anul, începutul primelor paragrafe și, pentru proprietar, titlul editabil pe loc (Enter salvează, Escape anulează) și ștergerea cu confirmare (`/?delete={id}`; paragrafele se șterg în cascadă). `NoteService.RenameAsync` și `DeleteAsync` permit aceste operații numai proprietarului.
+
 Nu sunt încă implementate: referințele CR/bug, linkurile, autocomplete-ul și popup-urile (necesită `WorkReferences`), salvarea automată.
 
 ```powershell

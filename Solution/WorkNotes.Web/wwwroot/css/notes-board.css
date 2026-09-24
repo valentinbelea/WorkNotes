@@ -18,13 +18,27 @@
 .note-card--tilt-10 { --note-x: -3px; --note-y: 12px; --note-rotation: -1.1deg; }
 .note-card--tilt-11 { --note-x: 6px; --note-y: -8px; --note-rotation: .9deg; }
 .note-card__meta, .note-card__footer { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: .25rem .5rem; margin: 0; font-size: .75rem; }
-.note-card__meta { font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+/* The colour tells journals from articles; the meta line only shows the creation date. */
+.note-card__meta { justify-content: flex-start; font-weight: 600; letter-spacing: .02em; }
 .note-card__title { margin: 0; font-size: 1.15rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .note-card__title--untitled { color: var(--wn-muted); font-style: italic; font-weight: 500; }
-.note-card__excerpt { margin: 0; font-size: .875rem; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+/* Preview: the start of the first paragraphs, one per line. It fills the space between the title and the footer;
+   when the text is longer, its last visible line fades out instead of being cut in half. */
+.note-card__excerpt { flex: 1 1 0; min-height: 1.4em; margin: 0; font-size: .875rem; line-height: 1.55; white-space: pre-line; overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5em), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5em), transparent); }
+/* Title renamed in place: reads as the title, shows it is editable on hover and focus. */
+.note-card__rename { margin: 0; }
+.note-card__title-field { width: 100%; min-height: 36px; margin: 0; padding: .1rem 0; border: 0; border-bottom: 1px dashed transparent; border-radius: 0; color: var(--wn-text); background: transparent; font-size: 1.15rem; font-weight: 650; line-height: 1.3; text-overflow: ellipsis; cursor: text; }
+.note-card__title-field:hover { border-bottom-color: var(--wn-input-border); }
+.note-card__title-field:focus-visible { outline: none; border-bottom: 2px solid var(--wn-primary); }
+.note-card__title-field::placeholder { color: var(--wn-muted); font-style: italic; font-weight: 500; }
 .note-card__footer { margin-top: auto; align-items: center; }
-.note-card__open { display: inline-grid; place-items: center; width: 44px; height: 44px; margin: -.5rem -.5rem -.5rem 0; padding: 0; border: 0; border-radius: var(--wn-radius); color: var(--wn-primary); background: transparent; cursor: pointer; }
-.note-card__open:hover { color: var(--wn-primary-hover); background: rgb(36 58 54 / 8%); }
+/* Open and Delete, side by side at the end of the footer. */
+.note-card__actions { display: inline-flex; gap: .15rem; margin: -.5rem -.5rem -.5rem auto; }
+.note-card__icon { display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--wn-radius); color: var(--wn-primary); background: transparent; cursor: pointer; }
+.note-card__icon:hover { color: var(--wn-primary-hover); background: rgb(36 58 54 / 8%); }
+.note-card__icon--danger { color: var(--wn-muted); }
+.note-card__icon--danger:hover { color: var(--wn-danger); background: var(--wn-danger-bg); }
 .note-card svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 /* Unsaved card: straight, no hover lift, with an inline title field and the type switch. */
 .note-card--draft, .note-card--draft:hover { transform: none; }
@@ -53,6 +67,8 @@
 .dashboard-header p { margin: 0; }
 /* The empty-state message disappears as soon as the board has a card, including an unsaved one. */
 .dashboard:has(.notes-board > li) .notes-board-empty { display: none; }
+.board-status { max-width: none; margin: 1rem 0 0; }
+.board-status[hidden] { display: none; }
 /* One group per month; the current month is always rendered for new cards but hidden while it is empty. */
 .notes-month { margin-top: 1.5rem; }
 .notes-month:not(:has(.notes-board > li)) { display: none; }

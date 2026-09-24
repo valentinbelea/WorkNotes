@@ -8,8 +8,8 @@
 .note-editor-toolbar .actions { flex-wrap: nowrap; }
 .modal-panel--editor [hidden] { display: none; }
 /* The sheet has the colour of the note type, like its card on the board. */
-.postit-panel.note-sheet--journal { --postit-color: var(--wn-note-paper); }
-.postit-panel.note-sheet--article { --postit-color: var(--wn-note-sage); }
+.postit-panel.note-sheet--journal { --postit-color: var(--wn-note-paper); --postit-tape: url("../images/postit-tape.svg"); }
+.postit-panel.note-sheet--article { --postit-color: var(--wn-note-sage); --postit-tape: url("../images/postit-tape-sage.svg"); }
 .note-sheet__title { flex: none; width: 100%; margin: 0; padding: .25rem 0; border: 0; border-bottom: 1px dashed var(--wn-input-border); border-radius: 0; color: var(--wn-text); background: transparent; font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 650; line-height: 1.25; }
 h2.note-sheet__title { margin: 0; border-bottom: 0; font-size: clamp(1.4rem, 2.6vw, 1.9rem); }
 .note-sheet__title::placeholder { color: var(--wn-muted); font-weight: 500; }

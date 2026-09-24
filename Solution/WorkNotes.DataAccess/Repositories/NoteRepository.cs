@@ -12,14 +12,32 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
 {
     public async Task<IReadOnlyList<NoteSummary>> GetBoardAsync(string userId, int contextId, CancellationToken cancellationToken)
     {
-        var rows = await VisibleTo(userId)
-            .AsNoTracking()
-            .Where(note => note.ContextId == contextId)
-            .Select(note => new NoteSummary(note.Id, note.NoteType, note.Title, note.JournalDate,
-                note.Visibility, note.CreatedAtUtc, note.OwnerUserId == userId))
+        var rows = await SummaryRows(VisibleTo(userId).AsNoTracking().Where(note => note.ContextId == contextId), userId)
             .ToListAsync(cancellationToken);
-        return rows.Select(note => note with { CreatedAtUtc = Utc(note.CreatedAtUtc) }).ToList();
+        return rows.Select(ToSummary).ToList();
     }
+
+    public async Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken)
+    {
+        var row = await SummaryRows(VisibleTo(userId).AsNoTracking().Where(note => note.Id == noteId), userId)
+            .SingleOrDefaultAsync(cancellationToken);
+        return row is null ? null : ToSummary(row);
+    }
+
+    public async Task<bool> RenameAsync(int noteId, string ownerUserId, string? title, DateTime savedAtUtc, CancellationToken cancellationToken) =>
+        // A single UPDATE: it also changes the rowversion, so an editor open elsewhere sees the change as a conflict.
+        await dbContext.Notes
+            .Where(note => note.Id == noteId && note.OwnerUserId == ownerUserId && note.ArchivedAtUtc == null)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(note => note.Title, title)
+                .SetProperty(note => note.ModifiedAtUtc, savedAtUtc)
+                .SetProperty(note => note.ModifiedByUserId, ownerUserId), cancellationToken) > 0;
+
+    public async Task<bool> DeleteAsync(int noteId, string ownerUserId, CancellationToken cancellationToken) =>
+        // FK_NoteBlocks_Notes_NoteId cascades: the paragraphs are deleted by SQL Server in the same statement.
+        await dbContext.Notes
+            .Where(note => note.Id == noteId && note.OwnerUserId == ownerUserId)
+            .ExecuteDeleteAsync(cancellationToken) > 0;
 
     public async Task<NoteCreateStatus> AddAsync(NewNote note, CancellationToken cancellationToken)
     {
@@ -144,6 +162,42 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             dbContext.ChangeTracker.Clear();
             return new(NoteSaveStatus.Conflict);
         }
+    }
+
+    // The card fields plus the start of the first paragraphs, read by SQL Server; the preview itself is built by NoteRules.
+    private static IQueryable<SummaryRow> SummaryRows(IQueryable<NoteEntity> notes, string userId) =>
+        notes.Select(note => new SummaryRow
+        {
+            Id = note.Id,
+            ContextId = note.ContextId,
+            NoteType = note.NoteType,
+            Title = note.Title,
+            JournalDate = note.JournalDate,
+            Visibility = note.Visibility,
+            CreatedAtUtc = note.CreatedAtUtc,
+            IsOwner = note.OwnerUserId == userId,
+            FirstParagraphs = note.NoteBlocks
+                .OrderBy(block => block.Position)
+                .Take(NoteRules.PreviewParagraphs)
+                .Select(block => block.Content.Substring(0, NoteRules.PreviewSourceLength))
+                .ToList()
+        });
+
+    private static NoteSummary ToSummary(SummaryRow row) =>
+        new(row.Id, row.ContextId, row.NoteType, row.Title, NoteRules.BuildPreview(row.FirstParagraphs), row.JournalDate,
+            row.Visibility, Utc(row.CreatedAtUtc), row.IsOwner);
+
+    private sealed class SummaryRow
+    {
+        public int Id { get; init; }
+        public int ContextId { get; init; }
+        public string NoteType { get; init; } = "";
+        public string? Title { get; init; }
+        public DateOnly? JournalDate { get; init; }
+        public string Visibility { get; init; } = "";
+        public DateTime CreatedAtUtc { get; init; }
+        public bool IsOwner { get; init; }
+        public List<string> FirstParagraphs { get; init; } = [];
     }
 
     // Every note requires membership of its context; shared notes are visible to all its members.

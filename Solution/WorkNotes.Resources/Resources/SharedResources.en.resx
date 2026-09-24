@@ -145,4 +145,10 @@
 <data name="Editor_SessionExpired" xml:space="preserve"><value>Your session has expired. Sign in again to save.</value></data>
 <data name="Editor_BlockAuditUnsaved" xml:space="preserve"><value>Paragraph created {0} · changed {1} · unsaved changes</value></data>
 <data name="Editor_BlockAuditUnchangedUnsaved" xml:space="preserve"><value>Paragraph created {0} · unsaved changes</value></data>
+<data name="Notes_DeleteNamed" xml:space="preserve"><value>Delete note “{0}”</value></data>
+<data name="Notes_DeleteTitle" xml:space="preserve"><value>Delete note</value></data>
+<data name="Notes_DeleteConfirm" xml:space="preserve"><value>Are you sure you want to delete the note “{0}”? All its content is deleted too. This cannot be undone.</value></data>
+<data name="Message_NoteDeleted" xml:space="preserve"><value>The note has been deleted.</value></data>
+<data name="Message_NoteRenamed" xml:space="preserve"><value>The title has been saved.</value></data>
+<data name="Notes_RenameFailed" xml:space="preserve"><value>The title could not be saved. Please try again.</value></data>
 </root>

@@ -65,12 +65,47 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (!document.IsOwner) return new(NoteSaveStatus.Forbidden);
         if (string.IsNullOrWhiteSpace(expectedVersion)) return new(NoteSaveStatus.Conflict);
 
-        // Audit times are kept to the second, the precision of the stored columns, so they read the same after a reload.
-        var now = time.GetUtcNow().UtcDateTime;
-        var savedAtUtc = now.AddTicks(-(now.Ticks % TimeSpan.TicksPerSecond));
         return await notes.SaveAsync(
-            new NoteChanges(noteId, userId, expectedVersion, NoteRules.NormalizeTitle(title), paragraphs, savedAtUtc),
+            new NoteChanges(noteId, userId, expectedVersion, NoteRules.NormalizeTitle(title), paragraphs, SavedAtUtc()),
             cancellationToken);
+    }
+
+    public Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        return notes.GetSummaryAsync(noteId, userId, cancellationToken);
+    }
+
+    public async Task<NoteRenameResult> RenameAsync(string userId, int noteId, string? title, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!NoteRules.ValidTitle(title)) return new(NoteSaveStatus.InvalidTitle);
+        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
+        if (note is null) return new(NoteSaveStatus.NotFound);
+        if (!note.IsOwner) return new(NoteSaveStatus.Forbidden);
+        var normalized = NoteRules.NormalizeTitle(title);
+        return await notes.RenameAsync(noteId, userId, normalized, SavedAtUtc(), cancellationToken)
+            ? new(NoteSaveStatus.Saved, normalized)
+            : new(NoteSaveStatus.NotFound);
+    }
+
+    public async Task<NoteDeleteStatus> DeleteAsync(string userId, int noteId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
+        if (note is null) return NoteDeleteStatus.NotFound;
+        if (!note.IsOwner) return NoteDeleteStatus.Forbidden;
+        return await notes.DeleteAsync(noteId, userId, cancellationToken) ? NoteDeleteStatus.Deleted : NoteDeleteStatus.NotFound;
+    }
+
+    // Audit times are kept to the second, the precision of the stored columns, so they read the same after a reload.
+    private DateTime SavedAtUtc()
+    {
+        var now = time.GetUtcNow().UtcDateTime;
+        return now.AddTicks(-(now.Ticks % TimeSpan.TicksPerSecond));
     }
 
     // Null when the paragraphs cannot be stored as sent: empty or duplicate ids, invalid text or too much content.

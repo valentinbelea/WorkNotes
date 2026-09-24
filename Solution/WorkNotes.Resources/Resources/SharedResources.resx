@@ -145,4 +145,10 @@
 <data name="Editor_SessionExpired" xml:space="preserve"><value>Sesiunea a expirat. Autentifică-te din nou pentru a salva.</value></data>
 <data name="Editor_BlockAuditUnsaved" xml:space="preserve"><value>Paragraf creat {0} · modificat {1} · modificări nesalvate</value></data>
 <data name="Editor_BlockAuditUnchangedUnsaved" xml:space="preserve"><value>Paragraf creat {0} · modificări nesalvate</value></data>
+<data name="Notes_DeleteNamed" xml:space="preserve"><value>Șterge nota „{0}”</value></data>
+<data name="Notes_DeleteTitle" xml:space="preserve"><value>Șterge nota</value></data>
+<data name="Notes_DeleteConfirm" xml:space="preserve"><value>Sigur vrei să ștergi nota „{0}”? Se șterge și tot conținutul ei. Operația nu poate fi anulată.</value></data>
+<data name="Message_NoteDeleted" xml:space="preserve"><value>Nota a fost ștearsă.</value></data>
+<data name="Message_NoteRenamed" xml:space="preserve"><value>Titlul a fost salvat.</value></data>
+<data name="Notes_RenameFailed" xml:space="preserve"><value>Titlul nu a putut fi salvat. Încearcă din nou.</value></data>
 </root>

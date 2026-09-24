@@ -1,0 +1,17 @@
+@model WorkNotes.Web.Pages.IndexModel
+@{
+    var note = Model.DeletingNote!;
+    var title = note.Title ?? L["Notes_Untitled"].Value;
+    var closeUrl = Url.Page("/Index", new { context = note.ContextId });
+}
+@* Confirmation over the board, like the other overlays; only the antiforgery-protected POST deletes. *@
+<dialog class="modal" open data-modal data-close-url="@closeUrl" aria-labelledby="note-delete-title" aria-describedby="note-delete-message">
+    <div class="modal-panel postit-panel">
+        <h2 id="note-delete-title">@L["Notes_DeleteTitle"]</h2>
+        <p id="note-delete-message">@L["Notes_DeleteConfirm", title]</p>
+        <form method="post" asp-page="/Index" asp-page-handler="DeleteNote" asp-route-note="@note.Id" asp-route-context="@note.ContextId" class="actions">
+            <button type="submit" class="btn btn-danger">@L["Button_Delete"]</button>
+            <a class="btn btn-secondary" href="@closeUrl" autofocus>@L["Button_Cancel"]</a>
+        </form>
+    </div>
+</dialog>

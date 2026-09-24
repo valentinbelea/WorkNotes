@@ -61,21 +61,29 @@ Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul l
     <ul class="notes-board" data-new-note-target="true">
         <li class="note-cell">
             <article class="note-card note-card--journal note-card--tilt-3" data-note-id="12">
-                <p class="note-card__meta"><span>Jurnal</span> <time datetime="…">23.09 · 09:40</time></p>
-                <h3 class="note-card__title">…</h3>
-                <div class="note-card__footer"><span>Privat</span><button class="note-card__open" data-note-open>…</button></div>
+                <p class="note-card__meta"><span class="visually-hidden">Jurnal</span> <time datetime="…">23.09.2026 · 09:40</time></p>
+                <form class="note-card__rename" data-note-rename><input class="note-card__title-field" name="title" data-note-title></form>
+                <p class="note-card__excerpt">începutul primelor paragrafe…</p>
+                <div class="note-card__footer">
+                    <span>Privat</span>
+                    <span class="note-card__actions"><a class="note-card__icon" data-note-open>…</a><a class="note-card__icon note-card__icon--danger">…</a></span>
+                </div>
             </article>
         </li>
     </ul>
 </section>
 ```
 
-- Data are formatul zz.LL · HH:mm (de exemplu 23.09 · 17:44).
-- Culoarea urmează tipul: note-card--journal (galben #FFF0B7), note-card--article (salvie #DDEADB). Cardul nou arată culoarea tipului ales în switch, numai prin CSS (:has).
+- Data are formatul zz.LL.aaaa · HH:mm (de exemplu 23.09.2026 · 17:44).
+- Tipul nu mai are etichetă vizibilă: culoarea deosebește jurnalul de articol, iar tipul rămâne scris pentru cititoarele de ecran (visually-hidden).
+- Previzualizarea (note-card__excerpt) arată începutul primelor 3 paragrafe, câte unul pe rând (NoteRules.BuildPreview, maximum 280 de caractere, tăiat la un cuvânt). Ocupă spațiul dintre titlu și subsol; ultimul rând vizibil se estompează în loc să fie tăiat.
+- Proprietarul redenumește titlul pe loc (note-card__title-field): Enter salvează, părăsirea câmpului cu titlul schimbat salvează și ea, Escape readuce titlul salvat. Cu JavaScript salvarea se face în fundal și rezultatul apare câteva secunde în board-status; fără JavaScript Enter trimite formularul și tabla se reîncarcă. Un titlu gol face nota „Fără titlu”. Pentru ceilalți membri titlul rămâne text (h3).
+- În subsol, lângă Open, proprietarul are Delete (note-card__icon--danger): /?delete={id} deschide confirmarea peste tablă; ștergerea (POST cu antiforgery) elimină nota și paragrafele ei.
+- Culoarea urmează tipul: note-card--journal (galben #FFF0B7), note-card--article (salvie #DDEADB). Cardul nou arată culoarea tipului ales în switch, numai prin CSS (:has). Banda adezivă urmează culoarea hârtiei: crem (images/postit-tape.svg) pe galben, verde (images/postit-tape-sage.svg, aceeași transparență) pe hârtia salvie — carduri de articol, panourile postit-panel și foaia editorului pentru articole — prin variabila --postit-tape.
 - Decalajul și rotația sunt deterministe din ID: serverul alege una dintre clasele note-card--tilt-0 … note-card--tilt-11 (NoteCardStyle.TiltClass), în limitele ±12px și ±2°. Marginea de 22px a celulei păstrează cardul în celula proprie. Nu există stiluri inline și niciun script nu poziționează cardurile. Pe ecrane de maximum 450px notele sunt drepte, pe o coloană.
 - Ordinea DOM este ordinea din serviciu și cea de navigare cu tastatura. Grila (auto-fill) mută celelalte carduri spre dreapta și în jos când apare un card nou la început.
 - Luna curentă este randată întotdeauna (ca țintă pentru cardul nou) și ascunsă prin CSS cât timp nu are carduri.
-- Cardul salvat este article; singurul control din el este butonul Open (note-card__open). Nu puneți controale interactive unul în altul.
+- Cardul salvat este article; controalele lui (câmpul de titlu, Open, Delete) sunt separate, fără controale interactive unul în altul. Dublu-click pe card deschide editorul, cu excepția câmpului de titlu și a icoanelor.
 
 ### Notă nouă
 

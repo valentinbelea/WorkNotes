@@ -14,4 +14,10 @@ public interface INoteService
     Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken);
     // Only the owner saves; the paragraphs are the whole content of the note, in document order.
     Task<NoteSaveResult> SaveAsync(string userId, int noteId, string expectedVersion, string? title, IReadOnlyList<NoteBlockInput> blocks, CancellationToken cancellationToken);
+    // Null when the note does not exist or the user may not see it.
+    Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken);
+    // Only the owner renames a note, from its card; an empty title makes it untitled.
+    Task<NoteRenameResult> RenameAsync(string userId, int noteId, string? title, CancellationToken cancellationToken);
+    // Only the owner deletes a note; its paragraphs are deleted with it.
+    Task<NoteDeleteStatus> DeleteAsync(string userId, int noteId, CancellationToken cancellationToken);
 }

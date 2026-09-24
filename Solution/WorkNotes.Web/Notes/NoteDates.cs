@@ -8,7 +8,7 @@ public static class NoteDates
 {
     public static string Iso(DateTime utc) => utc.ToLocalTime().ToString("yyyy-MM-ddTHH:mmzzz", CultureInfo.InvariantCulture);
 
-    public static string Card(DateTime utc) => utc.ToLocalTime().ToString("dd.MM · HH:mm", CultureInfo.InvariantCulture);
+    public static string Card(DateTime utc) => utc.ToLocalTime().ToString("dd.MM.yyyy · HH:mm", CultureInfo.InvariantCulture);
 
     public static string Full(DateTime utc) => utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture);
 

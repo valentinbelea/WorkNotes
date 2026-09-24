@@ -12,4 +12,10 @@ public interface INoteRepository
     // Applies the changes to a note owned by changes.OwnerUserId: kept paragraphs keep id and creation audit,
     // changed ones get a new modification audit, missing ones are removed. Conflict when the version is stale.
     Task<NoteSaveResult> SaveAsync(NoteChanges changes, CancellationToken cancellationToken);
+    // One card of the board, when the user may see the note (same rule as the board).
+    Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken);
+    // Changes the title of a note owned by ownerUserId and audits the change; false when there is no such note.
+    Task<bool> RenameAsync(int noteId, string ownerUserId, string? title, DateTime savedAtUtc, CancellationToken cancellationToken);
+    // Deletes a note owned by ownerUserId together with its paragraphs; false when there is no such note.
+    Task<bool> DeleteAsync(int noteId, string ownerUserId, CancellationToken cancellationToken);
 }

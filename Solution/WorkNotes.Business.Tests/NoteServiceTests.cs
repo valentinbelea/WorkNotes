@@ -214,8 +214,74 @@ public sealed class NoteServiceTests
         Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, "v1", null, [new(Guid.NewGuid(), "Text")], CancellationToken.None)).Status);
     }
 
-    private static NoteSummary Note(int id, string type, DateTime createdAtUtc) =>
-        new(id, type, null, null, NoteVisibilities.Private, createdAtUtc, IsOwner: true);
+    private static NoteSummary Note(int id, string type, DateTime createdAtUtc, bool isOwner = true) =>
+        new(id, 5, type, null, null, null, NoteVisibilities.Private, createdAtUtc, isOwner);
+
+    [Fact]
+    public async Task OwnerRenamesWithANormalizedTitleAndAudit()
+    {
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, DateTime.UtcNow));
+        var time = new FixedTime(new DateTimeOffset(2026, 9, 24, 8, 0, 0, 900, TimeSpan.Zero), TimeSpan.FromHours(3));
+        var service = new NoteService(notes, new StubContexts(), time);
+
+        var result = await service.RenameAsync(User, 7, "  CR 30042  ", CancellationToken.None);
+
+        Assert.Equal(new NoteRenameResult(NoteSaveStatus.Saved, "CR 30042"), result);
+        Assert.Equal((7, User, "CR 30042", new DateTime(2026, 9, 24, 8, 0, 0, DateTimeKind.Utc)), notes.Renamed);
+    }
+
+    [Fact]
+    public async Task EmptyTitleMakesTheNoteUntitled()
+    {
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, DateTime.UtcNow));
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+
+        Assert.Equal(new NoteRenameResult(NoteSaveStatus.Saved, null), await service.RenameAsync(User, 7, "   ", CancellationToken.None));
+        Assert.Null(notes.Renamed!.Value.Title);
+    }
+
+    [Fact]
+    public async Task OnlyTheOwnerRenamesOrDeletes()
+    {
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, DateTime.UtcNow, isOwner: false));
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+
+        Assert.Equal(NoteSaveStatus.Forbidden, (await service.RenameAsync(User, 7, "Titlu", CancellationToken.None)).Status);
+        Assert.Equal(NoteDeleteStatus.Forbidden, await service.DeleteAsync(User, 7, CancellationToken.None));
+        Assert.Null(notes.Renamed);
+        Assert.Null(notes.Deleted);
+    }
+
+    [Fact]
+    public async Task InvisibleNoteCannotBeRenamedOrDeleted()
+    {
+        var notes = new StubNotes(summary: null);
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+
+        Assert.Equal(NoteSaveStatus.NotFound, (await service.RenameAsync(User, 7, "Titlu", CancellationToken.None)).Status);
+        Assert.Equal(NoteDeleteStatus.NotFound, await service.DeleteAsync(User, 7, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task InvalidTitleIsNotRenamed()
+    {
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, DateTime.UtcNow));
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+
+        Assert.Equal(NoteSaveStatus.InvalidTitle, (await service.RenameAsync(User, 7, "a\tb", CancellationToken.None)).Status);
+        Assert.Equal(NoteSaveStatus.InvalidTitle, (await service.RenameAsync(User, 7, new string('a', NoteRules.TitleMaxLength + 1), CancellationToken.None)).Status);
+        Assert.Null(notes.Renamed);
+    }
+
+    [Fact]
+    public async Task OwnerDeletes()
+    {
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Article, DateTime.UtcNow));
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+
+        Assert.Equal(NoteDeleteStatus.Deleted, await service.DeleteAsync(User, 7, CancellationToken.None));
+        Assert.Equal((7, User), notes.Deleted);
+    }
 
     [Fact]
     public async Task BoardIsReadForTheCurrentUser()
@@ -236,9 +302,25 @@ public sealed class NoteServiceTests
     }
 
     private sealed class StubNotes(NoteCreateStatus outcome = NoteCreateStatus.Created, IReadOnlyList<NoteSummary>? board = null,
-        NoteDocument? document = null, NoteSaveResult? saveResult = null) : INoteRepository
+        NoteDocument? document = null, NoteSaveResult? saveResult = null, NoteSummary? summary = null) : INoteRepository
     {
         public NoteChanges? Saved { get; private set; }
+        public (int NoteId, string Owner, string? Title, DateTime SavedAtUtc)? Renamed { get; private set; }
+        public (int NoteId, string Owner)? Deleted { get; private set; }
+
+        public Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken) => Task.FromResult(summary);
+
+        public Task<bool> RenameAsync(int noteId, string ownerUserId, string? title, DateTime savedAtUtc, CancellationToken cancellationToken)
+        {
+            Renamed = (noteId, ownerUserId, title, savedAtUtc);
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> DeleteAsync(int noteId, string ownerUserId, CancellationToken cancellationToken)
+        {
+            Deleted = (noteId, ownerUserId);
+            return Task.FromResult(true);
+        }
 
         public Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken) =>
             Task.FromResult(document);

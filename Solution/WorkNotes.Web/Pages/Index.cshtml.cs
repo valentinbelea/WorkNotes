@@ -11,7 +11,8 @@ using WorkNotes.Web.ViewModels;
 namespace WorkNotes.Web.Pages;
 
 // Guests see the welcome panel; signed-in users see one board per context (?context={id}, the first one by default).
-// ?new=true opens the new-note card without JavaScript; ?note={id} opens the note's editor over its board.
+// ?new=true opens the new-note card without JavaScript; ?note={id} opens the note's editor over its board;
+// ?delete={id} asks, over the board, to confirm deleting a note.
 public sealed class IndexModel(INoteService notes, IWorkContextService contexts, IStringLocalizer<SharedResources> localizer) : PageModel
 {
     public IReadOnlyList<WorkContext> Contexts { get; private set; } = [];
@@ -23,11 +24,14 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
     public bool IsNewNoteOpen { get; private set; }
     // The note shown in the editor dialog, when ?note={id} names a note the user may see.
     public NoteDocument? OpenNote { get; private set; }
+    // The note whose deletion is being confirmed (?delete={id}); only its owner gets there.
+    public NoteSummary? DeletingNote { get; private set; }
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     private bool IsSignedIn => User.Identity?.IsAuthenticated == true;
 
-    public async Task<IActionResult> OnGetAsync([FromQuery(Name = "new")] bool openNewNote, int? context, int? note, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnGetAsync([FromQuery(Name = "new")] bool openNewNote, int? context, int? note, int? delete,
+        CancellationToken cancellationToken)
     {
         if (!IsSignedIn) return Page();
         if (note is { } noteId)
@@ -37,8 +41,15 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
             // The editor opens over the board the note belongs to.
             context = OpenNote.ContextId;
         }
+        else if (delete is { } deleteId)
+        {
+            DeletingNote = await notes.GetSummaryAsync(deleteId, UserId, cancellationToken);
+            if (DeletingNote is null) return NotFound();
+            if (!DeletingNote.IsOwner) return StatusCode(StatusCodes.Status403Forbidden);
+            context = DeletingNote.ContextId;
+        }
         await LoadBoardAsync(context, cancellationToken);
-        IsNewNoteOpen = openNewNote && OpenNote is null && SelectedContext is not null;
+        IsNewNoteOpen = openNewNote && OpenNote is null && DeletingNote is null && SelectedContext is not null;
         return Page();
     }
 
@@ -98,8 +109,53 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         };
     }
 
-    // The card posts with ?handler=CreateNote; opening that address directly shows an empty new card.
+    // The title field of a card. With JavaScript it posts in the background and gets JSON back (Accept: application/json);
+    // without it, Enter submits the form and the board is shown again with a message.
+    public async Task<IActionResult> OnPostRenameNoteAsync(int note, int? context, string? title, CancellationToken cancellationToken)
+    {
+        var wantsJson = Request.Headers.Accept.ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase);
+        if (!IsSignedIn) return wantsJson ? EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired") : Challenge();
+        var result = await notes.RenameAsync(UserId, note, title, cancellationToken);
+        var messageKey = result.Status switch
+        {
+            NoteSaveStatus.Saved => "Message_NoteRenamed",
+            NoteSaveStatus.InvalidTitle => "Validation_InvalidNoteTitle",
+            NoteSaveStatus.Forbidden => "Editor_ReadOnly",
+            _ => "Editor_NotFound"
+        };
+        if (wantsJson)
+        {
+            return result.Status == NoteSaveStatus.Saved
+                ? new JsonResult(new { title = result.Title, message = localizer[messageKey].Value })
+                : EditorFailure(result.Status switch
+                {
+                    NoteSaveStatus.InvalidTitle => StatusCodes.Status400BadRequest,
+                    NoteSaveStatus.Forbidden => StatusCodes.Status403Forbidden,
+                    _ => StatusCodes.Status404NotFound
+                }, messageKey);
+        }
+        TempData["StatusMessage"] = messageKey;
+        return RedirectToPage(new { context });
+    }
+
+    public async Task<IActionResult> OnPostDeleteNoteAsync(int note, int? context, CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return Challenge();
+        switch (await notes.DeleteAsync(UserId, note, cancellationToken))
+        {
+            case NoteDeleteStatus.NotFound:
+                return NotFound();
+            case NoteDeleteStatus.Forbidden:
+                return StatusCode(StatusCodes.Status403Forbidden);
+        }
+        TempData["StatusMessage"] = "Message_NoteDeleted";
+        return RedirectToPage(new { context });
+    }
+
+    // The forms post with ?handler=CreateNote, RenameNote or DeleteNote; opening those addresses directly shows the board.
     public IActionResult OnGetCreateNote(int? context) => RedirectToPage(new { @new = true, context });
+    public IActionResult OnGetRenameNote(int? context) => RedirectToPage(new { context });
+    public IActionResult OnGetDeleteNote(int? context) => RedirectToPage(new { context });
 
     private JsonResult EditorFailure(int statusCode, string messageKey) =>
         new(new { message = localizer[messageKey].Value }) { StatusCode = statusCode };

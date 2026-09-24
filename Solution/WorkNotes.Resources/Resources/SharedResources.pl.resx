@@ -145,4 +145,10 @@
 <data name="Editor_SessionExpired" xml:space="preserve"><value>Sesja wygasła. Zaloguj się ponownie, aby zapisać.</value></data>
 <data name="Editor_BlockAuditUnsaved" xml:space="preserve"><value>Akapit utworzony {0} · zmieniony {1} · niezapisane zmiany</value></data>
 <data name="Editor_BlockAuditUnchangedUnsaved" xml:space="preserve"><value>Akapit utworzony {0} · niezapisane zmiany</value></data>
+<data name="Notes_DeleteNamed" xml:space="preserve"><value>Usuń notatkę „{0}”</value></data>
+<data name="Notes_DeleteTitle" xml:space="preserve"><value>Usuń notatkę</value></data>
+<data name="Notes_DeleteConfirm" xml:space="preserve"><value>Czy na pewno chcesz usunąć notatkę „{0}”? Cała jej treść również zostanie usunięta. Tej operacji nie można cofnąć.</value></data>
+<data name="Message_NoteDeleted" xml:space="preserve"><value>Notatka została usunięta.</value></data>
+<data name="Message_NoteRenamed" xml:space="preserve"><value>Tytuł został zapisany.</value></data>
+<data name="Notes_RenameFailed" xml:space="preserve"><value>Nie udało się zapisać tytułu. Spróbuj ponownie.</value></data>
 </root>
