@@ -41,6 +41,9 @@
 @* The note editor over its board, 90% of the window. Without JavaScript the open dialog is a CSS overlay;
    modal.js makes it modal (Escape and a click outside go back to the board, after the unsaved-changes warning). *@
 <dialog class="modal" open data-modal data-close-url="@closeUrl" aria-labelledby="note-title">
+    @* Save results, fixed in the corner of the window above the editor until the user closes them. Inside the dialog,
+       so they stay usable while it is modal; not a live region: the toolbar status already announces each save. *@
+    <div class="status-region" data-editor-messages></div>
     <article class="modal-panel modal-panel--editor postit-panel note-sheet @typeClass">
         <div class="note-editor-toolbar">
             <p class="note-editor-toolbar__meta">

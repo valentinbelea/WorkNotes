@@ -95,6 +95,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
             NoteSaveStatus.Saved => new JsonResult(new
             {
                 version = result.Version,
+                message = localizer["Message_NoteSaved"].Value,
                 blocks = (result.Blocks ?? []).Select(block => new
                 {
                     id = block.Id,

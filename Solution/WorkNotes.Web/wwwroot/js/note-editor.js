@@ -7,6 +7,7 @@ import {
     drawSelection, highlightSpecialChars, defaultKeymap, history, historyKeymap, invertedEffects,
     search, searchKeymap, highlightSelectionMatches
 } from "../lib/codemirror/codemirror.js";
+import { showStatusMessage } from "./status-messages.js";
 
 // ---- Paragraphs of a document ------------------------------------------------------------------------------
 
@@ -145,6 +146,8 @@ function initializeNoteEditor(host, data) {
     const infoElement = document.querySelector("[data-editor-info]");
     const saveButton = document.querySelector("[data-editor-save]");
     const titleInput = document.querySelector("[data-editor-title]");
+    // Each save result is also a message in the dialog's status region; it stays until the user closes it.
+    const messages = document.querySelector("[data-editor-messages]");
     const token = document.querySelector("input[name='__RequestVerificationToken']")?.value ?? "";
 
     // Audit texts (as stored, and with unsaved changes) and last saved content of each stored paragraph, by id.
@@ -217,12 +220,14 @@ function initializeNoteEditor(host, data) {
             if (!response.ok) {
                 problem = body.message ?? texts.failed;
                 conflict = [401, 403, 404, 409].includes(response.status);
+                showStatusMessage(messages, "error", problem);
                 return;
             }
             version = body.version;
             savedDoc = state.doc;
             savedTitle = title;
             problem = null;
+            showStatusMessage(messages, "success", body.message);
             // The saved paragraphs are now the reference for the info bar.
             auditById.clear();
             savedContentById.clear();
@@ -230,6 +235,7 @@ function initializeNoteEditor(host, data) {
             for (const block of blocks) savedContentById.set(block.id, block.content);
         } catch {
             problem = texts.failed;
+            showStatusMessage(messages, "error", problem);
         } finally {
             saving = false;
             updateStatus();

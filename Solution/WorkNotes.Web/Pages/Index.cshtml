@@ -40,7 +40,7 @@
                 </div>
             }
         </div>
-        @* Results of an in-place rename: notes-board.js fills a copy of these in and adds it to the layout's status region. *@
+        @* Save results added by scripts (status-messages.js): in-place renames on the board and saves in the editor. *@
         <template data-status-template="success"><partial name="_StatusMessage" model="new StatusMessage(StatusMessageKind.Success)" /></template>
         <template data-status-template="error"><partial name="_StatusMessage" model="new StatusMessage(StatusMessageKind.Error)" /></template>
         @foreach (var month in Model.Months)
