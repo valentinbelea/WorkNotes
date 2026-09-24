@@ -117,6 +117,102 @@ public sealed class NoteServiceTests
         Assert.Equal((2026, 9), service.GetCurrentMonth());
     }
 
+    private static NoteDocument Document(bool isOwner = true) =>
+        new(7, 5, "TopDev", NoteTypes.Article, "Titlu", NoteVisibilities.Private, isOwner, DateTime.UtcNow, "v1", []);
+
+    [Fact]
+    public async Task OwnerSavesNormalizedParagraphsInOrder()
+    {
+        var notes = new StubNotes(document: Document());
+        var time = new FixedTime(new DateTimeOffset(2026, 9, 24, 8, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
+        var service = new NoteService(notes, new StubContexts(), time);
+        var first = Guid.NewGuid();
+        var second = Guid.NewGuid();
+
+        var result = await service.SaveAsync(User, 7, "v1", "  Analiză  ",
+            [new(first, "\nRând 1\r\nRând 2\n"), new(second, "Al doilea\tparagraf")], CancellationToken.None);
+
+        Assert.Equal(new NoteSaveResult(NoteSaveStatus.Saved, "v2"), result);
+        Assert.Equal("Analiză", notes.Saved!.Title);
+        Assert.Equal([new NoteBlockInput(first, "Rând 1\nRând 2"), new NoteBlockInput(second, "Al doilea\tparagraf")], notes.Saved.Blocks);
+        Assert.Equal(new DateTime(2026, 9, 24, 8, 0, 0, DateTimeKind.Utc), notes.Saved.SavedAtUtc);
+        Assert.Equal(("v1", User), (notes.Saved.ExpectedVersion, notes.Saved.OwnerUserId));
+    }
+
+    [Fact]
+    public async Task OnlyTheOwnerSaves()
+    {
+        var notes = new StubNotes(document: Document(isOwner: false));
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+
+        Assert.Equal(NoteSaveStatus.Forbidden, (await service.SaveAsync(User, 7, "v1", null, [], CancellationToken.None)).Status);
+        Assert.Null(notes.Saved);
+    }
+
+    [Fact]
+    public async Task InvisibleNoteIsNotFound()
+    {
+        var notes = new StubNotes(document: null);
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+
+        Assert.Equal(NoteSaveStatus.NotFound, (await service.SaveAsync(User, 7, "v1", null, [], CancellationToken.None)).Status);
+        Assert.Null(notes.Saved);
+    }
+
+    public static TheoryData<NoteBlockInput[]> InvalidParagraphs()
+    {
+        var id = Guid.NewGuid();
+        return new()
+        {
+            new[] { new NoteBlockInput(Guid.Empty, "Text") },
+            new[] { new NoteBlockInput(id, "Unu"), new NoteBlockInput(id, "Doi") },
+            new[] { new NoteBlockInput(Guid.NewGuid(), " \n ") },
+            new[] { new NoteBlockInput(Guid.NewGuid(), "a\u0007b") },
+            new[] { new NoteBlockInput(Guid.NewGuid(), new string('a', NoteRules.MaxContentLength + 1)) },
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidParagraphs))]
+    public async Task InvalidParagraphsAreRejectedBeforeDataAccess(NoteBlockInput[] blocks)
+    {
+        var notes = new StubNotes(document: Document());
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+
+        Assert.Equal(NoteSaveStatus.InvalidContent, (await service.SaveAsync(User, 7, "v1", null, blocks, CancellationToken.None)).Status);
+        Assert.Null(notes.Saved);
+    }
+
+    [Fact]
+    public async Task TooManyParagraphsAreRejected()
+    {
+        var notes = new StubNotes(document: Document());
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var blocks = Enumerable.Range(0, NoteRules.MaxBlocks + 1).Select(_ => new NoteBlockInput(Guid.NewGuid(), "x")).ToList();
+
+        Assert.Equal(NoteSaveStatus.InvalidContent, (await service.SaveAsync(User, 7, "v1", null, blocks, CancellationToken.None)).Status);
+    }
+
+    [Fact]
+    public async Task InvalidTitleAndMissingVersionAreRejected()
+    {
+        var notes = new StubNotes(document: Document());
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+
+        Assert.Equal(NoteSaveStatus.InvalidTitle, (await service.SaveAsync(User, 7, "v1", "a\nb", [], CancellationToken.None)).Status);
+        Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, " ", null, [], CancellationToken.None)).Status);
+        Assert.Null(notes.Saved);
+    }
+
+    [Fact]
+    public async Task ConflictFromDataAccessIsReturned()
+    {
+        var notes = new StubNotes(document: Document(), saveResult: new NoteSaveResult(NoteSaveStatus.Conflict));
+        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+
+        Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, "v1", null, [new(Guid.NewGuid(), "Text")], CancellationToken.None)).Status);
+    }
+
     private static NoteSummary Note(int id, string type, DateTime createdAtUtc) =>
         new(id, type, null, null, NoteVisibilities.Private, createdAtUtc, IsOwner: true);
 
@@ -138,8 +234,20 @@ public sealed class NoteServiceTests
         public override TimeZoneInfo LocalTimeZone { get; } = TimeZoneInfo.CreateCustomTimeZone("Test", offset, "Test", "Test");
     }
 
-    private sealed class StubNotes(NoteCreateStatus outcome = NoteCreateStatus.Created, IReadOnlyList<NoteSummary>? board = null) : INoteRepository
+    private sealed class StubNotes(NoteCreateStatus outcome = NoteCreateStatus.Created, IReadOnlyList<NoteSummary>? board = null,
+        NoteDocument? document = null, NoteSaveResult? saveResult = null) : INoteRepository
     {
+        public NoteChanges? Saved { get; private set; }
+
+        public Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken) =>
+            Task.FromResult(document);
+
+        public Task<NoteSaveResult> SaveAsync(NoteChanges changes, CancellationToken cancellationToken)
+        {
+            Saved = changes;
+            return Task.FromResult(saveResult ?? new NoteSaveResult(NoteSaveStatus.Saved, "v2"));
+        }
+
         public NewNote? Added { get; private set; }
         public string? BoardUser { get; private set; }
         public int? BoardContext { get; private set; }

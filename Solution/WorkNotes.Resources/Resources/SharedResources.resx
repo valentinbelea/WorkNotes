@@ -109,4 +109,34 @@
 <data name="Message_NoteSaved" xml:space="preserve"><value>Nota a fost salvată.</value></data>
 <data name="Message_ContextInUse" xml:space="preserve"><value>Contextul are note și nu poate fi șters.</value></data>
 <data name="Button_ShowBoard" xml:space="preserve"><value>Afișează</value></data>
+<data name="Button_BackToBoard" xml:space="preserve"><value>Înapoi la tablă</value></data>
+<data name="Field_Content" xml:space="preserve"><value>Conținutul notei</value></data>
+<data name="Editor_Placeholder" xml:space="preserve"><value>Scrie aici. Un rând gol separă paragrafele.</value></data>
+<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S salvează, Ctrl+F caută, Ctrl+Z anulează. Un rând gol începe un paragraf nou.</value></data>
+<data name="Editor_ReadOnly" xml:space="preserve"><value>Poți citi această notă; numai proprietarul o poate modifica.</value></data>
+<data name="Editor_NoScript" xml:space="preserve"><value>Editorul are nevoie de JavaScript. Conținutul notei este afișat mai jos, numai pentru citire.</value></data>
+<data name="Editor_StatusSaved" xml:space="preserve"><value>Salvat</value></data>
+<data name="Editor_StatusUnsaved" xml:space="preserve"><value>Modificări nesalvate</value></data>
+<data name="Editor_StatusSaving" xml:space="preserve"><value>Se salvează…</value></data>
+<data name="Editor_StatusError" xml:space="preserve"><value>Salvarea nu a reușit. Încearcă din nou.</value></data>
+<data name="Editor_Conflict" xml:space="preserve"><value>Nota a fost modificată între timp, de exemplu în altă fereastră. Reîncarcă pagina pentru ultima versiune.</value></data>
+<data name="Editor_NotFound" xml:space="preserve"><value>Nota nu mai este disponibilă.</value></data>
+<data name="Editor_InvalidContent" xml:space="preserve"><value>Conținutul nu poate fi salvat: textul conține caractere de control sau este prea lung.</value></data>
+<data name="Editor_Phrase_Find" xml:space="preserve"><value>Caută</value></data>
+<data name="Editor_Phrase_Replace" xml:space="preserve"><value>Înlocuiește</value></data>
+<data name="Editor_Phrase_Next" xml:space="preserve"><value>următorul</value></data>
+<data name="Editor_Phrase_Previous" xml:space="preserve"><value>anteriorul</value></data>
+<data name="Editor_Phrase_All" xml:space="preserve"><value>toate</value></data>
+<data name="Editor_Phrase_MatchCase" xml:space="preserve"><value>majuscule/minuscule</value></data>
+<data name="Editor_Phrase_ByWord" xml:space="preserve"><value>cuvânt întreg</value></data>
+<data name="Editor_Phrase_Regexp" xml:space="preserve"><value>expresie regulată</value></data>
+<data name="Editor_Phrase_ReplaceOne" xml:space="preserve"><value>înlocuiește</value></data>
+<data name="Editor_Phrase_ReplaceAll" xml:space="preserve"><value>înlocuiește tot</value></data>
+<data name="Editor_Phrase_Close" xml:space="preserve"><value>închide</value></data>
+<data name="Editor_Phrase_CurrentMatch" xml:space="preserve"><value>potrivirea curentă</value></data>
+<data name="Editor_Phrase_ReplacedMatches" xml:space="preserve"><value>au fost înlocuite $ potriviri</value></data>
+<data name="Editor_Phrase_ReplacedOnLine" xml:space="preserve"><value>a fost înlocuită potrivirea de pe rândul $</value></data>
+<data name="Editor_Phrase_OnLine" xml:space="preserve"><value>pe rândul</value></data>
+<data name="Editor_Phrase_GoToLine" xml:space="preserve"><value>Mergi la rândul</value></data>
+<data name="Editor_Phrase_Go" xml:space="preserve"><value>mergi</value></data>
 </root>

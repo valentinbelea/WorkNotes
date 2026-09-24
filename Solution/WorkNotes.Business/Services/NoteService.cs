@@ -44,6 +44,51 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         return (now.Year, now.Month);
     }
 
+    public Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        return notes.GetDocumentAsync(noteId, userId, cancellationToken);
+    }
+
+    public async Task<NoteSaveResult> SaveAsync(string userId, int noteId, string expectedVersion, string? title,
+        IReadOnlyList<NoteBlockInput> blocks, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!NoteRules.ValidTitle(title)) return new(NoteSaveStatus.InvalidTitle);
+        if (Normalize(blocks) is not { } paragraphs) return new(NoteSaveStatus.InvalidContent);
+
+        var document = await notes.GetDocumentAsync(noteId, userId, cancellationToken);
+        if (document is null) return new(NoteSaveStatus.NotFound);
+        // Members may read a shared note; only its owner edits it.
+        if (!document.IsOwner) return new(NoteSaveStatus.Forbidden);
+        if (string.IsNullOrWhiteSpace(expectedVersion)) return new(NoteSaveStatus.Conflict);
+
+        return await notes.SaveAsync(
+            new NoteChanges(noteId, userId, expectedVersion, NoteRules.NormalizeTitle(title), paragraphs, time.GetUtcNow().UtcDateTime),
+            cancellationToken);
+    }
+
+    // Null when the paragraphs cannot be stored as sent: empty or duplicate ids, invalid text or too much content.
+    private static IReadOnlyList<NoteBlockInput>? Normalize(IReadOnlyList<NoteBlockInput>? blocks)
+    {
+        if (blocks is null || blocks.Count > NoteRules.MaxBlocks) return null;
+        var ids = new HashSet<Guid>();
+        var result = new List<NoteBlockInput>(blocks.Count);
+        var length = 0;
+        foreach (var block in blocks)
+        {
+            if (block.Id == Guid.Empty || !ids.Add(block.Id)) return null;
+            var content = block.Content is null ? null : NoteRules.NormalizeBlockContent(block.Content);
+            if (!NoteRules.ValidBlockContent(content)) return null;
+            length += content!.Length;
+            if (length > NoteRules.MaxContentLength) return null;
+            result.Add(block with { Content = content });
+        }
+        return result;
+    }
+
     private (int Year, int Month) LocalMonth(DateTime createdAtUtc)
     {
         var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(createdAtUtc, DateTimeKind.Utc), time.LocalTimeZone);

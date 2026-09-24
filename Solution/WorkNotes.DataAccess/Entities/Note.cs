@@ -32,4 +32,6 @@ public partial class Note
     public byte[] RowVersion { get; set; } = null!;
 
     public virtual WorkContext Context { get; set; } = null!;
+
+    public virtual ICollection<NoteBlock> NoteBlocks { get; set; } = new List<NoteBlock>();
 }

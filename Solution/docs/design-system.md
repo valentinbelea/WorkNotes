@@ -87,7 +87,15 @@ Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul l
 
 ### Deschiderea unei note
 
-Butonul Open și dublu-click pe card apelează aceeași funcție, openNoteEditor(noteId) din notes-board.js. Până la implementarea editorului, funcția emite evenimentul worknotes:open-note cu noteId (TODO în cod); editorul va înlocui doar corpul acestei funcții.
+Iconul Open al cardului este un link către editor (/Notes/{id}), deci funcționează și fără JavaScript. Dublu-click pe card apelează openNoteEditor(card) din notes-board.js, care urmează același link; adresa este generată de server.
+
+## Editorul notei
+
+- Pagina (Pages/Notes/Edit) are bara de instrumente (înapoi la tablă, tipul, contextul, vizibilitatea, starea salvării, Salvează) și foaia notei: postit-panel cu culoarea tipului (note-sheet--journal / note-sheet--article), titlul editabil pe loc și editorul CodeMirror.
+- Stilurile WorkNotes pentru editor sunt în note-editor.css, pe clasele CodeMirror (.cm-editor, .cm-content, .cm-activeLine, panoul de căutare). Rândul activ folosește stilul active-line al paletei, selecția --wn-selection, rezultatele căutării --wn-highlight. CodeMirror își injectează doar stilurile de bază.
+- Starea salvării (Salvat / Modificări nesalvate / Se salvează… / eroare) este un role=status; o eroare folosește clasa note-editor-toolbar__status--error.
+- Pentru cine poate doar citi, editorul nu este editabil, butonul Salvează lipsește, iar textul de ajutor o spune.
+- Textele (placeholder, stări, frazele panoului de căutare) sunt randate de server din .resx în datele paginii; note-editor.js nu conține traduceri.
 
 ## Verificare vizuală
 

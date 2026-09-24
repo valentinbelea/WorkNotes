@@ -109,4 +109,34 @@
 <data name="Message_NoteSaved" xml:space="preserve"><value>Notatka została zapisana.</value></data>
 <data name="Message_ContextInUse" xml:space="preserve"><value>Kontekst zawiera notatki i nie można go usunąć.</value></data>
 <data name="Button_ShowBoard" xml:space="preserve"><value>Pokaż</value></data>
+<data name="Button_BackToBoard" xml:space="preserve"><value>Wróć do tablicy</value></data>
+<data name="Field_Content" xml:space="preserve"><value>Treść notatki</value></data>
+<data name="Editor_Placeholder" xml:space="preserve"><value>Pisz tutaj. Pusty wiersz oddziela akapity.</value></data>
+<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S zapisuje, Ctrl+F wyszukuje, Ctrl+Z cofa. Pusty wiersz rozpoczyna nowy akapit.</value></data>
+<data name="Editor_ReadOnly" xml:space="preserve"><value>Możesz czytać tę notatkę; zmieniać ją może tylko właściciel.</value></data>
+<data name="Editor_NoScript" xml:space="preserve"><value>Edytor wymaga JavaScriptu. Treść notatki jest wyświetlona poniżej, tylko do odczytu.</value></data>
+<data name="Editor_StatusSaved" xml:space="preserve"><value>Zapisano</value></data>
+<data name="Editor_StatusUnsaved" xml:space="preserve"><value>Niezapisane zmiany</value></data>
+<data name="Editor_StatusSaving" xml:space="preserve"><value>Zapisywanie…</value></data>
+<data name="Editor_StatusError" xml:space="preserve"><value>Zapisywanie nie powiodło się. Spróbuj ponownie.</value></data>
+<data name="Editor_Conflict" xml:space="preserve"><value>Notatka została w międzyczasie zmieniona, na przykład w innym oknie. Odśwież stronę, aby zobaczyć najnowszą wersję.</value></data>
+<data name="Editor_NotFound" xml:space="preserve"><value>Notatka nie jest już dostępna.</value></data>
+<data name="Editor_InvalidContent" xml:space="preserve"><value>Nie można zapisać treści: tekst zawiera znaki sterujące lub jest zbyt długi.</value></data>
+<data name="Editor_Phrase_Find" xml:space="preserve"><value>Znajdź</value></data>
+<data name="Editor_Phrase_Replace" xml:space="preserve"><value>Zamień</value></data>
+<data name="Editor_Phrase_Next" xml:space="preserve"><value>następny</value></data>
+<data name="Editor_Phrase_Previous" xml:space="preserve"><value>poprzedni</value></data>
+<data name="Editor_Phrase_All" xml:space="preserve"><value>wszystkie</value></data>
+<data name="Editor_Phrase_MatchCase" xml:space="preserve"><value>wielkość liter</value></data>
+<data name="Editor_Phrase_ByWord" xml:space="preserve"><value>całe słowa</value></data>
+<data name="Editor_Phrase_Regexp" xml:space="preserve"><value>wyrażenie regularne</value></data>
+<data name="Editor_Phrase_ReplaceOne" xml:space="preserve"><value>zamień</value></data>
+<data name="Editor_Phrase_ReplaceAll" xml:space="preserve"><value>zamień wszystkie</value></data>
+<data name="Editor_Phrase_Close" xml:space="preserve"><value>zamknij</value></data>
+<data name="Editor_Phrase_CurrentMatch" xml:space="preserve"><value>bieżące dopasowanie</value></data>
+<data name="Editor_Phrase_ReplacedMatches" xml:space="preserve"><value>zamieniono dopasowania: $</value></data>
+<data name="Editor_Phrase_ReplacedOnLine" xml:space="preserve"><value>zamieniono dopasowanie w wierszu $</value></data>
+<data name="Editor_Phrase_OnLine" xml:space="preserve"><value>w wierszu</value></data>
+<data name="Editor_Phrase_GoToLine" xml:space="preserve"><value>Przejdź do wiersza</value></data>
+<data name="Editor_Phrase_Go" xml:space="preserve"><value>przejdź</value></data>
 </root>

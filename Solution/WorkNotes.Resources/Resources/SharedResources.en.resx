@@ -109,4 +109,34 @@
 <data name="Message_NoteSaved" xml:space="preserve"><value>The note has been saved.</value></data>
 <data name="Message_ContextInUse" xml:space="preserve"><value>The context has notes and cannot be deleted.</value></data>
 <data name="Button_ShowBoard" xml:space="preserve"><value>Show</value></data>
+<data name="Button_BackToBoard" xml:space="preserve"><value>Back to the board</value></data>
+<data name="Field_Content" xml:space="preserve"><value>Note content</value></data>
+<data name="Editor_Placeholder" xml:space="preserve"><value>Write here. A blank line separates paragraphs.</value></data>
+<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S saves, Ctrl+F searches, Ctrl+Z undoes. A blank line starts a new paragraph.</value></data>
+<data name="Editor_ReadOnly" xml:space="preserve"><value>You can read this note; only its owner can change it.</value></data>
+<data name="Editor_NoScript" xml:space="preserve"><value>The editor needs JavaScript. The note's content is shown below, read-only.</value></data>
+<data name="Editor_StatusSaved" xml:space="preserve"><value>Saved</value></data>
+<data name="Editor_StatusUnsaved" xml:space="preserve"><value>Unsaved changes</value></data>
+<data name="Editor_StatusSaving" xml:space="preserve"><value>Saving…</value></data>
+<data name="Editor_StatusError" xml:space="preserve"><value>Saving failed. Please try again.</value></data>
+<data name="Editor_Conflict" xml:space="preserve"><value>The note was changed in the meantime, for example in another window. Reload the page for the latest version.</value></data>
+<data name="Editor_NotFound" xml:space="preserve"><value>The note is no longer available.</value></data>
+<data name="Editor_InvalidContent" xml:space="preserve"><value>The content cannot be saved: the text contains control characters or is too long.</value></data>
+<data name="Editor_Phrase_Find" xml:space="preserve"><value>Find</value></data>
+<data name="Editor_Phrase_Replace" xml:space="preserve"><value>Replace</value></data>
+<data name="Editor_Phrase_Next" xml:space="preserve"><value>next</value></data>
+<data name="Editor_Phrase_Previous" xml:space="preserve"><value>previous</value></data>
+<data name="Editor_Phrase_All" xml:space="preserve"><value>all</value></data>
+<data name="Editor_Phrase_MatchCase" xml:space="preserve"><value>match case</value></data>
+<data name="Editor_Phrase_ByWord" xml:space="preserve"><value>by word</value></data>
+<data name="Editor_Phrase_Regexp" xml:space="preserve"><value>regexp</value></data>
+<data name="Editor_Phrase_ReplaceOne" xml:space="preserve"><value>replace</value></data>
+<data name="Editor_Phrase_ReplaceAll" xml:space="preserve"><value>replace all</value></data>
+<data name="Editor_Phrase_Close" xml:space="preserve"><value>close</value></data>
+<data name="Editor_Phrase_CurrentMatch" xml:space="preserve"><value>current match</value></data>
+<data name="Editor_Phrase_ReplacedMatches" xml:space="preserve"><value>replaced $ matches</value></data>
+<data name="Editor_Phrase_ReplacedOnLine" xml:space="preserve"><value>replaced match on line $</value></data>
+<data name="Editor_Phrase_OnLine" xml:space="preserve"><value>on line</value></data>
+<data name="Editor_Phrase_GoToLine" xml:space="preserve"><value>Go to line</value></data>
+<data name="Editor_Phrase_Go" xml:space="preserve"><value>go</value></data>
 </root>

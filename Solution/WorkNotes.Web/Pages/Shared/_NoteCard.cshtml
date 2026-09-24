@@ -6,7 +6,7 @@
     var created = Model.CreatedAtUtc.ToLocalTime();
     var title = Model.Title ?? L["Notes_Untitled"].Value;
 }
-@* A saved note; the board already names the context, so the card does not. Double-click on the card or the Open button opens the note (see openNoteEditor in notes-board.js). *@
+@* A saved note; the board already names the context, so the card does not. The Open link and double-click open the editor (openNoteEditor in notes-board.js). *@
 <li class="note-cell">
     <article class="note-card @NoteCardStyle.TypeClass(Model.NoteType) @NoteCardStyle.TiltClass(Model.Id)" data-note-id="@Model.Id" aria-labelledby="note-@Model.Id-title">
         <p class="note-card__meta">
@@ -16,9 +16,9 @@
         <h3 class="note-card__title @(Model.Title is null ? "note-card__title--untitled" : null)" id="note-@Model.Id-title">@title</h3>
         <div class="note-card__footer">
             <span>@(Model.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>
-            <button type="button" class="note-card__open" data-note-open aria-label="@L["Notes_OpenNamed", title]" title="@L["Notes_OpenNamed", title]">
+            <a class="note-card__open" asp-page="/Notes/Edit" asp-route-id="@Model.Id" data-note-open aria-label="@L["Notes_OpenNamed", title]" title="@L["Notes_OpenNamed", title]">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4.5h5.5V10M19.5 4.5 11 13M17 14v5.5H4.5V7H10" /></svg>
-            </button>
+            </a>
         </div>
     </article>
 </li>

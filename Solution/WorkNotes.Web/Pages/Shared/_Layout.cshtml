@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="~/css/navigation.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notes-board.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/postit.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/note-editor.css" asp-append-version="true" />
 </head>
 <body>
     <header class="site-header">
@@ -53,5 +54,6 @@
     <script src="~/js/modal.js" asp-append-version="true" defer></script>
     <script src="~/js/language.js" asp-append-version="true" defer></script>
     <script src="~/js/notes-board.js" asp-append-version="true" type="module"></script>
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
