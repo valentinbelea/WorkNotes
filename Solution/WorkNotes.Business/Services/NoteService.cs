@@ -10,13 +10,14 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
         var board = await notes.GetBoardAsync(userId, contextId, cancellationToken);
+        // Grouped and ordered by the last change, ISNULL(modified, created): a note changed this month moves to it.
         // Months follow the application's local calendar, like the journal date.
         return board
-            .GroupBy(note => LocalMonth(note.CreatedAtUtc))
+            .GroupBy(note => LocalMonth(note.LastChangedAtUtc))
             .OrderByDescending(group => group.Key.Year).ThenByDescending(group => group.Key.Month)
             .Select(group => new NoteMonthGroup(group.Key.Year, group.Key.Month, group
                 .OrderBy(note => note.NoteType == NoteTypes.Journal ? 0 : 1)
-                .ThenByDescending(note => note.CreatedAtUtc)
+                .ThenByDescending(note => note.LastChangedAtUtc)
                 .ThenByDescending(note => note.Id)
                 .ToList()))
             .ToList();
@@ -86,8 +87,9 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (note is null) return new(NoteSaveStatus.NotFound);
         if (!note.IsOwner) return new(NoteSaveStatus.Forbidden);
         var normalized = NoteRules.NormalizeTitle(title);
-        return await notes.RenameAsync(noteId, userId, normalized, SavedAtUtc(), cancellationToken)
-            ? new(NoteSaveStatus.Saved, normalized)
+        var savedAtUtc = SavedAtUtc();
+        return await notes.RenameAsync(noteId, userId, normalized, savedAtUtc, cancellationToken)
+            ? new(NoteSaveStatus.Saved, note with { Title = normalized, ModifiedAtUtc = savedAtUtc })
             : new(NoteSaveStatus.NotFound);
     }
 
@@ -127,9 +129,9 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         return result;
     }
 
-    private (int Year, int Month) LocalMonth(DateTime createdAtUtc)
+    private (int Year, int Month) LocalMonth(DateTime utc)
     {
-        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(createdAtUtc, DateTimeKind.Utc), time.LocalTimeZone);
+        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), time.LocalTimeZone);
         return (local.Year, local.Month);
     }
 }

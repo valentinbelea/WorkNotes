@@ -53,7 +53,7 @@ Focus vizibil pentru tastatură, ținte de minimum 44px pentru controalele princ
 
 Există câte o tablă pentru fiecare context. În locul titlului, dashboardul (Pages/Index) are lista de contexte (board-switch, cu bordură întreruptă ca tabla); primul context este selectat implicit, iar alegerea altuia încarcă /?context={id} (fără JavaScript, cu butonul Afișează). Titlul „Pe tabla mea” rămâne numai pentru cititoarele de ecran. Contextul nu mai apare pe post-it.
 
-Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul lunii), după data locală a creării, lunile cele mai noi primele; în fiecare lună apar întâi jurnalele, apoi articolele, fiecare de la cel mai nou. Cardurile sunt randate de server din partialele Pages/Shared/_NoteCard.cshtml (notă salvată) și Pages/Shared/_NewNoteCard.cshtml (notă nouă, nesalvată):
+Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul lunii), după data locală a ultimei modificări — ISNULL(data modificării, data creării) —, lunile cele mai noi primele; în fiecare lună apar întâi jurnalele, apoi articolele, fiecare de la cea mai recentă modificare. Cardurile sunt randate de server din partialele Pages/Shared/_NoteCard.cshtml (notă salvată) și Pages/Shared/_NewNoteCard.cshtml (notă nouă, nesalvată):
 
 ```html
 <section class="notes-month">
@@ -61,7 +61,11 @@ Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul l
     <ul class="notes-board" data-new-note-target="true">
         <li class="note-cell">
             <article class="note-card note-card--journal note-card--tilt-3" data-note-id="12">
-                <p class="note-card__meta"><span class="visually-hidden">Jurnal</span> <time datetime="…">23.09.2026 · 09:40</time></p>
+                <p class="note-card__meta">
+                    <span class="visually-hidden">Jurnal</span>
+                    <span class="note-card__date"><span class="visually-hidden">Creată</span> <time datetime="…">23.09.2026 · 09:40</time></span>
+                    <span class="note-card__date" data-note-modified><span class="visually-hidden">Modificată</span> <time datetime="…">24.09.2026 · 17:05</time></span>
+                </p>
                 <form class="note-card__rename" data-note-rename><input class="note-card__title-field" name="title" data-note-title></form>
                 <p class="note-card__excerpt">începutul primelor paragrafe…</p>
                 <div class="note-card__footer">
@@ -74,7 +78,8 @@ Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul l
 </section>
 ```
 
-- Data are formatul zz.LL.aaaa · HH:mm (de exemplu 23.09.2026 · 17:44).
+- Headerul arată data creării și, sub ea, data ultimei modificări, ambele în formatul zz.LL.aaaa · HH:mm (de exemplu 23.09.2026 · 17:44), fără etichete vizibile; „Creată” și „Modificată” sunt citite doar de cititoarele de ecran (visually-hidden). Cifrele tabulare aliniază cele două date. Data modificării este ascunsă (atributul hidden) cât timp nota nu a fost modificată sau data se citește la fel ca data creării (NoteDates.ShowsModified).
+- După o redenumire pe loc, cardul arată imediat noua dată a modificării (răspunsul JSON, formatat de server) și își păstrează locul; tabla îl reordonează la următoarea încărcare. Închiderea editorului reîncarcă tabla, deci ordinea se actualizează după fiecare salvare din editor.
 - Tipul nu mai are etichetă vizibilă: culoarea deosebește jurnalul de articol, iar tipul rămâne scris pentru cititoarele de ecran (visually-hidden).
 - Previzualizarea (note-card__excerpt) arată începutul primelor 3 paragrafe, câte unul pe rând (NoteRules.BuildPreview, maximum 280 de caractere, tăiat la un cuvânt). Ocupă spațiul dintre titlu și subsol; ultimul rând vizibil se estompează în loc să fie tăiat.
 - Proprietarul redenumește titlul pe loc (note-card__title-field): Enter salvează, părăsirea câmpului cu titlul schimbat salvează și ea, Escape readuce titlul salvat. Cu JavaScript salvarea se face în fundal și rezultatul apare câteva secunde în board-status; fără JavaScript Enter trimite formularul și tabla se reîncarcă. Un titlu gol face nota „Fără titlu”. Pentru ceilalți membri titlul rămâne text (h3).

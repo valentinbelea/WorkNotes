@@ -55,7 +55,7 @@
 <data name="Navigation_AccountDetails" xml:space="preserve"><value>Datele contului</value></data>
 <data name="Navigation_MySpace" xml:space="preserve"><value>Spațiul meu</value></data>
 <data name="Dashboard_Title" xml:space="preserve"><value>Pe tabla mea</value></data>
-<data name="Dashboard_Description" xml:space="preserve"><value>Notele contextului, grupate pe luni: întâi jurnalele, apoi articolele.</value></data>
+<data name="Dashboard_Description" xml:space="preserve"><value>Notele contextului, grupate pe luni după ultima modificare: întâi jurnalele, apoi articolele.</value></data>
 <data name="Dashboard_EmptyBoard" xml:space="preserve"><value>Tabla este goală.</value></data>
 <data name="Button_NewNote" xml:space="preserve"><value>Notă nouă</value></data>
 <data name="Navigation_Contexts" xml:space="preserve"><value>Contexte</value></data>
@@ -151,4 +151,6 @@
 <data name="Message_NoteDeleted" xml:space="preserve"><value>Nota a fost ștearsă.</value></data>
 <data name="Message_NoteRenamed" xml:space="preserve"><value>Titlul a fost salvat.</value></data>
 <data name="Notes_RenameFailed" xml:space="preserve"><value>Titlul nu a putut fi salvat. Încearcă din nou.</value></data>
+<data name="Notes_Created" xml:space="preserve"><value>Creată</value></data>
+<data name="Notes_Modified" xml:space="preserve"><value>Modificată</value></data>
 </root>

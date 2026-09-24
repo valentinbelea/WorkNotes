@@ -175,6 +175,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             JournalDate = note.JournalDate,
             Visibility = note.Visibility,
             CreatedAtUtc = note.CreatedAtUtc,
+            ModifiedAtUtc = note.ModifiedAtUtc,
             IsOwner = note.OwnerUserId == userId,
             FirstParagraphs = note.NoteBlocks
                 .OrderBy(block => block.Position)
@@ -183,9 +184,11 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
                 .ToList()
         });
 
+    // Notes.ModifiedAtUtc starts with the creation time (both columns default to SYSUTCDATETIME()),
+    // so a note that was never changed is reported with no modification time.
     private static NoteSummary ToSummary(SummaryRow row) =>
         new(row.Id, row.ContextId, row.NoteType, row.Title, NoteRules.BuildPreview(row.FirstParagraphs), row.JournalDate,
-            row.Visibility, Utc(row.CreatedAtUtc), row.IsOwner);
+            row.Visibility, Utc(row.CreatedAtUtc), row.ModifiedAtUtc > row.CreatedAtUtc ? Utc(row.ModifiedAtUtc) : null, row.IsOwner);
 
     private sealed class SummaryRow
     {
@@ -196,6 +199,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         public DateOnly? JournalDate { get; init; }
         public string Visibility { get; init; } = "";
         public DateTime CreatedAtUtc { get; init; }
+        public DateTime ModifiedAtUtc { get; init; }
         public bool IsOwner { get; init; }
         public List<string> FirstParagraphs { get; init; } = [];
     }

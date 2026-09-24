@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Extensions.Localization;
+using WorkNotes.Business.Models;
 
 namespace WorkNotes.Web.Notes;
 
@@ -11,6 +12,10 @@ public static class NoteDates
     public static string Card(DateTime utc) => utc.ToLocalTime().ToString("dd.MM.yyyy · HH:mm", CultureInfo.InvariantCulture);
 
     public static string Full(DateTime utc) => utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture);
+
+    // A card shows its last change below the creation date once the note was changed and the two dates read differently.
+    public static bool ShowsModified(NoteSummary note) =>
+        note.ModifiedAtUtc is { } modifiedAtUtc && Card(modifiedAtUtc) != Card(note.CreatedAtUtc);
 
     // The editor's info bar: when a paragraph was created and last changed (NoteBlocks audit columns).
     // The unsaved variant is shown while the paragraph's text differs from what was stored.

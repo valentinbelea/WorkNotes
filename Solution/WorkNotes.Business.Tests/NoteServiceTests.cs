@@ -117,6 +117,30 @@ public sealed class NoteServiceTests
         Assert.Equal((2026, 9), service.GetCurrentMonth());
     }
 
+    [Fact]
+    public async Task BoardFollowsTheLastChangeAndTheCreationForNotesNeverChanged()
+    {
+        var utc = (int month, int day) => new DateTime(2026, month, day, 9, 0, 0, DateTimeKind.Utc);
+        var notes = new StubNotes(board:
+        [
+            // Created in August and changed at 22:30 UTC on 31 August, already September at UTC+3.
+            Note(1, NoteTypes.Article, utc(8, 10), modifiedAtUtc: new DateTime(2026, 8, 31, 22, 30, 0, DateTimeKind.Utc)),
+            Note(2, NoteTypes.Article, utc(9, 5)),
+            // Created before note 2, changed after it.
+            Note(3, NoteTypes.Article, utc(9, 1), modifiedAtUtc: utc(9, 8)),
+            Note(4, NoteTypes.Journal, utc(9, 2)),
+            Note(5, NoteTypes.Journal, utc(8, 20)),
+        ]);
+        var time = new FixedTime(new DateTimeOffset(2026, 9, 10, 12, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
+        var service = new NoteService(notes, new StubContexts(), time);
+
+        var months = await service.GetBoardAsync(User, 5, CancellationToken.None);
+
+        Assert.Equal([(2026, 9), (2026, 8)], months.Select(month => (month.Year, month.Month)));
+        Assert.Equal([4, 3, 2, 1], months[0].Notes.Select(note => note.Id));
+        Assert.Equal([5], months[1].Notes.Select(note => note.Id));
+    }
+
     private static NoteDocument Document(bool isOwner = true) =>
         new(7, 5, "TopDev", NoteTypes.Article, "Titlu", NoteVisibilities.Private, isOwner, DateTime.UtcNow, "v1", []);
 
@@ -214,29 +238,36 @@ public sealed class NoteServiceTests
         Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, "v1", null, [new(Guid.NewGuid(), "Text")], CancellationToken.None)).Status);
     }
 
-    private static NoteSummary Note(int id, string type, DateTime createdAtUtc, bool isOwner = true) =>
-        new(id, 5, type, null, null, null, NoteVisibilities.Private, createdAtUtc, isOwner);
+    private static NoteSummary Note(int id, string type, DateTime createdAtUtc, bool isOwner = true, DateTime? modifiedAtUtc = null) =>
+        new(id, 5, type, null, null, null, NoteVisibilities.Private, createdAtUtc, modifiedAtUtc, isOwner);
 
     [Fact]
     public async Task OwnerRenamesWithANormalizedTitleAndAudit()
     {
-        var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, DateTime.UtcNow));
+        var summary = Note(7, NoteTypes.Journal, new DateTime(2026, 9, 1, 8, 0, 0, DateTimeKind.Utc));
+        var notes = new StubNotes(summary: summary);
         var time = new FixedTime(new DateTimeOffset(2026, 9, 24, 8, 0, 0, 900, TimeSpan.Zero), TimeSpan.FromHours(3));
         var service = new NoteService(notes, new StubContexts(), time);
+        var savedAtUtc = new DateTime(2026, 9, 24, 8, 0, 0, DateTimeKind.Utc);
 
         var result = await service.RenameAsync(User, 7, "  CR 30042  ", CancellationToken.None);
 
-        Assert.Equal(new NoteRenameResult(NoteSaveStatus.Saved, "CR 30042"), result);
-        Assert.Equal((7, User, "CR 30042", new DateTime(2026, 9, 24, 8, 0, 0, DateTimeKind.Utc)), notes.Renamed);
+        // The card is refreshed with the stored title and the new modification time.
+        Assert.Equal(new NoteRenameResult(NoteSaveStatus.Saved, summary with { Title = "CR 30042", ModifiedAtUtc = savedAtUtc }), result);
+        Assert.Equal(savedAtUtc, result.Note!.LastChangedAtUtc);
+        Assert.Equal((7, User, "CR 30042", savedAtUtc), notes.Renamed);
     }
 
     [Fact]
     public async Task EmptyTitleMakesTheNoteUntitled()
     {
-        var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, DateTime.UtcNow));
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, DateTime.UtcNow) with { Title = "Analiză" });
         var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
 
-        Assert.Equal(new NoteRenameResult(NoteSaveStatus.Saved, null), await service.RenameAsync(User, 7, "   ", CancellationToken.None));
+        var result = await service.RenameAsync(User, 7, "   ", CancellationToken.None);
+
+        Assert.Equal(NoteSaveStatus.Saved, result.Status);
+        Assert.Null(result.Note!.Title);
         Assert.Null(notes.Renamed!.Value.Title);
     }
 

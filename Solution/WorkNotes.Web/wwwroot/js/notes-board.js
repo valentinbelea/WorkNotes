@@ -1,6 +1,6 @@
 // Dashboard behaviour only: all appearance comes from CSS classes rendered by the server.
-// Switches the board, inserts the server-rendered new-note card, removes it on Cancel, renames titles in place,
-// and opens saved notes on double-click.
+// Switches the board, inserts the server-rendered new-note card, removes it on Cancel, renames titles in place
+// (and shows the card's new last change), and opens saved notes on double-click.
 // Positions come from the grid; this module never moves cards or writes inline styles.
 
 // Single entry point for opening a note from its card: double-click follows the card's Open link,
@@ -54,6 +54,17 @@ export function initializeDashboard(dashboard) {
     });
 }
 
+// The card's last change as the server formats it, hidden while it reads like the creation date.
+// The card keeps its place; the board orders it by the new date on the next load.
+function showLastChange(card, modified) {
+    const date = card?.querySelector("[data-note-modified]");
+    const time = date?.querySelector("time");
+    if (!time || !modified) return;
+    time.dateTime = modified.iso;
+    time.textContent = modified.text;
+    date.hidden = !modified.shown;
+}
+
 // Titles are renamed in place. Enter (or leaving the field with a changed title) saves in the background;
 // Escape restores the saved title. Without JavaScript, Enter submits the same form and the board reloads.
 function initializeRename(dashboard) {
@@ -79,6 +90,7 @@ function initializeRename(dashboard) {
                 input.value = body.title ?? "";
                 input.defaultValue = input.value;
                 input.title = input.value || input.placeholder;
+                showLastChange(form.closest(".note-card"), body.modified);
             } else {
                 input.value = input.defaultValue;
             }

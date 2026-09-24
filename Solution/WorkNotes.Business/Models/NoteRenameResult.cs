@@ -1,4 +1,5 @@
 namespace WorkNotes.Business.Models;
 
-// Title is the stored (normalized) title when the rename succeeded; null means "untitled".
-public sealed record NoteRenameResult(NoteSaveStatus Status, string? Title = null);
+// Note is the renamed note as the board shows it: the stored (normalized) title, null meaning "untitled",
+// and the new modification time.
+public sealed record NoteRenameResult(NoteSaveStatus Status, NoteSummary? Note = null);

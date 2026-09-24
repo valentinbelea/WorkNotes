@@ -1,6 +1,7 @@
 namespace WorkNotes.Business.Models;
 
 // What a board card shows for one note; Preview is the start of its text, IsOwner describes the current user.
+// ModifiedAtUtc is null while the note has not been changed since it was created.
 public sealed record NoteSummary(
     int Id,
     int ContextId,
@@ -10,4 +11,9 @@ public sealed record NoteSummary(
     DateOnly? JournalDate,
     string Visibility,
     DateTime CreatedAtUtc,
-    bool IsOwner);
+    DateTime? ModifiedAtUtc,
+    bool IsOwner)
+{
+    // The board groups and orders notes by their last change: ISNULL(ModifiedAtUtc, CreatedAtUtc).
+    public DateTime LastChangedAtUtc => ModifiedAtUtc ?? CreatedAtUtc;
+}

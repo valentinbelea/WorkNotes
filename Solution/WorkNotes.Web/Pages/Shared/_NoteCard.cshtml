@@ -6,13 +6,22 @@
     var titleId = $"note-{Model.Id}-title";
 }
 @* A saved note. The colour says whether it is a journal or an article (the type is also read out to screen readers);
-   the board names the context. The owner renames the title in place (Enter saves, Escape restores) and has Delete.
+   the board names the context. The header shows the creation date and, below it, the last change, in the same format;
+   their labels are only read out to screen readers. The owner renames the title in place (Enter saves, Escape restores) and has Delete.
    The Open link (/?note={id}) and double-click open the editor over the board (openNoteEditor in notes-board.js). *@
 <li class="note-cell">
     <article class="note-card @NoteCardStyle.TypeClass(Model.NoteType) @NoteCardStyle.TiltClass(Model.Id)" data-note-id="@Model.Id" aria-labelledby="@titleId">
         <p class="note-card__meta">
             <span class="visually-hidden">@(Model.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
-            <time datetime="@NoteDates.Iso(Model.CreatedAtUtc)">@NoteDates.Card(Model.CreatedAtUtc)</time>
+            <span class="note-card__date">
+                <span class="visually-hidden">@L["Notes_Created"]</span>
+                <time datetime="@NoteDates.Iso(Model.CreatedAtUtc)">@NoteDates.Card(Model.CreatedAtUtc)</time>
+            </span>
+            @* Hidden while it reads like the creation date; notes-board.js refreshes it after an in-place rename. *@
+            <span class="note-card__date" hidden="@(!NoteDates.ShowsModified(Model))" data-note-modified>
+                <span class="visually-hidden">@L["Notes_Modified"]</span>
+                <time datetime="@NoteDates.Iso(Model.LastChangedAtUtc)">@NoteDates.Card(Model.LastChangedAtUtc)</time>
+            </span>
         </p>
         @if (Model.IsOwner)
         {

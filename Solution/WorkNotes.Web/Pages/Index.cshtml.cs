@@ -125,8 +125,19 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         };
         if (wantsJson)
         {
-            return result.Status == NoteSaveStatus.Saved
-                ? new JsonResult(new { title = result.Title, message = localizer[messageKey].Value })
+            // The card keeps its place until the board is loaded again; it shows the stored title and the new last change.
+            return result is { Status: NoteSaveStatus.Saved, Note: { } renamed }
+                ? new JsonResult(new
+                {
+                    title = renamed.Title,
+                    modified = new
+                    {
+                        text = NoteDates.Card(renamed.LastChangedAtUtc),
+                        iso = NoteDates.Iso(renamed.LastChangedAtUtc),
+                        shown = NoteDates.ShowsModified(renamed)
+                    },
+                    message = localizer[messageKey].Value
+                })
                 : EditorFailure(result.Status switch
                 {
                     NoteSaveStatus.InvalidTitle => StatusCodes.Status400BadRequest,

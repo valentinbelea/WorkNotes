@@ -72,9 +72,11 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 - numai proprietarul editează nota; orice membru al contextului poate crea note în el;
 - un context care are note nu poate fi șters (cheie externă fără cascadă; mesaj „Contextul are note și nu poate fi șters.”).
 
-Există câte o tablă pentru fiecare context: lista de contexte înlocuiește titlul tablei (`/?context={id}`, implicit primul context). Pe tablă notele sunt grupate pe luni, după data locală a creării, cele mai noi luni primele; în fiecare lună apar întâi jurnalele, apoi articolele, fiecare de la cel mai nou. Gruparea și ordinea sunt în `NoteService`.
+Există câte o tablă pentru fiecare context: lista de contexte înlocuiește titlul tablei (`/?context={id}`, implicit primul context). Pe tablă notele sunt grupate pe luni după data locală a ultimei modificări, `ISNULL(ModifiedAtUtc, CreatedAtUtc)` (`NoteSummary.LastChangedAtUtc`), cele mai noi luni primele; în fiecare lună apar întâi jurnalele, apoi articolele, fiecare de la cea mai recentă modificare. O notă modificată trece astfel în luna modificării. În `dbo.Notes`, `ModifiedAtUtc` primește la inserare aceeași valoare ca `CreatedAtUtc`, așa că `NoteRepository` raportează nota nemodificată fără dată de modificare (`null`). Gruparea și ordinea sunt în `NoteService`.
 
-Flux: `Pages/Index → INoteService → NoteService → INoteRepository → NoteRepository → WorkNotesDbContext`. `NoteService` validează tipul și titlul și verifică apartenența la context prin `IWorkContextRepository`. ### Editorul text
+Flux: `Pages/Index → INoteService → NoteService → INoteRepository → NoteRepository → WorkNotesDbContext`. `NoteService` validează tipul și titlul și verifică apartenența la context prin `IWorkContextRepository`.
+
+### Editorul text
 
 Open sau dublu-click pe un post-it deschide editorul peste tablă, într-un dialog cu overlay de 90% din fereastră (`/?note={id}`, randat de `Pages/Shared/_NoteEditorDialog.cshtml`); containerul editorului are scroll propriu. Închide, Escape sau click în afara dialogului revin la tablă, cu avertizare dacă există modificări nesalvate. Editorul este CodeMirror 6 (licență MIT, fără cost de licență sau serviciu cloud): text, căutare și înlocuire (Ctrl+F), undo/redo, evidențierea rândului activ, salvare cu butonul sau Ctrl+S și avertizare la părăsirea paginii cu modificări nesalvate. Toate textele editorului, inclusiv panoul de căutare, vin din `.resx`.
 
@@ -92,7 +94,7 @@ Salvarea trimite toată nota (paragrafele în ordine) prin POST JSON cu antiforg
 
 Biblioteca este inclusă local în `wwwroot/lib/codemirror/codemirror.js`, cu `THIRD-PARTY-NOTICES.txt` (copyright și licențe). Pentru actualizare: din `tools/codemirror`, `npm ci` apoi `npm run build` (versiuni fixate în `package.json` / `package-lock.json`).
 
-Pe tablă, fiecare post-it arată data creării cu anul, începutul primelor paragrafe și, pentru proprietar, titlul editabil pe loc (Enter salvează, Escape anulează) și ștergerea cu confirmare (`/?delete={id}`; paragrafele se șterg în cascadă). `NoteService.RenameAsync` și `DeleteAsync` permit aceste operații numai proprietarului.
+Pe tablă, fiecare post-it arată în header data creării și, sub ea, data ultimei modificări (același format, cu anul, fără etichete vizibile; data modificării lipsește cât timp nota nu a fost modificată), începutul primelor paragrafe și, pentru proprietar, titlul editabil pe loc (Enter salvează, Escape anulează) și ștergerea cu confirmare (`/?delete={id}`; paragrafele se șterg în cascadă). `NoteService.RenameAsync` și `DeleteAsync` permit aceste operații numai proprietarului.
 
 Nu sunt încă implementate: referințele CR/bug, linkurile, autocomplete-ul și popup-urile (necesită `WorkReferences`), salvarea automată.
 

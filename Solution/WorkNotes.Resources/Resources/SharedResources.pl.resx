@@ -55,7 +55,7 @@
 <data name="Navigation_AccountDetails" xml:space="preserve"><value>Dane konta</value></data>
 <data name="Navigation_MySpace" xml:space="preserve"><value>Moja przestrzeń</value></data>
 <data name="Dashboard_Title" xml:space="preserve"><value>Na mojej tablicy</value></data>
-<data name="Dashboard_Description" xml:space="preserve"><value>Notatki kontekstu, pogrupowane według miesięcy: najpierw dzienniki, potem artykuły.</value></data>
+<data name="Dashboard_Description" xml:space="preserve"><value>Notatki kontekstu, pogrupowane według miesiąca ostatniej zmiany: najpierw dzienniki, potem artykuły.</value></data>
 <data name="Dashboard_EmptyBoard" xml:space="preserve"><value>Tablica jest pusta.</value></data>
 <data name="Button_NewNote" xml:space="preserve"><value>Nowa notatka</value></data>
 <data name="Navigation_Contexts" xml:space="preserve"><value>Konteksty</value></data>
@@ -151,4 +151,6 @@
 <data name="Message_NoteDeleted" xml:space="preserve"><value>Notatka została usunięta.</value></data>
 <data name="Message_NoteRenamed" xml:space="preserve"><value>Tytuł został zapisany.</value></data>
 <data name="Notes_RenameFailed" xml:space="preserve"><value>Nie udało się zapisać tytułu. Spróbuj ponownie.</value></data>
+<data name="Notes_Created" xml:space="preserve"><value>Utworzona</value></data>
+<data name="Notes_Modified" xml:space="preserve"><value>Zmieniona</value></data>
 </root>
