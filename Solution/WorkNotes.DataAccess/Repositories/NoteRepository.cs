@@ -85,11 +85,13 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             return new(NoteSaveStatus.InvalidContent);
 
         var changed = false;
+        var saved = new List<NoteBlockEntity>(changes.Blocks.Count);
         for (var position = 0; position < changes.Blocks.Count; position++)
         {
             var input = changes.Blocks[position];
             if (stored.Remove(input.Id, out var block))
             {
+                saved.Add(block);
                 // Moving a paragraph keeps its identity and audit; only a text change counts as a modification.
                 if (block.Position != position) { block.Position = position; changed = true; }
                 if (block.Content != input.Content)
@@ -101,7 +103,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
                 }
                 continue;
             }
-            note.NoteBlocks.Add(new NoteBlockEntity
+            var added = new NoteBlockEntity
             {
                 Id = input.Id,
                 Position = position,
@@ -110,7 +112,9 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
                 CreatedByUserId = changes.OwnerUserId,
                 ModifiedAtUtc = changes.SavedAtUtc,
                 ModifiedByUserId = changes.OwnerUserId
-            });
+            };
+            note.NoteBlocks.Add(added);
+            saved.Add(added);
             changed = true;
         }
         foreach (var removed in stored.Values)
@@ -121,14 +125,19 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         if (note.Title != changes.Title) { note.Title = changes.Title; changed = true; }
 
         if (!changed)
-            return note.RowVersion.AsSpan().SequenceEqual(expectedVersion) ? new(NoteSaveStatus.Saved, changes.ExpectedVersion) : new(NoteSaveStatus.Conflict);
+            return note.RowVersion.AsSpan().SequenceEqual(expectedVersion)
+                ? new(NoteSaveStatus.Saved, changes.ExpectedVersion, Audit(saved))
+                : new(NoteSaveStatus.Conflict);
 
         note.ModifiedAtUtc = changes.SavedAtUtc;
         note.ModifiedByUserId = changes.OwnerUserId;
+        // Always update the note row, even when its audit values are unchanged (two saves in the same second):
+        // the UPDATE carries the rowversion check that rejects a save from a stale editor.
+        dbContext.Entry(note).Property(item => item.ModifiedAtUtc).IsModified = true;
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            return new(NoteSaveStatus.Saved, Convert.ToBase64String(note.RowVersion));
+            return new(NoteSaveStatus.Saved, Convert.ToBase64String(note.RowVersion), Audit(saved));
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -156,6 +165,9 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             return false;
         }
     }
+
+    private static IReadOnlyList<NoteBlockAudit> Audit(IEnumerable<NoteBlockEntity> blocks) =>
+        blocks.Select(block => new NoteBlockAudit(block.Id, Utc(block.CreatedAtUtc), Utc(block.ModifiedAtUtc))).ToList();
 
     // SQL Server returns datetime2 without a kind; the columns store UTC.
     private static DateTime Utc(DateTime value) => DateTime.SpecifyKind(value, DateTimeKind.Utc);

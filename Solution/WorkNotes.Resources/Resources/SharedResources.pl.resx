@@ -109,10 +109,9 @@
 <data name="Message_NoteSaved" xml:space="preserve"><value>Notatka została zapisana.</value></data>
 <data name="Message_ContextInUse" xml:space="preserve"><value>Kontekst zawiera notatki i nie można go usunąć.</value></data>
 <data name="Button_ShowBoard" xml:space="preserve"><value>Pokaż</value></data>
-<data name="Button_BackToBoard" xml:space="preserve"><value>Wróć do tablicy</value></data>
 <data name="Field_Content" xml:space="preserve"><value>Treść notatki</value></data>
 <data name="Editor_Placeholder" xml:space="preserve"><value>Pisz tutaj. Pusty wiersz oddziela akapity.</value></data>
-<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S zapisuje, Ctrl+F wyszukuje, Ctrl+Z cofa. Pusty wiersz rozpoczyna nowy akapit.</value></data>
+<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S zapisuje · Ctrl+F wyszukuje · Ctrl+Z cofa · Esc zamyka · pusty wiersz rozpoczyna nowy akapit</value></data>
 <data name="Editor_ReadOnly" xml:space="preserve"><value>Możesz czytać tę notatkę; zmieniać ją może tylko właściciel.</value></data>
 <data name="Editor_NoScript" xml:space="preserve"><value>Edytor wymaga JavaScriptu. Treść notatki jest wyświetlona poniżej, tylko do odczytu.</value></data>
 <data name="Editor_StatusSaved" xml:space="preserve"><value>Zapisano</value></data>
@@ -139,4 +138,11 @@
 <data name="Editor_Phrase_OnLine" xml:space="preserve"><value>w wierszu</value></data>
 <data name="Editor_Phrase_GoToLine" xml:space="preserve"><value>Przejdź do wiersza</value></data>
 <data name="Editor_Phrase_Go" xml:space="preserve"><value>przejdź</value></data>
+<data name="Editor_BlockAudit" xml:space="preserve"><value>Akapit utworzony {0} · zmieniony {1}</value></data>
+<data name="Editor_BlockAuditUnchanged" xml:space="preserve"><value>Akapit utworzony {0} · bez zmian od tego czasu</value></data>
+<data name="Editor_BlockNew" xml:space="preserve"><value>Nowy akapit, jeszcze niezapisany</value></data>
+<data name="Editor_InfoHint" xml:space="preserve"><value>Najedź myszą na akapit, aby zobaczyć, kiedy został utworzony i zmieniony.</value></data>
+<data name="Editor_SessionExpired" xml:space="preserve"><value>Sesja wygasła. Zaloguj się ponownie, aby zapisać.</value></data>
+<data name="Editor_BlockAuditUnsaved" xml:space="preserve"><value>Akapit utworzony {0} · zmieniony {1} · niezapisane zmiany</value></data>
+<data name="Editor_BlockAuditUnchangedUnsaved" xml:space="preserve"><value>Akapit utworzony {0} · niezapisane zmiany</value></data>
 </root>

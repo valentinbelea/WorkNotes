@@ -65,6 +65,10 @@
             <template id="new-note-template"><partial name="_NewNoteCard" model="Model" /></template>
         }
     </section>
+    @if (Model.OpenNote is not null)
+    {
+        <partial name="_NoteEditorDialog" model="Model" />
+    }
 }
 else
 {
@@ -76,4 +80,11 @@ else
             <a class="btn btn-secondary" asp-page="/Account/Register">@L["Navigation_Register"]</a>
         </div>
     </section>
+}
+
+@section Scripts {
+    @if (Model.OpenNote is not null)
+    {
+        <script type="module" src="~/js/note-editor.js" asp-append-version="true"></script>
+    }
 }

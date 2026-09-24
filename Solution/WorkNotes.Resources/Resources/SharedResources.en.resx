@@ -109,10 +109,9 @@
 <data name="Message_NoteSaved" xml:space="preserve"><value>The note has been saved.</value></data>
 <data name="Message_ContextInUse" xml:space="preserve"><value>The context has notes and cannot be deleted.</value></data>
 <data name="Button_ShowBoard" xml:space="preserve"><value>Show</value></data>
-<data name="Button_BackToBoard" xml:space="preserve"><value>Back to the board</value></data>
 <data name="Field_Content" xml:space="preserve"><value>Note content</value></data>
 <data name="Editor_Placeholder" xml:space="preserve"><value>Write here. A blank line separates paragraphs.</value></data>
-<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S saves, Ctrl+F searches, Ctrl+Z undoes. A blank line starts a new paragraph.</value></data>
+<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S saves · Ctrl+F searches · Ctrl+Z undoes · Esc closes · a blank line starts a new paragraph</value></data>
 <data name="Editor_ReadOnly" xml:space="preserve"><value>You can read this note; only its owner can change it.</value></data>
 <data name="Editor_NoScript" xml:space="preserve"><value>The editor needs JavaScript. The note's content is shown below, read-only.</value></data>
 <data name="Editor_StatusSaved" xml:space="preserve"><value>Saved</value></data>
@@ -139,4 +138,11 @@
 <data name="Editor_Phrase_OnLine" xml:space="preserve"><value>on line</value></data>
 <data name="Editor_Phrase_GoToLine" xml:space="preserve"><value>Go to line</value></data>
 <data name="Editor_Phrase_Go" xml:space="preserve"><value>go</value></data>
+<data name="Editor_BlockAudit" xml:space="preserve"><value>Paragraph created {0} · changed {1}</value></data>
+<data name="Editor_BlockAuditUnchanged" xml:space="preserve"><value>Paragraph created {0} · not changed since</value></data>
+<data name="Editor_BlockNew" xml:space="preserve"><value>New paragraph, not saved yet</value></data>
+<data name="Editor_InfoHint" xml:space="preserve"><value>Move the mouse over a paragraph to see when it was created and changed.</value></data>
+<data name="Editor_SessionExpired" xml:space="preserve"><value>Your session has expired. Sign in again to save.</value></data>
+<data name="Editor_BlockAuditUnsaved" xml:space="preserve"><value>Paragraph created {0} · changed {1} · unsaved changes</value></data>
+<data name="Editor_BlockAuditUnchangedUnsaved" xml:space="preserve"><value>Paragraph created {0} · unsaved changes</value></data>
 </root>

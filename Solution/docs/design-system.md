@@ -87,15 +87,18 @@ Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul l
 
 ### Deschiderea unei note
 
-Iconul Open al cardului este un link către editor (/Notes/{id}), deci funcționează și fără JavaScript. Dublu-click pe card apelează openNoteEditor(card) din notes-board.js, care urmează același link; adresa este generată de server.
+Iconul Open al cardului este un link către /?note={id}, deci funcționează și fără JavaScript. Dublu-click pe card apelează openNoteEditor(card) din notes-board.js, care urmează același link; adresa este generată de server.
 
 ## Editorul notei
 
-- Pagina (Pages/Notes/Edit) are bara de instrumente (înapoi la tablă, tipul, contextul, vizibilitatea, starea salvării, Salvează) și foaia notei: postit-panel cu culoarea tipului (note-sheet--journal / note-sheet--article), titlul editabil pe loc și editorul CodeMirror.
+- Editorul se deschide peste tablă, în dialogul cu overlay al aplicației (dialog.modal, ca la adăugare/editare), cu panoul modal-panel--editor: 90% din lățimea și înălțimea ferestrei. Tabla din spate rămâne pe loc; containerul editorului (note-sheet__editor) are scroll propriu. Fără JavaScript dialogul este un overlay CSS cu textul doar pentru citire.
+- Închide, Escape și click în afara panoului revin la tabla notei (/?context={id}); dacă există modificări nesalvate, browserul cere confirmarea. Escape în panoul de căutare închide doar panoul.
+- Panoul are culoarea tipului (note-sheet--journal / note-sheet--article) și conține: bara de instrumente (tipul, contextul, vizibilitatea, starea salvării, Salvează, Închide), titlul editabil pe loc, editorul și bara de informații.
+- Bara de informații (note-editor-info), sub editor: pentru paragraful de sub mouse, iar fără mouse pentru cel cu cursorul, arată data creării și a ultimei modificări (auditul NoteBlocks), „modificări nesalvate” sau „paragraf nou”; în dreapta, scurtăturile. Paragraful descris primește clasa cm-hoveredParagraph (evidențiere discretă). Bara nu acoperă textul și funcționează și de la tastatură.
 - Stilurile WorkNotes pentru editor sunt în note-editor.css, pe clasele CodeMirror (.cm-editor, .cm-content, .cm-activeLine, panoul de căutare). Rândul activ folosește stilul active-line al paletei, selecția --wn-selection, rezultatele căutării --wn-highlight. CodeMirror își injectează doar stilurile de bază.
 - Starea salvării (Salvat / Modificări nesalvate / Se salvează… / eroare) este un role=status; o eroare folosește clasa note-editor-toolbar__status--error.
-- Pentru cine poate doar citi, editorul nu este editabil, butonul Salvează lipsește, iar textul de ajutor o spune.
-- Textele (placeholder, stări, frazele panoului de căutare) sunt randate de server din .resx în datele paginii; note-editor.js nu conține traduceri.
+- Pentru cine poate doar citi, editorul nu este editabil, butonul Salvează lipsește, iar bara de informații o spune.
+- Textele (placeholder, stări, informațiile de audit, frazele panoului de căutare) sunt randate de server din .resx în datele paginii; note-editor.js nu conține traduceri.
 
 ## Verificare vizuală
 

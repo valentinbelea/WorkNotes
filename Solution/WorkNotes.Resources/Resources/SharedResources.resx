@@ -109,10 +109,9 @@
 <data name="Message_NoteSaved" xml:space="preserve"><value>Nota a fost salvată.</value></data>
 <data name="Message_ContextInUse" xml:space="preserve"><value>Contextul are note și nu poate fi șters.</value></data>
 <data name="Button_ShowBoard" xml:space="preserve"><value>Afișează</value></data>
-<data name="Button_BackToBoard" xml:space="preserve"><value>Înapoi la tablă</value></data>
 <data name="Field_Content" xml:space="preserve"><value>Conținutul notei</value></data>
 <data name="Editor_Placeholder" xml:space="preserve"><value>Scrie aici. Un rând gol separă paragrafele.</value></data>
-<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S salvează, Ctrl+F caută, Ctrl+Z anulează. Un rând gol începe un paragraf nou.</value></data>
+<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S salvează · Ctrl+F caută · Ctrl+Z anulează · Esc închide · un rând gol începe un paragraf nou</value></data>
 <data name="Editor_ReadOnly" xml:space="preserve"><value>Poți citi această notă; numai proprietarul o poate modifica.</value></data>
 <data name="Editor_NoScript" xml:space="preserve"><value>Editorul are nevoie de JavaScript. Conținutul notei este afișat mai jos, numai pentru citire.</value></data>
 <data name="Editor_StatusSaved" xml:space="preserve"><value>Salvat</value></data>
@@ -139,4 +138,11 @@
 <data name="Editor_Phrase_OnLine" xml:space="preserve"><value>pe rândul</value></data>
 <data name="Editor_Phrase_GoToLine" xml:space="preserve"><value>Mergi la rândul</value></data>
 <data name="Editor_Phrase_Go" xml:space="preserve"><value>mergi</value></data>
+<data name="Editor_BlockAudit" xml:space="preserve"><value>Paragraf creat {0} · modificat {1}</value></data>
+<data name="Editor_BlockAuditUnchanged" xml:space="preserve"><value>Paragraf creat {0} · nemodificat de atunci</value></data>
+<data name="Editor_BlockNew" xml:space="preserve"><value>Paragraf nou, încă nesalvat</value></data>
+<data name="Editor_InfoHint" xml:space="preserve"><value>Treci cu mouse-ul peste un paragraf pentru a vedea când a fost creat și modificat.</value></data>
+<data name="Editor_SessionExpired" xml:space="preserve"><value>Sesiunea a expirat. Autentifică-te din nou pentru a salva.</value></data>
+<data name="Editor_BlockAuditUnsaved" xml:space="preserve"><value>Paragraf creat {0} · modificat {1} · modificări nesalvate</value></data>
+<data name="Editor_BlockAuditUnchangedUnsaved" xml:space="preserve"><value>Paragraf creat {0} · modificări nesalvate</value></data>
 </root>

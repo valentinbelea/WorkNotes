@@ -65,8 +65,11 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (!document.IsOwner) return new(NoteSaveStatus.Forbidden);
         if (string.IsNullOrWhiteSpace(expectedVersion)) return new(NoteSaveStatus.Conflict);
 
+        // Audit times are kept to the second, the precision of the stored columns, so they read the same after a reload.
+        var now = time.GetUtcNow().UtcDateTime;
+        var savedAtUtc = now.AddTicks(-(now.Ticks % TimeSpan.TicksPerSecond));
         return await notes.SaveAsync(
-            new NoteChanges(noteId, userId, expectedVersion, NoteRules.NormalizeTitle(title), paragraphs, time.GetUtcNow().UtcDateTime),
+            new NoteChanges(noteId, userId, expectedVersion, NoteRules.NormalizeTitle(title), paragraphs, savedAtUtc),
             cancellationToken);
     }
 

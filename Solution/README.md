@@ -76,7 +76,7 @@ Există câte o tablă pentru fiecare context: lista de contexte înlocuiește t
 
 Flux: `Pages/Index → INoteService → NoteService → INoteRepository → NoteRepository → WorkNotesDbContext`. `NoteService` validează tipul și titlul și verifică apartenența la context prin `IWorkContextRepository`. ### Editorul text
 
-Open sau dublu-click pe un post-it deschide `/Notes/{id}` (Pages/Notes/Edit). Editorul este CodeMirror 6 (licență MIT, fără cost de licență sau serviciu cloud): text, căutare și înlocuire (Ctrl+F), undo/redo, evidențierea rândului activ, salvare cu butonul sau Ctrl+S și avertizare la părăsirea paginii cu modificări nesalvate. Toate textele editorului, inclusiv panoul de căutare, vin din `.resx`.
+Open sau dublu-click pe un post-it deschide editorul peste tablă, într-un dialog cu overlay de 90% din fereastră (`/?note={id}`, randat de `Pages/Shared/_NoteEditorDialog.cshtml`); containerul editorului are scroll propriu. Închide, Escape sau click în afara dialogului revin la tablă, cu avertizare dacă există modificări nesalvate. Editorul este CodeMirror 6 (licență MIT, fără cost de licență sau serviciu cloud): text, căutare și înlocuire (Ctrl+F), undo/redo, evidențierea rândului activ, salvare cu butonul sau Ctrl+S și avertizare la părăsirea paginii cu modificări nesalvate. Toate textele editorului, inclusiv panoul de căutare, vin din `.resx`.
 
 Conținutul se păstrează pe paragrafe în `dbo.NoteBlocks` (scriptul `008_CreateNoteBlocks.sql`): un paragraf este textul dintre rânduri goale, nu rândul vizual. Fiecare paragraf are un id stabil (GUID creat de editor) și audit propriu (creare, ultima modificare). `wwwroot/js/note-editor.js` urmărește paragrafele prin editări:
 
@@ -86,7 +86,9 @@ Conținutul se păstrează pe paragrafe în `dbo.NoteBlocks` (scriptul `008_Crea
 - ștergerea urmată de undo readuce id-ul paragrafului;
 - textul copiat și lipit primește id nou; mutarea prin tăiere și lipire creează deocamdată tot un paragraf nou.
 
-Salvarea trimite toată nota (paragrafele în ordine) prin POST JSON cu antiforgery. `NoteService` permite salvarea numai proprietarului, validează textul și limitele, iar `NoteRepository` compară paragrafele cu cele stocate (păstrate, modificate, noi, eliminate). `RowVersion` al notei detectează salvările din ferestre diferite: salvarea învechită este refuzată cu un mesaj, fără a suprascrie. Membrii contextului pot citi o notă partajată, numai pentru citire. Fără JavaScript pagina afișează paragrafele doar pentru citire.
+Bara de informații de sub editor afișează, pentru paragraful de sub mouse (sau, fără mouse, pentru cel cu cursorul), data creării și a ultimei modificări din coloanele de audit `NoteBlocks` (`CreatedAtUtc`, `ModifiedAtUtc`), cu „modificări nesalvate” sau „paragraf nou” când este cazul; paragraful descris este evidențiat discret. Textele sunt compuse de server din `.resx` (`NoteDates.BlockAudit`) și actualizate după fiecare salvare.
+
+Salvarea trimite toată nota (paragrafele în ordine) prin POST JSON cu antiforgery (`/?handler=SaveNote&note={id}`). `NoteService` permite salvarea numai proprietarului, validează textul și limitele, iar `NoteRepository` compară paragrafele cu cele stocate (păstrate, modificate, noi, eliminate). `RowVersion` al notei detectează salvările din ferestre diferite: salvarea învechită este refuzată cu un mesaj, fără a suprascrie. Membrii contextului pot citi o notă partajată, numai pentru citire. Fără JavaScript pagina afișează paragrafele doar pentru citire.
 
 Biblioteca este inclusă local în `wwwroot/lib/codemirror/codemirror.js`, cu `THIRD-PARTY-NOTICES.txt` (copyright și licențe). Pentru actualizare: din `tools/codemirror`, `npm ci` apoi `npm run build` (versiuni fixate în `package.json` / `package-lock.json`).
 

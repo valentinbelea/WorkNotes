@@ -1,27 +1,30 @@
-/* Note editor page: a paper sheet holding the CodeMirror editor. CodeMirror injects its own base styles;
-   everything WorkNotes adds is here, on normal classes, with the palette tokens. */
-.site-main:has(> .note-editor-page) { max-width: 62rem; }
-.note-editor-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; margin-bottom: 1.75rem; }
+/* Note editor: a dialog over the board, 90% of the window, holding the note's sheet and the CodeMirror editor.
+   CodeMirror injects its own base styles; everything WorkNotes adds is here, on normal classes, with the palette tokens. */
+.modal-panel--editor { display: flex; flex-direction: column; gap: 1rem; width: 90vw; max-width: none; height: 90vh; height: 90dvh; margin: 0; padding: clamp(1rem, 2.5vw, 2rem); }
+.note-editor-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; }
 .note-editor-toolbar__meta { display: flex; flex-wrap: wrap; gap: .25rem .75rem; margin: 0; color: var(--wn-muted); font-size: .8rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .note-editor-toolbar__status { flex: 1 1 14rem; margin: 0; color: var(--wn-muted); font-size: .875rem; text-align: end; }
 .note-editor-toolbar__status--error { color: var(--wn-danger); font-weight: 600; }
+.note-editor-toolbar .actions { flex-wrap: nowrap; }
+.modal-panel--editor [hidden] { display: none; }
 /* The sheet has the colour of the note type, like its card on the board. */
 .postit-panel.note-sheet--journal { --postit-color: var(--wn-note-paper); }
 .postit-panel.note-sheet--article { --postit-color: var(--wn-note-sage); }
-.note-sheet { padding: clamp(1.25rem, 4vw, 2.5rem); }
-.note-sheet .help-text { margin: .35rem 0 0; }
-.note-sheet__title { width: 100%; margin: 0; padding: .25rem 0; border: 0; border-bottom: 1px dashed var(--wn-input-border); border-radius: 0; color: var(--wn-text); background: transparent; font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 650; line-height: 1.25; }
-h1.note-sheet__title { border-bottom: 0; }
+.note-sheet__title { flex: none; width: 100%; margin: 0; padding: .25rem 0; border: 0; border-bottom: 1px dashed var(--wn-input-border); border-radius: 0; color: var(--wn-text); background: transparent; font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 650; line-height: 1.25; }
+h2.note-sheet__title { margin: 0; border-bottom: 0; font-size: clamp(1.4rem, 2.6vw, 1.9rem); }
 .note-sheet__title::placeholder { color: var(--wn-muted); font-weight: 500; }
 input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid var(--wn-primary); }
-.note-sheet__editor { margin-top: 1.25rem; }
+/* The editor fills the space left in the dialog and scrolls on its own. */
+.note-sheet__editor { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: auto; }
 .note-sheet__paragraph { white-space: pre-wrap; }
-.note-sheet__editor .cm-editor { min-height: 50vh; border-radius: var(--wn-radius); color: var(--wn-text); background: rgb(255 255 255 / 45%); font-size: 1rem; }
+.note-sheet__editor .cm-editor { flex: 1 1 auto; min-height: 0; border-radius: var(--wn-radius); color: var(--wn-text); background: rgb(255 255 255 / 45%); font-size: 1rem; }
 .note-sheet__editor .cm-editor.cm-focused { outline: 2px solid var(--wn-primary); outline-offset: 2px; }
-.note-sheet__editor .cm-scroller { font-family: var(--wn-font); line-height: 1.7; }
+.note-sheet__editor .cm-scroller { overflow: auto; font-family: var(--wn-font); line-height: 1.7; }
 .note-sheet__editor .cm-content { padding: 1rem 0; caret-color: var(--wn-text); }
 .note-sheet__editor .cm-line { padding: 0 1.25rem; }
 .note-sheet__editor .cm-placeholder { color: var(--wn-muted); }
+/* Paragraph under the mouse: the one the info bar describes. */
+.note-sheet__editor .cm-editor .cm-hoveredParagraph { background: rgb(36 58 54 / 5%); box-shadow: inset 3px 0 var(--wn-input-border); }
 /* Active line: the "rând activ" style of the palette. */
 .note-sheet__editor .cm-editor .cm-activeLine { background: var(--wn-active-line); box-shadow: inset 3px 0 var(--wn-primary); }
 .note-sheet__editor .cm-editor .cm-selectionLayer .cm-selectionBackground,
@@ -38,7 +41,12 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 .note-sheet__editor .cm-editor .cm-panel.cm-search .cm-button:hover { color: var(--wn-primary-hover); background: var(--wn-active-line); }
 .note-sheet__editor .cm-editor .cm-panel.cm-search label { display: inline-flex; align-items: center; gap: .25rem; margin: 0; }
 .note-sheet__editor .cm-editor .cm-panel.cm-search [name=close] { top: .5rem; right: .6rem; width: 28px; height: 28px; color: var(--wn-muted); font-size: 1.25rem; }
+/* Info bar under the editor: audit of the paragraph under the mouse (or at the cursor), then the shortcuts. */
+.note-editor-info { display: flex; flex: none; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1.5rem; padding-top: .6rem; border-top: 1px dashed var(--wn-input-border); color: var(--wn-muted); font-size: .8rem; }
+.note-editor-info p { margin: 0; }
+.note-editor-info__paragraph { color: var(--wn-text); font-weight: 600; }
+@media (max-width: 450px) { .note-editor-info__help { display: none; } }
 @media (forced-colors: active) {
     .note-sheet__editor .cm-editor { border: 1px solid CanvasText; }
-    .note-sheet__editor .cm-editor .cm-activeLine { outline: 1px solid Highlight; }
+    .note-sheet__editor .cm-editor .cm-activeLine, .note-sheet__editor .cm-editor .cm-hoveredParagraph { outline: 1px solid Highlight; }
 }

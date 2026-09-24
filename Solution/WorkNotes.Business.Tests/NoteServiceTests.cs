@@ -124,7 +124,8 @@ public sealed class NoteServiceTests
     public async Task OwnerSavesNormalizedParagraphsInOrder()
     {
         var notes = new StubNotes(document: Document());
-        var time = new FixedTime(new DateTimeOffset(2026, 9, 24, 8, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
+        // Sub-second parts are dropped: audit times have the precision of the stored columns.
+        var time = new FixedTime(new DateTimeOffset(2026, 9, 24, 8, 0, 0, 700, TimeSpan.Zero), TimeSpan.FromHours(3));
         var service = new NoteService(notes, new StubContexts(), time);
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();

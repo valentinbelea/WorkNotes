@@ -5,7 +5,7 @@ public sealed class NoteSaveRequest
 {
     public string Version { get; set; } = "";
     public string? Title { get; set; }
-    public List<NoteBlockRequest> Blocks { get; set; } = [];
+    public List<NoteBlockRequest>? Blocks { get; set; } = [];
 }
 
 public sealed class NoteBlockRequest
