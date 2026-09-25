@@ -1,0 +1,37 @@
+@{
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString();
+    var isAccountPage = NavigationSections.IsAccountPage(currentPage);
+}
+<dialog id="main-menu" class="main-menu" aria-labelledby="main-menu-title" open>
+    <div class="main-menu-heading">
+        <h2 id="main-menu-title">@L["Navigation_Menu"]</h2>
+        <button type="button" class="btn btn-ghost" data-menu-close aria-label="@L["Navigation_CloseMenu"]" hidden autofocus>
+            <span aria-hidden="true">×</span>
+        </button>
+    </div>
+    <nav aria-label="@L["Navigation_Menu"]">
+        <a class="menu-item" asp-page="/Index" aria-current="@(currentPage == "/Index" ? "page" : null)">@L["Navigation_Dashboard"]</a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="menu-item" asp-page="/Contexts/Index" aria-current="@(currentPage == "/Contexts/Index" ? "page" : null)">@L["Navigation_Contexts"]</a>
+        }
+        <details class="menu-account" open="@isAccountPage">
+            <summary class="menu-item">@L["Navigation_MyAccount"]</summary>
+            <div class="menu-subitems" role="group" aria-label="@L["Navigation_Account"]">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="menu-item" asp-page="/Account/Index" aria-current="@(currentPage == "/Account/Index" ? "page" : null)">@L["Navigation_AccountDetails"]</a>
+                    <a class="menu-item" asp-page="/Account/ChangePassword" aria-current="@(currentPage == "/Account/ChangePassword" ? "page" : null)">@L["Navigation_ChangePassword"]</a>
+                    <form method="post" asp-page="/Account/Logout">
+                        <button type="submit" class="menu-item menu-logout">@L["Navigation_Logout"]</button>
+                    </form>
+                }
+                else
+                {
+                    <a class="menu-item" asp-page="/Account/Login" aria-current="@(currentPage == "/Account/Login" ? "page" : null)">@L["Navigation_Login"]</a>
+                    <a class="menu-item" asp-page="/Account/Register" aria-current="@(currentPage == "/Account/Register" ? "page" : null)">@L["Navigation_Register"]</a>
+                }
+            </div>
+        </details>
+    </nav>
+</dialog>

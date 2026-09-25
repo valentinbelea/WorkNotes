@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+<resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+<resheader name="version"><value>2.0</value></resheader>
+<data name="Navigation_Home" xml:space="preserve"><value>Strona główna</value></data>
+<data name="Navigation_Register" xml:space="preserve"><value>Rejestracja</value></data>
+<data name="Navigation_Login" xml:space="preserve"><value>Logowanie</value></data>
+<data name="Navigation_MyAccount" xml:space="preserve"><value>Moje konto</value></data>
+<data name="Navigation_ChangePassword" xml:space="preserve"><value>Zmiana hasła</value></data>
+<data name="Navigation_Logout" xml:space="preserve"><value>Wyloguj</value></data>
+<data name="Navigation_Account" xml:space="preserve"><value>Konto użytkownika</value></data>
+<data name="Field_FirstName" xml:space="preserve"><value>Imię</value></data>
+<data name="Field_LastName" xml:space="preserve"><value>Nazwisko</value></data>
+<data name="Field_Email" xml:space="preserve"><value>Adres e-mail</value></data>
+<data name="Field_Password" xml:space="preserve"><value>Hasło</value></data>
+<data name="Field_ConfirmPassword" xml:space="preserve"><value>Potwierdź hasło</value></data>
+<data name="Field_CurrentPassword" xml:space="preserve"><value>Obecne hasło</value></data>
+<data name="Field_NewPassword" xml:space="preserve"><value>Nowe hasło</value></data>
+<data name="Field_ConfirmNewPassword" xml:space="preserve"><value>Potwierdź nowe hasło</value></data>
+<data name="Field_RememberMe" xml:space="preserve"><value>Zapamiętaj mnie</value></data>
+<data name="Button_Save" xml:space="preserve"><value>Zapisz</value></data>
+<data name="Button_Register" xml:space="preserve"><value>Utwórz konto</value></data>
+<data name="Button_ChangePassword" xml:space="preserve"><value>Zmień hasło</value></data>
+<data name="Button_ApplyLanguage" xml:space="preserve"><value>Zastosuj język</value></data>
+<data name="Language_Label" xml:space="preserve"><value>Język</value></data>
+<data name="Language_Romanian" xml:space="preserve"><value>Română</value></data>
+<data name="Language_English" xml:space="preserve"><value>English</value></data>
+<data name="Language_Polish" xml:space="preserve"><value>Polski</value></data>
+<data name="Home_Introduction" xml:space="preserve"><value>Aplikacja jest gotowa do dalszego rozwoju.</value></data>
+<data name="Footer_Version" xml:space="preserve"><value>Wersja aplikacji</value></data>
+<data name="Footer_NoVersion" xml:space="preserve"><value>Wersja nie została skonfigurowana</value></data>
+<data name="Validation_Required" xml:space="preserve"><value>Pole „{0}” jest wymagane.</value></data>
+<data name="Validation_InvalidEmail" xml:space="preserve"><value>Wprowadź prawidłowy adres e-mail.</value></data>
+<data name="Validation_MaxLength" xml:space="preserve"><value>Pole „{0}” może zawierać maksymalnie {1} znaków.</value></data>
+<data name="Validation_PasswordsDiffer" xml:space="preserve"><value>Hasła nie są zgodne.</value></data>
+<data name="Validation_PasswordPolicy" xml:space="preserve"><value>Hasło musi zawierać co najmniej 12 znaków, małą literę, wielką literę, cyfrę i znak specjalny.</value></data>
+<data name="Validation_InvalidName" xml:space="preserve"><value>Imię i nazwisko są wymagane, mogą mieć maksymalnie 100 znaków i nie mogą zawierać znaków sterujących.</value></data>
+<data name="Validation_InvalidValue" xml:space="preserve"><value>Wprowadzona wartość jest nieprawidłowa.</value></data>
+<data name="Message_RegistrationSucceeded" xml:space="preserve"><value>Konto zostało utworzone. Możesz się zalogować.</value></data>
+<data name="Message_SaveSucceeded" xml:space="preserve"><value>Dane konta zostały zaktualizowane.</value></data>
+<data name="Message_PasswordChanged" xml:space="preserve"><value>Hasło zostało zmienione.</value></data>
+<data name="Message_LoginFailed" xml:space="preserve"><value>Logowanie nie powiodło się. Sprawdź adres e-mail i hasło lub spróbuj ponownie później.</value></data>
+<data name="Message_AccountUnavailable" xml:space="preserve"><value>Konto jest niedostępne. Zaloguj się ponownie.</value></data>
+<data name="Identity_DefaultError" xml:space="preserve"><value>Nie udało się ukończyć operacji. Spróbuj ponownie.</value></data>
+<data name="Identity_ConcurrencyFailure" xml:space="preserve"><value>Konto zostało zmienione. Odśwież stronę.</value></data>
+<data name="Identity_DuplicateEmail" xml:space="preserve"><value>Ten adres e-mail jest już używany.</value></data>
+<data name="Identity_PasswordMismatch" xml:space="preserve"><value>Obecne hasło jest nieprawidłowe.</value></data>
+<data name="Identity_PasswordRequiresDigit" xml:space="preserve"><value>Hasło musi zawierać cyfrę.</value></data>
+<data name="Identity_PasswordRequiresLower" xml:space="preserve"><value>Hasło musi zawierać małą literę.</value></data>
+<data name="Identity_PasswordRequiresUpper" xml:space="preserve"><value>Hasło musi zawierać wielką literę.</value></data>
+<data name="Identity_PasswordRequiresNonAlphanumeric" xml:space="preserve"><value>Hasło musi zawierać znak specjalny.</value></data>
+<data name="Navigation_Menu" xml:space="preserve"><value>Menu główne</value></data>
+<data name="Navigation_CloseMenu" xml:space="preserve"><value>Zamknij menu</value></data>
+<data name="Navigation_Dashboard" xml:space="preserve"><value>Pulpit</value></data>
+<data name="Navigation_AccountDetails" xml:space="preserve"><value>Dane konta</value></data>
+<data name="Navigation_MySpace" xml:space="preserve"><value>Moja przestrzeń</value></data>
+<data name="Dashboard_Title" xml:space="preserve"><value>Na mojej tablicy</value></data>
+<data name="Dashboard_Description" xml:space="preserve"><value>Notatki kontekstu, pogrupowane według miesiąca ostatniej zmiany: najpierw dzienniki, potem artykuły.</value></data>
+<data name="Dashboard_EmptyBoard" xml:space="preserve"><value>Tablica jest pusta.</value></data>
+<data name="Button_NewNote" xml:space="preserve"><value>Nowa notatka</value></data>
+<data name="Navigation_Contexts" xml:space="preserve"><value>Konteksty</value></data>
+<data name="Contexts_Description" xml:space="preserve"><value>Konteksty, w których porządkujesz notatki.</value></data>
+<data name="Contexts_Empty" xml:space="preserve"><value>Nie ma jeszcze żadnych kontekstów.</value></data>
+<data name="Contexts_Actions" xml:space="preserve"><value>Akcje</value></data>
+<data name="Contexts_EditTitle" xml:space="preserve"><value>Edytuj kontekst</value></data>
+<data name="Contexts_EditNamed" xml:space="preserve"><value>Edytuj kontekst {0}</value></data>
+<data name="Contexts_DeleteTitle" xml:space="preserve"><value>Usuń kontekst</value></data>
+<data name="Contexts_DeleteNamed" xml:space="preserve"><value>Usuń kontekst {0}</value></data>
+<data name="Contexts_DeleteConfirm" xml:space="preserve"><value>Czy na pewno chcesz usunąć kontekst „{0}”? Tej operacji nie można cofnąć.</value></data>
+<data name="Field_Name" xml:space="preserve"><value>Nazwa</value></data>
+<data name="Field_Description" xml:space="preserve"><value>Opis</value></data>
+<data name="Button_NewContext" xml:space="preserve"><value>Nowy kontekst</value></data>
+<data name="Button_Edit" xml:space="preserve"><value>Edytuj</value></data>
+<data name="Button_Delete" xml:space="preserve"><value>Usuń</value></data>
+<data name="Button_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+<data name="Validation_ContextNameTaken" xml:space="preserve"><value>Kontekst o tej nazwie już istnieje.</value></data>
+<data name="Validation_InvalidContextName" xml:space="preserve"><value>Nazwa kontekstu jest wymagana, może mieć maksymalnie 100 znaków i nie może zawierać znaków sterujących.</value></data>
+<data name="Validation_InvalidDescription" xml:space="preserve"><value>Opis może mieć maksymalnie 1000 znaków i nie może zawierać znaków sterujących.</value></data>
+<data name="Message_ContextSaved" xml:space="preserve"><value>Kontekst został zapisany.</value></data>
+<data name="Message_ContextDeleted" xml:space="preserve"><value>Kontekst został usunięty.</value></data>
+<data name="Button_Members" xml:space="preserve"><value>Członkowie</value></data>
+<data name="Button_AddMember" xml:space="preserve"><value>Dodaj członka</value></data>
+<data name="Button_Close" xml:space="preserve"><value>Zamknij</value></data>
+<data name="Contexts_MembersTitle" xml:space="preserve"><value>Członkowie kontekstu „{0}”</value></data>
+<data name="Contexts_MembersNamed" xml:space="preserve"><value>Członkowie kontekstu {0}</value></data>
+<data name="Field_Role" xml:space="preserve"><value>Rola</value></data>
+<data name="ContextRole_Owner" xml:space="preserve"><value>Właściciel</value></data>
+<data name="ContextRole_Member" xml:space="preserve"><value>Członek</value></data>
+<data name="Message_MemberAdded" xml:space="preserve"><value>Członek został dodany.</value></data>
+<data name="Validation_UserNotFound" xml:space="preserve"><value>Nie ma konta z tym adresem e-mail.</value></data>
+<data name="Validation_AlreadyMember" xml:space="preserve"><value>Ten użytkownik jest już członkiem kontekstu.</value></data>
+<data name="Button_Remove" xml:space="preserve"><value>Usuń</value></data>
+<data name="Contexts_RemoveMemberNamed" xml:space="preserve"><value>Usuń {0} z kontekstu</value></data>
+<data name="Message_MemberRemoved" xml:space="preserve"><value>Członek został usunięty.</value></data>
+<data name="Message_MemberNotFound" xml:space="preserve"><value>Ten użytkownik nie jest już członkiem kontekstu.</value></data>
+<data name="NoteType_Journal" xml:space="preserve"><value>Dziennik</value></data>
+<data name="NoteType_Article" xml:space="preserve"><value>Artykuł</value></data>
+<data name="NoteVisibility_Private" xml:space="preserve"><value>Prywatna</value></data>
+<data name="NoteVisibility_Context" xml:space="preserve"><value>W kontekście</value></data>
+<data name="Field_Title" xml:space="preserve"><value>Tytuł</value></data>
+<data name="Field_NoteType" xml:space="preserve"><value>Typ notatki</value></data>
+<data name="Field_Context" xml:space="preserve"><value>Kontekst</value></data>
+<data name="Notes_TitlePlaceholder" xml:space="preserve"><value>Tytuł (opcjonalny)</value></data>
+<data name="Notes_Untitled" xml:space="preserve"><value>Bez tytułu</value></data>
+<data name="Notes_OpenNamed" xml:space="preserve"><value>Otwórz notatkę „{0}”</value></data>
+<data name="Notes_NoContexts" xml:space="preserve"><value>Najpierw utwórz kontekst, aby dodawać notatki.</value></data>
+<data name="Validation_InvalidNoteTitle" xml:space="preserve"><value>Tytuł może mieć maksymalnie 200 znaków i nie może zawierać znaków sterujących.</value></data>
+<data name="Validation_ContextUnavailable" xml:space="preserve"><value>Wybrany kontekst nie jest już dostępny.</value></data>
+<data name="Message_NoteSaved" xml:space="preserve"><value>Notatka została zapisana.</value></data>
+<data name="Message_ContextInUse" xml:space="preserve"><value>Kontekst zawiera notatki i nie można go usunąć.</value></data>
+<data name="Button_ShowBoard" xml:space="preserve"><value>Pokaż</value></data>
+<data name="Field_Content" xml:space="preserve"><value>Treść notatki</value></data>
+<data name="Editor_Placeholder" xml:space="preserve"><value>Pisz tutaj. Pusty wiersz oddziela akapity.</value></data>
+<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S zapisuje · Ctrl+F wyszukuje · Ctrl+Z cofa · Esc zamyka · pusty wiersz rozpoczyna nowy akapit</value></data>
+<data name="Editor_ReadOnly" xml:space="preserve"><value>Możesz czytać tę notatkę; zmieniać ją może tylko właściciel.</value></data>
+<data name="Editor_NoScript" xml:space="preserve"><value>Edytor wymaga JavaScriptu. Treść notatki jest wyświetlona poniżej, tylko do odczytu.</value></data>
+<data name="Editor_StatusSaved" xml:space="preserve"><value>Zapisano</value></data>
+<data name="Editor_StatusUnsaved" xml:space="preserve"><value>Niezapisane zmiany</value></data>
+<data name="Editor_StatusSaving" xml:space="preserve"><value>Zapisywanie…</value></data>
+<data name="Editor_StatusError" xml:space="preserve"><value>Zapisywanie nie powiodło się. Spróbuj ponownie.</value></data>
+<data name="Editor_Conflict" xml:space="preserve"><value>Notatka została w międzyczasie zmieniona, na przykład w innym oknie. Odśwież stronę, aby zobaczyć najnowszą wersję.</value></data>
+<data name="Editor_NotFound" xml:space="preserve"><value>Notatka nie jest już dostępna.</value></data>
+<data name="Editor_InvalidContent" xml:space="preserve"><value>Nie można zapisać treści: tekst zawiera znaki sterujące lub jest zbyt długi.</value></data>
+<data name="Editor_Phrase_Find" xml:space="preserve"><value>Znajdź</value></data>
+<data name="Editor_Phrase_Replace" xml:space="preserve"><value>Zamień</value></data>
+<data name="Editor_Phrase_Next" xml:space="preserve"><value>następny</value></data>
+<data name="Editor_Phrase_Previous" xml:space="preserve"><value>poprzedni</value></data>
+<data name="Editor_Phrase_All" xml:space="preserve"><value>wszystkie</value></data>
+<data name="Editor_Phrase_MatchCase" xml:space="preserve"><value>wielkość liter</value></data>
+<data name="Editor_Phrase_ByWord" xml:space="preserve"><value>całe słowa</value></data>
+<data name="Editor_Phrase_Regexp" xml:space="preserve"><value>wyrażenie regularne</value></data>
+<data name="Editor_Phrase_ReplaceOne" xml:space="preserve"><value>zamień</value></data>
+<data name="Editor_Phrase_ReplaceAll" xml:space="preserve"><value>zamień wszystkie</value></data>
+<data name="Editor_Phrase_Close" xml:space="preserve"><value>zamknij</value></data>
+<data name="Editor_Phrase_CurrentMatch" xml:space="preserve"><value>bieżące dopasowanie</value></data>
+<data name="Editor_Phrase_ReplacedMatches" xml:space="preserve"><value>zamieniono dopasowania: $</value></data>
+<data name="Editor_Phrase_ReplacedOnLine" xml:space="preserve"><value>zamieniono dopasowanie w wierszu $</value></data>
+<data name="Editor_Phrase_OnLine" xml:space="preserve"><value>w wierszu</value></data>
+<data name="Editor_Phrase_GoToLine" xml:space="preserve"><value>Przejdź do wiersza</value></data>
+<data name="Editor_Phrase_Go" xml:space="preserve"><value>przejdź</value></data>
+<data name="Editor_BlockAudit" xml:space="preserve"><value>Akapit utworzony {0} · zmieniony {1}</value></data>
+<data name="Editor_BlockAuditUnchanged" xml:space="preserve"><value>Akapit utworzony {0} · bez zmian od tego czasu</value></data>
+<data name="Editor_BlockNew" xml:space="preserve"><value>Nowy akapit, jeszcze niezapisany</value></data>
+<data name="Editor_InfoHint" xml:space="preserve"><value>Najedź myszą na akapit, aby zobaczyć, kiedy został utworzony i zmieniony.</value></data>
+<data name="Editor_SessionExpired" xml:space="preserve"><value>Sesja wygasła. Zaloguj się ponownie, aby zapisać.</value></data>
+<data name="Editor_BlockAuditUnsaved" xml:space="preserve"><value>Akapit utworzony {0} · zmieniony {1} · niezapisane zmiany</value></data>
+<data name="Editor_BlockAuditUnchangedUnsaved" xml:space="preserve"><value>Akapit utworzony {0} · niezapisane zmiany</value></data>
+<data name="Notes_DeleteNamed" xml:space="preserve"><value>Usuń notatkę „{0}”</value></data>
+<data name="Notes_DeleteTitle" xml:space="preserve"><value>Usuń notatkę</value></data>
+<data name="Notes_DeleteConfirm" xml:space="preserve"><value>Czy na pewno chcesz usunąć notatkę „{0}”? Cała jej treść również zostanie usunięta. Tej operacji nie można cofnąć.</value></data>
+<data name="Message_NoteDeleted" xml:space="preserve"><value>Notatka została usunięta.</value></data>
+<data name="Message_NoteRenamed" xml:space="preserve"><value>Tytuł został zapisany.</value></data>
+<data name="Notes_RenameFailed" xml:space="preserve"><value>Nie udało się zapisać tytułu. Spróbuj ponownie.</value></data>
+<data name="Notes_Created" xml:space="preserve"><value>Utworzona</value></data>
+<data name="Notes_Modified" xml:space="preserve"><value>Zmieniona</value></data>
+<data name="Button_CloseMessage" xml:space="preserve"><value>Zamknij komunikat</value></data>
+<data name="Message_KindSuccess" xml:space="preserve"><value>Sukces</value></data>
+<data name="Message_KindWarning" xml:space="preserve"><value>Ostrzeżenie</value></data>
+<data name="Message_KindError" xml:space="preserve"><value>Błąd</value></data>
+<data name="Editor_Minimize" xml:space="preserve"><value>Minimalizuj edytor</value></data>
+<data name="Editor_Maximize" xml:space="preserve"><value>Maksymalizuj edytor</value></data>
+<data name="Editor_CloseEditor" xml:space="preserve"><value>Zamknij edytor</value></data>
+<data name="Editor_Minimized" xml:space="preserve"><value>Zminimalizowany edytor</value></data>
+<data name="Editor_Title" xml:space="preserve"><value>Edytor notatek</value></data>
+<data name="Editor_Tabs" xml:space="preserve"><value>Otwarte notatki</value></data>
+<data name="Editor_CloseTab" xml:space="preserve"><value>Zamknij notatkę</value></data>
+<data name="Editor_ConfirmCloseTab" xml:space="preserve"><value>Notatka „{0}” ma niezapisane zmiany. Zamknąć ją bez zapisywania?</value></data>
+<data name="Editor_OpenFailed" xml:space="preserve"><value>Nie udało się otworzyć notatki. Spróbuj ponownie.</value></data>
+</root>

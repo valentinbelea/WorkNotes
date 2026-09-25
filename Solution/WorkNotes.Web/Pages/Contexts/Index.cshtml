@@ -1,0 +1,137 @@
+@page
+@model WorkNotes.Web.Pages.Contexts.IndexModel
+@using WorkNotes.Business.Models
+@{ ViewData["Title"] = L["Navigation_Contexts"]; }
+<section class="page-panel postit-panel" aria-labelledby="contexts-title">
+    <div class="page-heading">
+        <div>
+            <h1 id="contexts-title">@L["Navigation_Contexts"]</h1>
+            <p class="help-text">@L["Contexts_Description"]</p>
+        </div>
+        <a class="btn btn-primary" asp-page="Index" asp-route-add="true"><span aria-hidden="true">+</span> @L["Button_NewContext"]</a>
+    </div>
+    @if (Model.Contexts.Count == 0)
+    {
+        <p class="text-muted">@L["Contexts_Empty"]</p>
+    }
+    else
+    {
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th scope="col">@L["Field_Name"]</th>
+                    <th scope="col">@L["Field_Description"]</th>
+                    <th scope="col"><span class="visually-hidden">@L["Contexts_Actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var context in Model.Contexts)
+                {
+                    <tr>
+                        <th scope="row">@context.Name</th>
+                        <td class="data-table__text">@context.Description</td>
+                        <td>
+                            @if (context.IsOwner)
+                            {
+                                <div class="actions">
+                                    <a class="btn btn-secondary" asp-page="Index" asp-route-members="@context.Id" aria-label="@L["Contexts_MembersNamed", context.Name]">@L["Button_Members"]</a>
+                                    <a class="btn btn-secondary" asp-page="Index" asp-route-edit="@context.Id" aria-label="@L["Contexts_EditNamed", context.Name]">@L["Button_Edit"]</a>
+                                    <a class="btn btn-ghost" asp-page="Index" asp-route-delete="@context.Id" aria-label="@L["Contexts_DeleteNamed", context.Name]">@L["Button_Delete"]</a>
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+@if (Model.IsEditorOpen)
+{
+    var title = Model.EditingId is null ? L["Button_NewContext"] : L["Contexts_EditTitle"];
+    ViewData["Title"] = title;
+    var closeUrl = Url.Page("Index");
+    @* Without JavaScript the open dialog is a CSS overlay; modal.js upgrades it to a modal dialog. *@
+    <dialog class="modal" open data-modal data-close-url="@closeUrl" aria-labelledby="context-editor-title">
+        <div class="modal-panel postit-panel">
+            <h2 id="context-editor-title">@title</h2>
+            <form method="post" asp-page="Index" asp-route-edit="@Model.EditingId" asp-route-add="@(Model.EditingId is null ? "true" : null)" data-validate>
+                <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+                <div class="field"><label asp-for="Input.Name"></label><input asp-for="Input.Name" autocomplete="off" autofocus /><span asp-validation-for="Input.Name" class="field-error"></span></div>
+                <div class="field"><label asp-for="Input.Description"></label><textarea asp-for="Input.Description" rows="5"></textarea><span asp-validation-for="Input.Description" class="field-error"></span></div>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">@L["Button_Save"]</button>
+                    <a class="btn btn-secondary" href="@closeUrl">@L["Button_Cancel"]</a>
+                </div>
+            </form>
+        </div>
+    </dialog>
+}
+@if (Model.DeletingContext is { } deleting)
+{
+    ViewData["Title"] = L["Contexts_DeleteTitle"];
+    var closeUrl = Url.Page("Index");
+    <dialog class="modal" open data-modal data-close-url="@closeUrl" aria-labelledby="context-delete-title" aria-describedby="context-delete-message">
+        <div class="modal-panel postit-panel">
+            <h2 id="context-delete-title">@L["Contexts_DeleteTitle"]</h2>
+            <p id="context-delete-message">@L["Contexts_DeleteConfirm", deleting.Name]</p>
+            @* Only the antiforgery-protected POST deletes; focus starts on the safe choice. *@
+            <form method="post" asp-page="Index" asp-page-handler="Delete" asp-route-delete="@deleting.Id" class="actions">
+                <button type="submit" class="btn btn-danger">@L["Button_Delete"]</button>
+                <a class="btn btn-secondary" href="@closeUrl" autofocus>@L["Button_Cancel"]</a>
+            </form>
+        </div>
+    </dialog>
+}
+@if (Model.MembersContext is { } managed)
+{
+    var title = L["Contexts_MembersTitle", managed.Name];
+    ViewData["Title"] = title;
+    var closeUrl = Url.Page("Index");
+    <dialog class="modal" open data-modal data-close-url="@closeUrl" aria-labelledby="context-members-title">
+        <div class="modal-panel modal-panel--wide postit-panel">
+            <h2 id="context-members-title">@title</h2>
+            @if (TempData.TakeStatusMessage(StatusMessageTempData.Members) is { } membersMessage)
+            {
+                @* Inside the dialog, so it shows above the overlay and stays usable while the dialog is modal. *@
+                <div class="status-region"><partial name="_StatusMessage" model="membersMessage" /></div>
+            }
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">@L["Field_Name"]</th>
+                        <th scope="col">@L["Field_Email"]</th>
+                        <th scope="col">@L["Field_Role"]</th>
+                        <th scope="col"><span class="visually-hidden">@L["Contexts_Actions"]</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var member in Model.Members)
+                    {
+                        <tr>
+                            <th scope="row">@member.FirstName @member.LastName</th>
+                            <td>@member.Email</td>
+                            <td class="data-table__nowrap">@(member.Role == ContextRoles.Owner ? L["ContextRole_Owner"] : L["ContextRole_Member"])</td>
+                            <td>
+                                @if (member.Role == ContextRoles.Member)
+                                {
+                                    <form method="post" asp-page="Index" asp-page-handler="RemoveMember" asp-route-members="@managed.Id" class="actions">
+                                        <input type="hidden" name="memberUserId" value="@member.UserId" />
+                                        <button type="submit" class="btn btn-ghost" aria-label="@L["Contexts_RemoveMemberNamed", $"{member.FirstName} {member.LastName}"]">@L["Button_Remove"]</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <form method="post" asp-page="Index" asp-page-handler="AddMember" asp-route-members="@managed.Id" class="modal-form" data-validate>
+                <div class="field"><label asp-for="MemberInput.Email"></label><input asp-for="MemberInput.Email" type="email" autocomplete="off" autofocus /><span asp-validation-for="MemberInput.Email" class="field-error"></span></div>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">@L["Button_AddMember"]</button>
+                    <a class="btn btn-secondary" href="@closeUrl">@L["Button_Close"]</a>
+                </div>
+            </form>
+        </div>
+    </dialog>
+}

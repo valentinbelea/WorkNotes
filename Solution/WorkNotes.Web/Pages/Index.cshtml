@@ -1,0 +1,97 @@
+@page
+@model IndexModel
+@using System.Globalization
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    ViewData["Title"] = isAuthenticated ? L["Navigation_Dashboard"] : L["Navigation_Home"];
+}
+
+@if (isAuthenticated)
+{
+    <section class="dashboard" aria-labelledby="dashboard-title" data-notes-dashboard data-rename-failed="@L["Notes_RenameFailed"]">
+        <h1 id="dashboard-title" class="visually-hidden">@L["Dashboard_Title"]</h1>
+        <div class="dashboard-header">
+            @if (Model.SelectedContext is { } selected)
+            {
+                @* One board per context; the list replaces the board title. *@
+                <form method="get" asp-page="/Index" class="board-switch">
+                    <label class="visually-hidden" for="board-context">@L["Field_Context"]</label>
+                    <select id="board-context" name="context" class="board-switch__select" data-board-switch>
+                        @foreach (var context in Model.Contexts)
+                        {
+                            <option value="@context.Id" selected="@(context.Id == selected.Id)">@context.Name</option>
+                        }
+                    </select>
+                    <noscript><button type="submit" class="btn btn-secondary">@L["Button_ShowBoard"]</button></noscript>
+                    <p class="help-text">@L["Dashboard_Description"]</p>
+                </form>
+                @* Works as a link without JavaScript (?new=true); notes-board.js inserts the card in place instead. *@
+                <a class="btn btn-primary" asp-page="/Index" asp-route-new="true" asp-route-context="@selected.Id" data-note-new>
+                    <span aria-hidden="true">+</span> @L["Button_NewNote"]
+                </a>
+            }
+            else
+            {
+                <div class="dashboard-header__aside">
+                    <button type="button" class="btn btn-primary" disabled aria-describedby="new-note-help">
+                        <span aria-hidden="true">+</span> @L["Button_NewNote"]
+                    </button>
+                    <p id="new-note-help" class="help-text"><a asp-page="/Contexts/Index">@L["Notes_NoContexts"]</a></p>
+                </div>
+            }
+        </div>
+        @* Save results added by scripts (status-messages.js): in-place renames on the board and saves in the editor. *@
+        <template data-status-template="success"><partial name="_StatusMessage" model="new StatusMessage(StatusMessageKind.Success)" /></template>
+        <template data-status-template="error"><partial name="_StatusMessage" model="new StatusMessage(StatusMessageKind.Error)" /></template>
+        @foreach (var month in Model.Months)
+        {
+            var isCurrent = (month.Year, month.Month) == Model.CurrentMonth;
+            var monthId = $"month-{month.Year}-{month.Month:00}";
+            @* Months newest first; within a month journals come before articles, as the service orders them. *@
+            <section class="notes-month" aria-labelledby="@monthId">
+                <h2 class="notes-month__title" id="@monthId">@(new DateTime(month.Year, month.Month, 1).ToString("MMMM yyyy", CultureInfo.CurrentCulture))</h2>
+                <ul class="notes-board" data-new-note-target="@(isCurrent ? "true" : null)">
+                    @if (isCurrent && Model.IsNewNoteOpen)
+                    {
+                        <partial name="_NewNoteCard" model="Model" />
+                    }
+                    @foreach (var note in month.Notes)
+                    {
+                        <partial name="_NoteCard" model="note" />
+                    }
+                </ul>
+            </section>
+        }
+        <p class="notes-board-empty">@L["Dashboard_EmptyBoard"]</p>
+        @if (!Model.IsNewNoteOpen && Model.SelectedContext is not null)
+        {
+            <template id="new-note-template"><partial name="_NewNoteCard" model="Model" /></template>
+        }
+    </section>
+    @if (Model.OpenNote is not null)
+    {
+        <partial name="_NoteEditorDialog" model="Model" />
+    }
+    else if (Model.DeletingNote is not null)
+    {
+        <partial name="_DeleteNoteDialog" model="Model" />
+    }
+}
+else
+{
+    <section class="welcome postit-panel">
+        <h1>WorkNotes</h1>
+        <p>@L["Home_Introduction"]</p>
+        <div class="actions">
+            <a class="btn btn-primary" asp-page="/Account/Login">@L["Navigation_Login"]</a>
+            <a class="btn btn-secondary" asp-page="/Account/Register">@L["Navigation_Register"]</a>
+        </div>
+    </section>
+}
+
+@section Scripts {
+    @if (Model.OpenNote is not null)
+    {
+        <script type="module" src="~/js/note-editor.js" asp-append-version="true"></script>
+    }
+}

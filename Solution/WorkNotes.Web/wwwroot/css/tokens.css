@@ -1,0 +1,35 @@
+:root {
+    color-scheme: light;
+    --wn-font: "Segoe UI", system-ui, sans-serif;
+    --wn-bg: #f5f3eb;
+    --wn-surface: #fff;
+    --wn-text: #243a36;
+    --wn-muted: #576960;
+    --wn-border: #d8dfd9;
+    --wn-input-border: #87988e;
+    --wn-primary: #176c65;
+    --wn-primary-hover: #10564f;
+    --wn-primary-active: #0c443e;
+    --wn-on-primary: #fff;
+    --wn-selection: #cce6df;
+    --wn-active-line: #e7f1ec;
+    --wn-highlight: #f5df93;
+    --wn-note-paper: #fff0b7;
+    --wn-note-sage: #ddeadb;
+    --wn-note-peach: #f6e2d3;
+    --wn-note-blue: #deebee;
+    --wn-danger: #a12d32;
+    --wn-danger-bg: #fff0ee;
+    --wn-success-bg: #e7f1ec;
+    --wn-warning: #7c5700;
+    --wn-warning-bg: #fff0b7;
+    --wn-disabled-bg: #e1e5e1;
+    --wn-disabled-text: #606e66;
+    --wn-radius: 8px;
+    --wn-radius-panel: 14px;
+    --wn-shadow: 0 6px 20px rgb(36 58 54 / 6%);
+    --wn-shadow-note: 0 2px 3px rgb(36 58 54 / 7%), 3px 9px 16px rgb(36 58 54 / 13%);
+    --wn-shadow-paper: 0 2px 6px rgb(64 53 27 / 18%);
+    --wn-shadow-raised: 0 10px 20px rgb(36 58 54 / 16%);
+    --wn-motion: 140ms ease;
+}

@@ -1,0 +1,18 @@
+@page
+@model WorkNotes.Web.Pages.Account.RegisterModel
+@{ ViewData["Title"] = L["Navigation_Register"]; }
+<section class="account-card postit-panel">
+<h1>@L["Navigation_Register"]</h1>
+<form method="post" data-validate>
+<div asp-validation-summary="All" class="validation-summary" role="alert"></div>
+<div class="field"><label asp-for="Input.FirstName"></label><input asp-for="Input.FirstName" autocomplete="given-name" /><span asp-validation-for="Input.FirstName" class="field-error"></span></div>
+<div class="field"><label asp-for="Input.LastName"></label><input asp-for="Input.LastName" autocomplete="family-name" /><span asp-validation-for="Input.LastName" class="field-error"></span></div>
+<div class="field"><label asp-for="Input.Email"></label><input asp-for="Input.Email" autocomplete="email" /><span asp-validation-for="Input.Email" class="field-error"></span></div>
+<div class="field"><label asp-for="Input.Password"></label><input asp-for="Input.Password" autocomplete="new-password" aria-describedby="password-help" /><span asp-validation-for="Input.Password" class="field-error"></span></div>
+<p id="password-help" class="help-text">@L["Validation_PasswordPolicy"]</p>
+<div class="field"><label asp-for="Input.ConfirmPassword"></label><input asp-for="Input.ConfirmPassword" autocomplete="new-password" /><span asp-validation-for="Input.ConfirmPassword" class="field-error"></span></div>
+<button type="submit" class="btn btn-primary">@L["Button_Register"]</button>
+</form>
+</section>
+
+

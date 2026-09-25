@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+<resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+<resheader name="version"><value>2.0</value></resheader>
+<data name="Navigation_Home" xml:space="preserve"><value>Acasă</value></data>
+<data name="Navigation_Register" xml:space="preserve"><value>Înregistrare</value></data>
+<data name="Navigation_Login" xml:space="preserve"><value>Autentificare</value></data>
+<data name="Navigation_MyAccount" xml:space="preserve"><value>Contul meu</value></data>
+<data name="Navigation_ChangePassword" xml:space="preserve"><value>Schimbare parolă</value></data>
+<data name="Navigation_Logout" xml:space="preserve"><value>Deconectare</value></data>
+<data name="Navigation_Account" xml:space="preserve"><value>Cont utilizator</value></data>
+<data name="Field_FirstName" xml:space="preserve"><value>Prenume</value></data>
+<data name="Field_LastName" xml:space="preserve"><value>Nume</value></data>
+<data name="Field_Email" xml:space="preserve"><value>E-mail</value></data>
+<data name="Field_Password" xml:space="preserve"><value>Parolă</value></data>
+<data name="Field_ConfirmPassword" xml:space="preserve"><value>Confirmarea parolei</value></data>
+<data name="Field_CurrentPassword" xml:space="preserve"><value>Parola actuală</value></data>
+<data name="Field_NewPassword" xml:space="preserve"><value>Parola nouă</value></data>
+<data name="Field_ConfirmNewPassword" xml:space="preserve"><value>Confirmarea parolei noi</value></data>
+<data name="Field_RememberMe" xml:space="preserve"><value>Ține-mă minte</value></data>
+<data name="Button_Save" xml:space="preserve"><value>Salvează</value></data>
+<data name="Button_Register" xml:space="preserve"><value>Creează cont</value></data>
+<data name="Button_ChangePassword" xml:space="preserve"><value>Schimbă parola</value></data>
+<data name="Button_ApplyLanguage" xml:space="preserve"><value>Aplică limba</value></data>
+<data name="Language_Label" xml:space="preserve"><value>Limbă</value></data>
+<data name="Language_Romanian" xml:space="preserve"><value>Română</value></data>
+<data name="Language_English" xml:space="preserve"><value>English</value></data>
+<data name="Language_Polish" xml:space="preserve"><value>Polski</value></data>
+<data name="Home_Introduction" xml:space="preserve"><value>Aplicația este pregătită pentru dezvoltare.</value></data>
+<data name="Footer_Version" xml:space="preserve"><value>Versiunea aplicației</value></data>
+<data name="Footer_NoVersion" xml:space="preserve"><value>Versiune neconfigurată</value></data>
+<data name="Validation_Required" xml:space="preserve"><value>Câmpul „{0}” este obligatoriu.</value></data>
+<data name="Validation_InvalidEmail" xml:space="preserve"><value>Introduceți o adresă de e-mail validă.</value></data>
+<data name="Validation_MaxLength" xml:space="preserve"><value>Câmpul „{0}” poate avea maximum {1} caractere.</value></data>
+<data name="Validation_PasswordsDiffer" xml:space="preserve"><value>Parolele nu coincid.</value></data>
+<data name="Validation_PasswordPolicy" xml:space="preserve"><value>Parola trebuie să conțină minimum 12 caractere, o literă mică, o literă mare, o cifră și un caracter special.</value></data>
+<data name="Validation_InvalidName" xml:space="preserve"><value>Numele și prenumele sunt obligatorii, au maximum 100 de caractere și nu pot conține caractere de control.</value></data>
+<data name="Validation_InvalidValue" xml:space="preserve"><value>Valoarea introdusă nu este validă.</value></data>
+<data name="Message_RegistrationSucceeded" xml:space="preserve"><value>Contul a fost creat. Vă puteți autentifica.</value></data>
+<data name="Message_SaveSucceeded" xml:space="preserve"><value>Datele contului au fost actualizate.</value></data>
+<data name="Message_PasswordChanged" xml:space="preserve"><value>Parola a fost schimbată.</value></data>
+<data name="Message_LoginFailed" xml:space="preserve"><value>Autentificarea nu a reușit. Verificați e-mailul și parola sau încercați din nou mai târziu.</value></data>
+<data name="Message_AccountUnavailable" xml:space="preserve"><value>Contul nu este disponibil. Autentificați-vă din nou.</value></data>
+<data name="Identity_DefaultError" xml:space="preserve"><value>Operația nu a putut fi finalizată. Încercați din nou.</value></data>
+<data name="Identity_ConcurrencyFailure" xml:space="preserve"><value>Contul a fost modificat între timp. Reîncărcați pagina.</value></data>
+<data name="Identity_DuplicateEmail" xml:space="preserve"><value>Adresa de e-mail este deja utilizată.</value></data>
+<data name="Identity_PasswordMismatch" xml:space="preserve"><value>Parola actuală este incorectă.</value></data>
+<data name="Identity_PasswordRequiresDigit" xml:space="preserve"><value>Parola trebuie să conțină o cifră.</value></data>
+<data name="Identity_PasswordRequiresLower" xml:space="preserve"><value>Parola trebuie să conțină o literă mică.</value></data>
+<data name="Identity_PasswordRequiresUpper" xml:space="preserve"><value>Parola trebuie să conțină o literă mare.</value></data>
+<data name="Identity_PasswordRequiresNonAlphanumeric" xml:space="preserve"><value>Parola trebuie să conțină un caracter special.</value></data>
+<data name="Navigation_Menu" xml:space="preserve"><value>Meniu principal</value></data>
+<data name="Navigation_CloseMenu" xml:space="preserve"><value>Închide meniul</value></data>
+<data name="Navigation_Dashboard" xml:space="preserve"><value>Dashboard</value></data>
+<data name="Navigation_AccountDetails" xml:space="preserve"><value>Datele contului</value></data>
+<data name="Navigation_MySpace" xml:space="preserve"><value>Spațiul meu</value></data>
+<data name="Dashboard_Title" xml:space="preserve"><value>Pe tabla mea</value></data>
+<data name="Dashboard_Description" xml:space="preserve"><value>Notele contextului, grupate pe luni după ultima modificare: întâi jurnalele, apoi articolele.</value></data>
+<data name="Dashboard_EmptyBoard" xml:space="preserve"><value>Tabla este goală.</value></data>
+<data name="Button_NewNote" xml:space="preserve"><value>Notă nouă</value></data>
+<data name="Navigation_Contexts" xml:space="preserve"><value>Contexte</value></data>
+<data name="Contexts_Description" xml:space="preserve"><value>Contextele în care îți organizezi notele.</value></data>
+<data name="Contexts_Empty" xml:space="preserve"><value>Nu există încă niciun context.</value></data>
+<data name="Contexts_Actions" xml:space="preserve"><value>Acțiuni</value></data>
+<data name="Contexts_EditTitle" xml:space="preserve"><value>Editează contextul</value></data>
+<data name="Contexts_EditNamed" xml:space="preserve"><value>Editează contextul {0}</value></data>
+<data name="Contexts_DeleteTitle" xml:space="preserve"><value>Șterge contextul</value></data>
+<data name="Contexts_DeleteNamed" xml:space="preserve"><value>Șterge contextul {0}</value></data>
+<data name="Contexts_DeleteConfirm" xml:space="preserve"><value>Sigur vrei să ștergi contextul „{0}”? Operația nu poate fi anulată.</value></data>
+<data name="Field_Name" xml:space="preserve"><value>Nume</value></data>
+<data name="Field_Description" xml:space="preserve"><value>Descriere</value></data>
+<data name="Button_NewContext" xml:space="preserve"><value>Context nou</value></data>
+<data name="Button_Edit" xml:space="preserve"><value>Editează</value></data>
+<data name="Button_Delete" xml:space="preserve"><value>Șterge</value></data>
+<data name="Button_Cancel" xml:space="preserve"><value>Renunță</value></data>
+<data name="Validation_ContextNameTaken" xml:space="preserve"><value>Există deja un context cu acest nume.</value></data>
+<data name="Validation_InvalidContextName" xml:space="preserve"><value>Numele contextului este obligatoriu, are maximum 100 de caractere și nu poate conține caractere de control.</value></data>
+<data name="Validation_InvalidDescription" xml:space="preserve"><value>Descrierea are maximum 1000 de caractere și nu poate conține caractere de control.</value></data>
+<data name="Message_ContextSaved" xml:space="preserve"><value>Contextul a fost salvat.</value></data>
+<data name="Message_ContextDeleted" xml:space="preserve"><value>Contextul a fost șters.</value></data>
+<data name="Button_Members" xml:space="preserve"><value>Membri</value></data>
+<data name="Button_AddMember" xml:space="preserve"><value>Adaugă membru</value></data>
+<data name="Button_Close" xml:space="preserve"><value>Închide</value></data>
+<data name="Contexts_MembersTitle" xml:space="preserve"><value>Membrii contextului „{0}”</value></data>
+<data name="Contexts_MembersNamed" xml:space="preserve"><value>Membrii contextului {0}</value></data>
+<data name="Field_Role" xml:space="preserve"><value>Rol</value></data>
+<data name="ContextRole_Owner" xml:space="preserve"><value>Proprietar</value></data>
+<data name="ContextRole_Member" xml:space="preserve"><value>Membru</value></data>
+<data name="Message_MemberAdded" xml:space="preserve"><value>Membrul a fost adăugat.</value></data>
+<data name="Validation_UserNotFound" xml:space="preserve"><value>Nu există niciun cont cu acest e-mail.</value></data>
+<data name="Validation_AlreadyMember" xml:space="preserve"><value>Utilizatorul este deja membru al contextului.</value></data>
+<data name="Button_Remove" xml:space="preserve"><value>Elimină</value></data>
+<data name="Contexts_RemoveMemberNamed" xml:space="preserve"><value>Elimină pe {0} din context</value></data>
+<data name="Message_MemberRemoved" xml:space="preserve"><value>Membrul a fost eliminat.</value></data>
+<data name="Message_MemberNotFound" xml:space="preserve"><value>Utilizatorul nu mai este membru al contextului.</value></data>
+<data name="NoteType_Journal" xml:space="preserve"><value>Jurnal</value></data>
+<data name="NoteType_Article" xml:space="preserve"><value>Articol</value></data>
+<data name="NoteVisibility_Private" xml:space="preserve"><value>Privat</value></data>
+<data name="NoteVisibility_Context" xml:space="preserve"><value>În context</value></data>
+<data name="Field_Title" xml:space="preserve"><value>Titlu</value></data>
+<data name="Field_NoteType" xml:space="preserve"><value>Tipul notei</value></data>
+<data name="Field_Context" xml:space="preserve"><value>Context</value></data>
+<data name="Notes_TitlePlaceholder" xml:space="preserve"><value>Titlu (opțional)</value></data>
+<data name="Notes_Untitled" xml:space="preserve"><value>Fără titlu</value></data>
+<data name="Notes_OpenNamed" xml:space="preserve"><value>Deschide nota „{0}”</value></data>
+<data name="Notes_NoContexts" xml:space="preserve"><value>Creează mai întâi un context pentru a adăuga note.</value></data>
+<data name="Validation_InvalidNoteTitle" xml:space="preserve"><value>Titlul are maximum 200 de caractere și nu poate conține caractere de control.</value></data>
+<data name="Validation_ContextUnavailable" xml:space="preserve"><value>Contextul ales nu mai este disponibil.</value></data>
+<data name="Message_NoteSaved" xml:space="preserve"><value>Nota a fost salvată.</value></data>
+<data name="Message_ContextInUse" xml:space="preserve"><value>Contextul are note și nu poate fi șters.</value></data>
+<data name="Button_ShowBoard" xml:space="preserve"><value>Afișează</value></data>
+<data name="Field_Content" xml:space="preserve"><value>Conținutul notei</value></data>
+<data name="Editor_Placeholder" xml:space="preserve"><value>Scrie aici. Un rând gol separă paragrafele.</value></data>
+<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S salvează · Ctrl+F caută · Ctrl+Z anulează · Esc închide · un rând gol începe un paragraf nou</value></data>
+<data name="Editor_ReadOnly" xml:space="preserve"><value>Poți citi această notă; numai proprietarul o poate modifica.</value></data>
+<data name="Editor_NoScript" xml:space="preserve"><value>Editorul are nevoie de JavaScript. Conținutul notei este afișat mai jos, numai pentru citire.</value></data>
+<data name="Editor_StatusSaved" xml:space="preserve"><value>Salvat</value></data>
+<data name="Editor_StatusUnsaved" xml:space="preserve"><value>Modificări nesalvate</value></data>
+<data name="Editor_StatusSaving" xml:space="preserve"><value>Se salvează…</value></data>
+<data name="Editor_StatusError" xml:space="preserve"><value>Salvarea nu a reușit. Încearcă din nou.</value></data>
+<data name="Editor_Conflict" xml:space="preserve"><value>Nota a fost modificată între timp, de exemplu în altă fereastră. Reîncarcă pagina pentru ultima versiune.</value></data>
+<data name="Editor_NotFound" xml:space="preserve"><value>Nota nu mai este disponibilă.</value></data>
+<data name="Editor_InvalidContent" xml:space="preserve"><value>Conținutul nu poate fi salvat: textul conține caractere de control sau este prea lung.</value></data>
+<data name="Editor_Phrase_Find" xml:space="preserve"><value>Caută</value></data>
+<data name="Editor_Phrase_Replace" xml:space="preserve"><value>Înlocuiește</value></data>
+<data name="Editor_Phrase_Next" xml:space="preserve"><value>următorul</value></data>
+<data name="Editor_Phrase_Previous" xml:space="preserve"><value>anteriorul</value></data>
+<data name="Editor_Phrase_All" xml:space="preserve"><value>toate</value></data>
+<data name="Editor_Phrase_MatchCase" xml:space="preserve"><value>majuscule/minuscule</value></data>
+<data name="Editor_Phrase_ByWord" xml:space="preserve"><value>cuvânt întreg</value></data>
+<data name="Editor_Phrase_Regexp" xml:space="preserve"><value>expresie regulată</value></data>
+<data name="Editor_Phrase_ReplaceOne" xml:space="preserve"><value>înlocuiește</value></data>
+<data name="Editor_Phrase_ReplaceAll" xml:space="preserve"><value>înlocuiește tot</value></data>
+<data name="Editor_Phrase_Close" xml:space="preserve"><value>închide</value></data>
+<data name="Editor_Phrase_CurrentMatch" xml:space="preserve"><value>potrivirea curentă</value></data>
+<data name="Editor_Phrase_ReplacedMatches" xml:space="preserve"><value>au fost înlocuite $ potriviri</value></data>
+<data name="Editor_Phrase_ReplacedOnLine" xml:space="preserve"><value>a fost înlocuită potrivirea de pe rândul $</value></data>
+<data name="Editor_Phrase_OnLine" xml:space="preserve"><value>pe rândul</value></data>
+<data name="Editor_Phrase_GoToLine" xml:space="preserve"><value>Mergi la rândul</value></data>
+<data name="Editor_Phrase_Go" xml:space="preserve"><value>mergi</value></data>
+<data name="Editor_BlockAudit" xml:space="preserve"><value>Paragraf creat {0} · modificat {1}</value></data>
+<data name="Editor_BlockAuditUnchanged" xml:space="preserve"><value>Paragraf creat {0} · nemodificat de atunci</value></data>
+<data name="Editor_BlockNew" xml:space="preserve"><value>Paragraf nou, încă nesalvat</value></data>
+<data name="Editor_InfoHint" xml:space="preserve"><value>Treci cu mouse-ul peste un paragraf pentru a vedea când a fost creat și modificat.</value></data>
+<data name="Editor_SessionExpired" xml:space="preserve"><value>Sesiunea a expirat. Autentifică-te din nou pentru a salva.</value></data>
+<data name="Editor_BlockAuditUnsaved" xml:space="preserve"><value>Paragraf creat {0} · modificat {1} · modificări nesalvate</value></data>
+<data name="Editor_BlockAuditUnchangedUnsaved" xml:space="preserve"><value>Paragraf creat {0} · modificări nesalvate</value></data>
+<data name="Notes_DeleteNamed" xml:space="preserve"><value>Șterge nota „{0}”</value></data>
+<data name="Notes_DeleteTitle" xml:space="preserve"><value>Șterge nota</value></data>
+<data name="Notes_DeleteConfirm" xml:space="preserve"><value>Sigur vrei să ștergi nota „{0}”? Se șterge și tot conținutul ei. Operația nu poate fi anulată.</value></data>
+<data name="Message_NoteDeleted" xml:space="preserve"><value>Nota a fost ștearsă.</value></data>
+<data name="Message_NoteRenamed" xml:space="preserve"><value>Titlul a fost salvat.</value></data>
+<data name="Notes_RenameFailed" xml:space="preserve"><value>Titlul nu a putut fi salvat. Încearcă din nou.</value></data>
+<data name="Notes_Created" xml:space="preserve"><value>Creată</value></data>
+<data name="Notes_Modified" xml:space="preserve"><value>Modificată</value></data>
+<data name="Button_CloseMessage" xml:space="preserve"><value>Închide mesajul</value></data>
+<data name="Message_KindSuccess" xml:space="preserve"><value>Succes</value></data>
+<data name="Message_KindWarning" xml:space="preserve"><value>Avertisment</value></data>
+<data name="Message_KindError" xml:space="preserve"><value>Eroare</value></data>
+<data name="Editor_Minimize" xml:space="preserve"><value>Minimizează editorul</value></data>
+<data name="Editor_Maximize" xml:space="preserve"><value>Maximizează editorul</value></data>
+<data name="Editor_CloseEditor" xml:space="preserve"><value>Închide editorul</value></data>
+<data name="Editor_Minimized" xml:space="preserve"><value>Editor minimizat</value></data>
+<data name="Editor_Title" xml:space="preserve"><value>Editor de note</value></data>
+<data name="Editor_Tabs" xml:space="preserve"><value>Note deschise</value></data>
+<data name="Editor_CloseTab" xml:space="preserve"><value>Închide nota</value></data>
+<data name="Editor_ConfirmCloseTab" xml:space="preserve"><value>Nota „{0}” are modificări nesalvate. O închizi fără să le salvezi?</value></data>
+<data name="Editor_OpenFailed" xml:space="preserve"><value>Nota nu a putut fi deschisă. Încearcă din nou.</value></data>
+</root>

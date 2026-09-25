@@ -1,0 +1,84 @@
+@model WorkNotes.Web.Pages.IndexModel
+@using WorkNotes.Business.Models
+@using WorkNotes.Web.Notes
+@{
+    var note = Model.OpenNote!;
+    var title = note.Title ?? L["Notes_Untitled"].Value;
+    var typeClass = note.NoteType == NoteTypes.Article ? "note-sheet--article" : "note-sheet--journal";
+    var closeUrl = Url.Page("/Index", new { context = note.ContextId });
+    // Texts the editor shows; JavaScript reads them instead of carrying its own translations.
+    var phrases = new Dictionary<string, string>
+    {
+        ["Find"] = L["Editor_Phrase_Find"], ["Replace"] = L["Editor_Phrase_Replace"], ["next"] = L["Editor_Phrase_Next"],
+        ["previous"] = L["Editor_Phrase_Previous"], ["all"] = L["Editor_Phrase_All"], ["match case"] = L["Editor_Phrase_MatchCase"],
+        ["by word"] = L["Editor_Phrase_ByWord"], ["regexp"] = L["Editor_Phrase_Regexp"], ["replace"] = L["Editor_Phrase_ReplaceOne"],
+        ["replace all"] = L["Editor_Phrase_ReplaceAll"], ["close"] = L["Editor_Phrase_Close"], ["current match"] = L["Editor_Phrase_CurrentMatch"],
+        ["replaced $ matches"] = L["Editor_Phrase_ReplacedMatches"], ["replaced match on line $"] = L["Editor_Phrase_ReplacedOnLine"],
+        ["on line"] = L["Editor_Phrase_OnLine"], ["Go to line"] = L["Editor_Phrase_GoToLine"], ["go"] = L["Editor_Phrase_Go"]
+    };
+    // Shared by all tabs; each tab carries its own note data (_NoteEditorTabPanel).
+    var editorData = new
+    {
+        tabUrl = Url.Page("/Index", "NoteTab"),
+        noteUrl = Url.Page("/Index"),
+        closeUrl,
+        texts = new
+        {
+            placeholder = L["Editor_Placeholder"].Value, saved = L["Editor_StatusSaved"].Value, unsaved = L["Editor_StatusUnsaved"].Value,
+            saving = L["Editor_StatusSaving"].Value, failed = L["Editor_StatusError"].Value, content = L["Field_Content"].Value,
+            blockNew = L["Editor_BlockNew"].Value, infoHint = L["Editor_InfoHint"].Value, untitled = L["Notes_Untitled"].Value,
+            confirmCloseTab = L["Editor_ConfirmCloseTab"].Value, openFailed = L["Editor_OpenFailed"].Value
+        },
+        phrases
+    };
+}
+@* The note editor over its board, 90% of the window. Without JavaScript the open dialog is a CSS overlay;
+   modal.js makes it modal (Escape and a click outside go back to the board, after the unsaved-changes warning).
+   Each open note is a tab (note-editor.js adds the notes opened later from the board, without reloading the page).
+   The header has the tabs and, on the right, Minimize and Close (which closes the editor with all its tabs); each
+   note's actions are in its own footer. Minimize only changes how the dialog is shown: the tabs keep their state,
+   and the compact form in the bottom-left corner shows the active tab and brings the editor back. *@
+<dialog class="modal note-editor-dialog" open data-modal data-close-url="@closeUrl" aria-label="@L["Editor_Title"]">
+    @* Save results, fixed at the top centre of the window, above the editor, until the user closes them. Inside the dialog,
+       so they stay usable while it is modal; not a live region: the toolbar status already announces each save. *@
+    <div class="status-region" data-editor-messages></div>
+    <article class="modal-panel modal-panel--editor postit-panel note-sheet @typeClass" data-editor-window>
+        <div class="note-editor-header">
+            @* The WN mark belongs to the editor window only (decorative). *@
+            <img class="note-editor-logo" src="~/images/logo-wn.svg" alt="" width="32" height="32" asp-append-version="true" />
+            <div class="note-editor-tabs" role="tablist" aria-label="@L["Editor_Tabs"]" data-editor-tabs>
+                <partial name="_NoteEditorTabButton" model="note" />
+            </div>
+            <button type="button" class="note-editor-icon" aria-label="@L["Editor_Minimize"]" title="@L["Editor_Minimize"]" data-editor-minimize hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 17.5h12" /></svg>
+            </button>
+            <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
+            </a>
+        </div>
+        @Html.AntiForgeryToken()
+        <div class="note-editor-panels" data-editor-panels>
+            <partial name="_NoteEditorTabPanel" model="note" />
+        </div>
+    </article>
+    @* The minimized editor, shown by the note-editor-dialog--minimized class only; note-editor.js fills it with the
+       tab that is active when the editor is minimized. *@
+    <div class="note-editor-minimized postit-panel note-sheet @typeClass" role="group" aria-label="@L["Editor_Minimized"]" data-editor-minimized>
+        <img class="note-editor-logo" src="~/images/logo-wn.svg" alt="" width="32" height="32" asp-append-version="true" />
+        <div class="note-editor-minimized__text">
+            <span class="note-editor-minimized__type" data-editor-minimized-type>@(note.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
+            <strong class="note-editor-minimized__title" data-editor-minimized-title>@title</strong>
+            <span class="note-editor-minimized__dates">
+                <span><span class="visually-hidden">@L["Notes_Created"]</span> <time datetime="@NoteDates.Iso(note.CreatedAtUtc)" data-editor-created>@NoteDates.Card(note.CreatedAtUtc)</time></span>
+                <span><span class="visually-hidden">@L["Notes_Modified"]</span> <time datetime="@NoteDates.Iso(note.ModifiedAtUtc)" data-editor-modified>@NoteDates.Card(note.ModifiedAtUtc)</time></span>
+            </span>
+        </div>
+        <button type="button" class="note-editor-icon" aria-label="@L["Editor_Maximize"]" title="@L["Editor_Maximize"]" data-editor-maximize>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.5 6.5h11v11h-11Z" /></svg>
+        </button>
+        <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
+        </a>
+    </div>
+</dialog>
+<script type="application/json" id="note-editor-data">@Json.Serialize(editorData)</script>

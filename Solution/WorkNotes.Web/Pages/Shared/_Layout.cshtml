@@ -1,0 +1,66 @@
+@using System.Security.Claims
+@{
+    var sectionKey = NavigationSections.GetSectionKey(ViewContext.RouteData.Values["page"]?.ToString());
+}
+<!DOCTYPE html>
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — WorkNotes</title>
+    @* favicon.ico (16, 32 and 48px, from logo-wn.svg) for browsers without SVG favicons; the others use the SVG. *@
+    <link rel="icon" href="~/favicon.ico" sizes="16x16 32x32 48x48" asp-append-version="true" />
+    <link rel="icon" href="~/images/logo-wn.svg" type="image/svg+xml" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/navigation.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notes-board.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/postit.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/note-editor.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="site-identity">
+            <button type="button" class="brand brand-menu" data-menu-open aria-controls="main-menu" aria-expanded="false" aria-haspopup="dialog" title="@L["Navigation_Menu"]" hidden>
+                <span aria-hidden="true">☰</span> WorkNotes
+            </button>
+            <noscript><a class="brand" href="#main-menu">WorkNotes</a></noscript>
+            @if (sectionKey is not null)
+            {
+                <span class="site-section">@L[sectionKey]</span>
+            }
+        </div>
+        <div class="header-actions">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <span class="user-name">@User.FindFirstValue(ClaimTypes.GivenName) @User.FindFirstValue(ClaimTypes.Surname)</span>
+            }
+            <partial name="_LanguageSelector" />
+        </div>
+    </header>
+
+    <partial name="_MainMenu" />
+    <main class="site-main">
+        @* Save results (success, warning, error), fixed at the top centre of the window until the user closes them.
+           notes-board.js adds the results of in-place changes here, so the region is always rendered. *@
+        <div class="status-region" aria-live="polite" data-status-region>
+            @if (TempData.TakeStatusMessage() is { } message)
+            {
+                <partial name="_StatusMessage" model="message" />
+            }
+        </div>
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <span>WorkNotes</span>
+        @await Component.InvokeAsync("ApplicationVersion")
+    </footer>
+    <script src="~/js/validation.js" asp-append-version="true" defer></script>
+    <script src="~/js/navigation.js" asp-append-version="true" defer></script>
+    <script src="~/js/modal.js" asp-append-version="true" defer></script>
+    <script src="~/js/language.js" asp-append-version="true" defer></script>
+    <script src="~/js/notes-board.js" asp-append-version="true" type="module"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

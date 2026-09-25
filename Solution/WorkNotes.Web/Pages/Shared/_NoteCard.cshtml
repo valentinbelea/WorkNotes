@@ -1,0 +1,58 @@
+@model WorkNotes.Business.Models.NoteSummary
+@using WorkNotes.Business.Models
+@using WorkNotes.Web.Notes
+@{
+    var title = Model.Title ?? L["Notes_Untitled"].Value;
+    var titleId = $"note-{Model.Id}-title";
+}
+@* A saved note. The colour says whether it is a journal or an article (the type is also read out to screen readers);
+   the board names the context. The header shows the creation date on the left and the last change on the right of
+   the same line, in the same format; their labels are only read out to screen readers. The owner renames the title in place (Enter saves, Escape restores) and has Delete.
+   The Open link (/?note={id}) and double-click open the editor over the board (openNoteEditor in notes-board.js). *@
+<li class="note-cell">
+    <article class="note-card @NoteCardStyle.TypeClass(Model.NoteType) @NoteCardStyle.TiltClass(Model.Id)" data-note-id="@Model.Id" aria-labelledby="@titleId">
+        <p class="note-card__meta note-card__meta--dates">
+            <span class="visually-hidden">@(Model.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
+            <span class="note-card__date">
+                <span class="visually-hidden">@L["Notes_Created"]</span>
+                <time datetime="@NoteDates.Iso(Model.CreatedAtUtc)">@NoteDates.Card(Model.CreatedAtUtc)</time>
+            </span>
+            @* Hidden while it reads like the creation date; notes-board.js refreshes it after an in-place rename. *@
+            <span class="note-card__date" hidden="@(!NoteDates.ShowsModified(Model))" data-note-modified>
+                <span class="visually-hidden">@L["Notes_Modified"]</span>
+                <time datetime="@NoteDates.Iso(Model.LastChangedAtUtc)">@NoteDates.Card(Model.LastChangedAtUtc)</time>
+            </span>
+        </p>
+        @if (Model.IsOwner)
+        {
+            <h3 class="visually-hidden" id="@titleId">@title</h3>
+            <form method="post" asp-page="/Index" asp-page-handler="RenameNote" asp-route-note="@Model.Id" asp-route-context="@Model.ContextId" class="note-card__rename" data-note-rename>
+                <label class="visually-hidden" for="@titleId-input">@L["Field_Title"]</label>
+                <input id="@titleId-input" name="title" class="note-card__title-field" value="@Model.Title" placeholder="@L["Notes_Untitled"]"
+                       maxlength="@NoteRules.TitleMaxLength" autocomplete="off" title="@title" data-note-title />
+            </form>
+        }
+        else
+        {
+            <h3 class="note-card__title @(Model.Title is null ? "note-card__title--untitled" : null)" id="@titleId">@title</h3>
+        }
+        @if (Model.Preview is not null)
+        {
+            <p class="note-card__excerpt">@Model.Preview</p>
+        }
+        <div class="note-card__footer">
+            <span>@(Model.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>
+            <span class="note-card__actions">
+                <a class="note-card__icon" asp-page="/Index" asp-route-note="@Model.Id" data-note-open aria-label="@L["Notes_OpenNamed", title]" title="@L["Notes_OpenNamed", title]">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4.5h5.5V10M19.5 4.5 11 13M17 14v5.5H4.5V7H10" /></svg>
+                </a>
+                @if (Model.IsOwner)
+                {
+                    <a class="note-card__icon note-card__icon--danger" asp-page="/Index" asp-route-delete="@Model.Id" aria-label="@L["Notes_DeleteNamed", title]" title="@L["Notes_DeleteNamed", title]">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5M10 10.5v6M14 10.5v6" /></svg>
+                    </a>
+                }
+            </span>
+        </div>
+    </article>
+</li>
