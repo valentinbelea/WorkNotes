@@ -2,7 +2,10 @@
    CodeMirror injects its own base styles; everything WorkNotes adds is here, on normal classes, with the palette tokens. */
 .modal-panel--editor { display: flex; flex-direction: column; gap: 1rem; width: 90vw; max-width: none; height: 90vh; height: 90dvh; margin: 0; padding: clamp(1rem, 2.5vw, 2rem); }
 /* Header: only Minimize and Close, on the right. Footer: the paragraph info, then the details, the save status and Save. */
-.note-editor-header { display: flex; flex: none; justify-content: flex-end; gap: .15rem; margin: -.5rem -.5rem -.75rem 0; }
+.note-editor-header { display: flex; flex: none; align-items: center; justify-content: flex-end; gap: .15rem; margin: -.5rem -.5rem -.75rem 0; }
+/* The WN mark (images/logo-wn.svg): on the left of the editor's header and of its minimized form. */
+.note-editor-logo { flex: none; width: 2rem; height: 2rem; }
+.note-editor-header > .note-editor-logo { margin-inline-end: auto; }
 .note-editor-icon { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--wn-radius); color: var(--wn-muted); background: transparent; cursor: pointer; }
 .note-editor-icon:hover { color: var(--wn-text); background: rgb(36 58 54 / 8%); }
 .note-editor-icon:active { background: rgb(36 58 54 / 14%); }

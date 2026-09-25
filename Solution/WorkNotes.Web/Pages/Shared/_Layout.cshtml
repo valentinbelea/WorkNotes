@@ -22,9 +22,9 @@
     <header class="site-header">
         <div class="site-identity">
             <button type="button" class="brand brand-menu" data-menu-open aria-controls="main-menu" aria-expanded="false" aria-haspopup="dialog" title="@L["Navigation_Menu"]" hidden>
-                <span aria-hidden="true">☰</span> <img class="brand-logo" src="~/images/logo-wn.svg" alt="" width="28" height="28" asp-append-version="true" /> WorkNotes
+                <span aria-hidden="true">☰</span> WorkNotes
             </button>
-            <noscript><a class="brand" href="#main-menu"><img class="brand-logo" src="~/images/logo-wn.svg" alt="" width="28" height="28" asp-append-version="true" /> WorkNotes</a></noscript>
+            <noscript><a class="brand" href="#main-menu">WorkNotes</a></noscript>
             @if (sectionKey is not null)
             {
                 <span class="site-section">@L[sectionKey]</span>

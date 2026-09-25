@@ -52,7 +52,7 @@ Focus vizibil pentru tastatură, ținte de minimum 44px pentru controalele princ
 
 ## Sigla
 
-Sigla WN este images/logo-wn.svg: pătrat rotunjit verde #176C65, literele WN albe și banda adezivă în verdele de selecție #CCE6DF. În header stă înaintea numelui WorkNotes (clasa brand-logo, 28px, decorativă: alt gol, numele o urmează) și este favicon-ul (link rel="icon", SVG), cu wwwroot/favicon.ico (16, 32, 48px, generat din SVG) pentru browserele fără favicon SVG. Nu modificați culorile sau proporțiile; la dimensiuni sub 16px se folosește tot acest fișier.
+Sigla WN este images/logo-wn.svg: pătrat rotunjit verde #176C65, literele WN albe și banda adezivă în verdele de selecție #CCE6DF. Apare numai în fereastra editorului: în stânga headerului editorului și în forma minimizată (clasa note-editor-logo, 32px, decorativă: alt gol). Headerul site-ului nu are siglă. Sigla este și favicon-ul (link rel="icon", SVG), cu wwwroot/favicon.ico (16, 32, 48px, generat din SVG) pentru browserele fără favicon SVG. Nu modificați culorile sau proporțiile; la dimensiuni sub 16px se folosește tot acest fișier.
 
 ## Tabla de note
 

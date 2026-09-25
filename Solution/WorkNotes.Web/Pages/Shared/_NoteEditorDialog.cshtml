@@ -50,6 +50,8 @@
     <div class="status-region" data-editor-messages></div>
     <article class="modal-panel modal-panel--editor postit-panel note-sheet @typeClass">
         <div class="note-editor-header">
+            @* The WN mark belongs to the editor window only (decorative); the header's actions stay on the right. *@
+            <img class="note-editor-logo" src="~/images/logo-wn.svg" alt="" width="32" height="32" asp-append-version="true" />
             <button type="button" class="note-editor-icon" aria-label="@L["Editor_Minimize"]" title="@L["Editor_Minimize"]" data-editor-minimize hidden>
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 17.5h12" /></svg>
             </button>
@@ -103,6 +105,7 @@
     </article>
     @* The minimized editor: shown by the note-editor-dialog--minimized class only. *@
     <div class="note-editor-minimized postit-panel note-sheet @typeClass" role="group" aria-label="@L["Editor_Minimized"]" data-editor-minimized>
+        <img class="note-editor-logo" src="~/images/logo-wn.svg" alt="" width="32" height="32" asp-append-version="true" />
         <div class="note-editor-minimized__text">
             <span class="note-editor-minimized__type">@typeName</span>
             <strong class="note-editor-minimized__title" data-editor-minimized-title>@title</strong>
