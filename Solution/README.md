@@ -58,7 +58,7 @@ Verificare reproductibilă a catalogului (chei identice, valori, fallback, param
 .\tools\Test-Resources.ps1
 ```
 
-Nu sunt necesare schimbări SQL; versiunea rămâne v.0.01, iar regulile Database First rămân valabile.
+Nu sunt necesare schimbări SQL, iar regulile Database First rămân valabile.
 
 ## Contexte — version_0.01
 
@@ -137,7 +137,7 @@ Nu se implementează roluri, recuperare parolă sau confirmare e-mail. Parolele 
 
 Toate modulele folosesc Database First. Schema SQL este sursa de adevăr; nu există migrări EF sau snapshot-uri. AccountsDbContext mapează Users, AspNetUserClaims, AspNetUserLogins și AspNetUserTokens, păstrând integrarea standard Identity. Mapările Identity se actualizează manual după modificarea SQL; nu le suprascrieți prin scaffolding obișnuit. Indexul unic NormalizedEmail păstrează unicitatea e-mailurilor.
 
-Versiunea curentă este 0.01. Regula folderelor: pentru versiunea 0.0x, scripturile se află în E:\GitRepository\Vali\WorkNotes\Scripts\version_0.0x. Un modul nou nu schimbă automat versiunea. Toate scripturile actuale aparțin version_0.01.
+Versiunea curentă este 0.02. Regula folderelor: pentru versiunea 0.0x, scripturile se află în E:\GitRepository\Vali\WorkNotes\Scripts\version_0.0x. Un modul nou nu schimbă automat versiunea. Scripturile Identity actuale aparțin version_0.01; scripturile noi se adaugă în version_0.02.
 
 Din folderul soluției, aplicați în ordine:
 
@@ -211,18 +211,20 @@ E:\GitRepository\Vali\WorkNotes\       # Rădăcina Git
 │       ├── Properties\launchSettings.json
 │       └── wwwroot\css\site.css
 └── Scripts\                           # Scripturile SQL, alături de Solution
-    └── version_0.01\
-        ├── 000_CreateDatabaseVersion.sql
-        ├── 001_InsertDatabaseVersion.sql
-        ├── 002_AddIdentityUsers.sql
-        ├── 004_CreateWorkContexts.sql
-        ├── 005_CreateContextMembers.sql
-        ├── 006_CreateNotes.sql
-        ├── 007_AllowSeveralJournalsPerDay.sql
-        └── 008_CreateNoteBlocks.sql
+    ├── version_0.01\
+    │   ├── 000_CreateDatabaseVersion.sql
+    │   ├── 001_InsertDatabaseVersion.sql
+    │   ├── 002_AddIdentityUsers.sql
+    │   ├── 004_CreateWorkContexts.sql
+    │   ├── 005_CreateContextMembers.sql
+    │   ├── 006_CreateNotes.sql
+    │   ├── 007_AllowSeveralJournalsPerDay.sql
+    │   └── 008_CreateNoteBlocks.sql
+    └── version_0.02\
+        └── 000_UpdateDatabaseVersion.sql
 ```
 
-Folderele `Scripts` și `Solution` fac parte din același repository Git. Comenzile dotnet se rulează din `Solution`, iar scripturile se referă de acolo ca `..\Scripts\version_0.01\...`.
+Folderele `Scripts` și `Solution` fac parte din același repository Git. Comenzile dotnet se rulează din `Solution`, iar scripturile se referă de acolo ca `..\Scripts\version_0.0x\...`.
 
 ## Conexiunea locală
 
@@ -248,7 +250,7 @@ dotnet test WorkNotes.sln --no-build --no-restore
 
 ## Pregătirea bazei de date prin SQL
 
-Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scripturile din `..\Scripts\version_0.01` în ordinea numelor, în SQL Server Management Studio, conectat prin Windows Authentication la `localhost\MSSQLSERVER02`:
+Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scripturile din `..\Scripts\version_0.01`, apoi pe cele din `..\Scripts\version_0.02`, în ordinea numelor, în SQL Server Management Studio, conectat prin Windows Authentication la `localhost\MSSQLSERVER02`:
 
 1. `000_CreateDatabaseVersion.sql`: creează `dbo.DatabaseVersion` numai dacă lipsește, cu `Version nvarchar(50) NOT NULL` și cheia primară `PK_DatabaseVersion`.
 2. `001_InsertDatabaseVersion.sql`: inserează `v.0.01` numai dacă lipsește.
@@ -258,6 +260,7 @@ Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scriptu
 6. `006_CreateNotes.sql`: creează `dbo.Notes`, constrângerile și indexurile, dacă lipsesc.
 7. `007_AllowSeveralJournalsPerDay.sql`: elimină indexul unic `UX_Notes_DailyJournal`, astfel încât sunt permise mai multe jurnale pe zi.
 8. `008_CreateNoteBlocks.sql`: creează `dbo.NoteBlocks` (paragrafele notelor, cu audit) și indexul pe `NoteId`, `Position`, dacă lipsesc.
+9. `version_0.02\000_UpdateDatabaseVersion.sql`: inserează `v.0.02` numai dacă lipsește; `v.0.01` rămâne în tabelă, iar footerul afișează versiunea cea mai mare, `v.0.02`.
 
 Alternativ, dacă `sqlcmd` este instalat:
 
@@ -270,6 +273,7 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\006_CreateNotes.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\007_AllowSeveralJournalsPerDay.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\008_CreateNoteBlocks.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\000_UpdateDatabaseVersion.sql'
 ```
 
 Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
@@ -301,6 +305,6 @@ Deschide http://localhost:5018. Pagina are header, body și footer; versiunea di
 
 Tabela goală afișează „Versiune neconfigurată”. Schema trebuie aplicată înainte de rulare; erorile de conexiune nu sunt tratate ca tabelă goală.
 
-Întrucât tabela existentă nu conține o dată de instalare, „versiunea curentă” înseamnă cea mai mare versiune numerică înregistrată, cu formatul `v.major.minor[.build[.revision]]`. Textul original se afișează nemodificat: `v.0.01`. Compararea este numerică, astfel că `v.0.10` urmează după `v.0.9`. Etichetele care nu se pot interpreta numeric sunt ordonate la finalul priorității, determinist, după text.
+Întrucât tabela existentă nu conține o dată de instalare, „versiunea curentă” înseamnă cea mai mare versiune numerică înregistrată, cu formatul `v.major.minor[.build[.revision]]`. Textul original se afișează nemodificat, de exemplu `v.0.02`. Compararea este numerică, astfel că `v.0.10` urmează după `v.0.9`. Etichetele care nu se pot interpreta numeric sunt ordonate la finalul priorității, determinist, după text.
 
 Documentație: [EF Core SQL Server](https://learn.microsoft.com/en-us/ef/core/providers/sql-server/), [comenzile EF Core, inclusiv dbcontext scaffold](https://learn.microsoft.com/en-us/ef/core/cli/dotnet).

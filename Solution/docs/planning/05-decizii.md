@@ -23,3 +23,4 @@
 | 19 | Confirmarea la închiderea unui tab este `window.confirm` | Avertizarea browserului funcționează doar la părăsirea paginii |
 | 20 | Contextul se alege pe tablă, înainte de editor; editorul doar îl afișează | Confirmat de utilizator |
 | 21 | Sigla WN numai în fereastra editorului; favicon păstrat | Cerința utilizatorului |
+| 22 | Taskul 02 trece la versiunea 0.02: scripturile noi merg în `Scripts/version_0.02`, iar `v.0.02` se adaugă ca rând nou în `DatabaseVersion`, fără a modifica `v.0.01` | Cerința utilizatorului; tabela nu are dată de instalare, versiunea curentă este cea mai mare înregistrată, iar scripturile de versiune păstrează datele existente |
