@@ -1,4 +1,4 @@
-# 04 — Funcționalități realizate (version_0.01)
+# 04 — Funcționalități realizate (version_0.01, version_0.02)
 
 Pașii sunt în ordinea în care au fost făcuți. Fiecare pas a fost compilat, testat (teste Business, verificarea resurselor) și verificat în browser pe SQL Server, cu și fără JavaScript și pe mobil.
 
@@ -43,3 +43,7 @@ Pașii sunt în ordinea în care au fost făcuți. Fiecare pas a fost compilat, 
 
 ## Documentație
 - README, `design-system.md` și aceste documente de planificare, actualizate la fiecare pas.
+
+## version_0.02 (taskul 02)
+- **Versiunea 0.02**: `Scripts/version_0.02/000_UpdateDatabaseVersion.sql` înregistrează `v.0.02` în `DatabaseVersion`, ca rând nou, numai dacă lipsește; `v.0.01` rămâne. După executare footerul afișează `v.0.02`.
+- **Ordonarea post-it-urilor prin drag-and-drop**: coloana `Notes.[Order]` (scriptul 001, inițializată fără să schimbe aranjarea), ordinea în lună după `Order`, apoi ultima modificare și crearea (cele mai recente primele). Proprietarul prinde un card de bandă și îl lasă peste altă notă a lui din aceeași lună: cele două își schimbă locurile imediat, schimbul se salvează, iar lista urmează ordinea returnată. Drop-ul în altă lună este ignorat; la eșec luna revine și apare un mesaj localizat. Evidențiere discretă pentru cardul preluat, celulele eligibile și ținta. Notele noi apar primele în luna curentă. Editorul deschis în aceeași pagină salvează în continuare după un schimb.

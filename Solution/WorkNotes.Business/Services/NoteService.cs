@@ -10,14 +10,17 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
         var board = await notes.GetBoardAsync(userId, contextId, cancellationToken);
-        // Grouped and ordered by the last change, ISNULL(modified, created): a note changed this month moves to it.
-        // Months follow the application's local calendar, like the journal date.
+        // Grouped by the last change, ISNULL(modified, created): a note changed this month moves to it.
+        // Months follow the application's local calendar, like the journal date. Within a month the order the owner
+        // arranged comes first (smaller first); notes with the same order show the latest change first, then the
+        // latest created, then the highest id, so the result is always the same.
         return board
             .GroupBy(note => LocalMonth(note.LastChangedAtUtc))
             .OrderByDescending(group => group.Key.Year).ThenByDescending(group => group.Key.Month)
             .Select(group => new NoteMonthGroup(group.Key.Year, group.Key.Month, group
-                .OrderBy(note => note.NoteType == NoteTypes.Journal ? 0 : 1)
+                .OrderBy(note => note.Order)
                 .ThenByDescending(note => note.LastChangedAtUtc)
+                .ThenByDescending(note => note.CreatedAtUtc)
                 .ThenByDescending(note => note.Id)
                 .ToList()))
             .ToList();
@@ -101,6 +104,28 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (note is null) return NoteDeleteStatus.NotFound;
         if (!note.IsOwner) return NoteDeleteStatus.Forbidden;
         return await notes.DeleteAsync(noteId, userId, cancellationToken) ? NoteDeleteStatus.Deleted : NoteDeleteStatus.NotFound;
+    }
+
+    public async Task<NoteOrderResult> SwapOrderAsync(string userId, int noteId, int targetNoteId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (noteId == targetNoteId) return new(NoteOrderStatus.InvalidTarget);
+        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
+        var target = await notes.GetSummaryAsync(targetNoteId, userId, cancellationToken);
+        if (note is null || target is null) return new(NoteOrderStatus.NotFound);
+        // Only the owner changes a note, its place on the board included.
+        if (!note.IsOwner || !target.IsOwner) return new(NoteOrderStatus.Forbidden);
+        // Notes change places only within their group: the same board and the same month.
+        var month = LocalMonth(note.LastChangedAtUtc);
+        if (note.ContextId != target.ContextId || month != LocalMonth(target.LastChangedAtUtc)) return new(NoteOrderStatus.InvalidTarget);
+
+        var versions = await notes.SwapOrderAsync(userId, note, target, cancellationToken);
+        if (versions is null) return new(NoteOrderStatus.Conflict);
+        // The month as the board now shows it, so the page follows the stored order.
+        var board = await GetBoardAsync(userId, note.ContextId, cancellationToken);
+        var noteIds = board.FirstOrDefault(group => (group.Year, group.Month) == month)?.Notes.Select(item => item.Id).ToList() ?? [];
+        return new(NoteOrderStatus.Saved, noteIds, versions);
     }
 
     // Audit times are kept to the second, the precision of the stored columns, so they read the same after a reload.

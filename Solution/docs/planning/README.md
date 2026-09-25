@@ -1,6 +1,6 @@
 # Planificare WorkNotes
 
-Documentele de planificare adună, într-un singur loc, ce este aplicația, ce s-a construit până acum (version_0.01), de ce s-a ales fiecare soluție și ce urmează. Sunt documente de lucru: se actualizează la fiecare pas nou.
+Documentele de planificare adună, într-un singur loc, ce este aplicația, ce s-a construit până acum (version_0.01; version_0.02 începe cu taskul 02), de ce s-a ales fiecare soluție și ce urmează. Sunt documente de lucru: se actualizează la fiecare pas nou.
 
 | Fișier | Conținut |
 | --- | --- |

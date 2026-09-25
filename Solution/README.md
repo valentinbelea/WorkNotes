@@ -8,14 +8,14 @@ Ghidul componentelor și contractul de integrare sunt în [docs/design-system.md
 
 Mesajele de salvare (succes, avertisment, eroare) apar fixe în partea de sus a ferestrei, centrate, cu buton de închidere, și rămân până le închide utilizatorul, cu sau fără JavaScript (`Pages/Shared/_StatusMessage.cshtml`). Paginile le setează prin `TempData.SetStatusMessage(cheie, tip)` (`WorkNotes.Web/Messages`).
 
-## Stadiu — ce este implementat (version_0.01)
+## Stadiu — ce este implementat (version_0.01, version_0.02)
 
 Rezumatul funcționalităților lucrate până acum; detaliile sunt în secțiunile de mai jos și în [docs/design-system.md](docs/design-system.md). Planificarea (viziune, model de date, arhitectură, pași realizați, decizii, backlog) este în [docs/planning](docs/planning/README.md).
 
 - **Conturi**: înregistrare, autentificare, datele contului, schimbarea parolei, deconectare (ASP.NET Core Identity, Database First).
 - **Contexte** (`/Contexts`): listare, adăugare, editare și ștergere în overlay pe aceeași pagină; creatorul devine `Owner`; lista arată doar contextele în care utilizatorul este membru; numai proprietarul editează, șterge și gestionează membrii (adăugare după e-mail, eliminare).
 - **Dashboard**: o tablă pentru fiecare context, aleasă din lista cu bordură întreruptă (la focus bordura devine verde plin); subtitlul „Spațiul meu” din header.
-- **Note pe tablă**: post-it-uri galbene (jurnal) și salvie (articol), cu bandă adezivă în culoarea hârtiei și înclinări deterministe; grupate pe luni după ultima modificare (`ISNULL(modificare, creare)`), jurnalele înaintea articolelor; în header data creării (stânga) și a ultimei modificări (dreapta), pe același rând; previzualizarea primelor paragrafe; titlul redenumit pe loc; ștergere cu confirmare; „Notă nouă” direct pe tablă, cu switch jurnal/articol; mai multe jurnale pe zi.
+- **Note pe tablă**: post-it-uri galbene (jurnal) și salvie (articol), cu bandă adezivă în culoarea hârtiei și înclinări deterministe; grupate pe luni după ultima modificare (`ISNULL(modificare, creare)`); în fiecare lună, ordinea aleasă de proprietar (`Order`), schimbată prin drag-and-drop, cu cardul prins de bandă (version_0.02); în header data creării (stânga) și a ultimei modificări (dreapta), pe același rând; previzualizarea primelor paragrafe; titlul redenumit pe loc; ștergere cu confirmare; „Notă nouă” direct pe tablă, cu switch jurnal/articol; mai multe jurnale pe zi.
 - **Editorul de note** (CodeMirror 6): se deschide peste tablă; paragrafe cu identitate și audit propriu (bara de informații); căutare/înlocuire, undo/redo, Ctrl+S; detectarea salvărilor concurente; header cu sigla WN, taburile notelor deschise, Minimizează și Închide; acțiunile în footerul fiecărei note; minimizare în stânga-jos fără pierderea modificărilor; mai multe note deschise simultan, în taburi independente.
 - **Mesaje de salvare**: succes, avertisment și eroare, fixe sus pe centru, cu buton de închidere, până le închide utilizatorul (și în dialoguri, deasupra overlay-ului).
 - **Sigla WN**: în fereastra editorului (maximizat și minimizat) și ca favicon (`logo-wn.svg`, `favicon.ico`).
@@ -58,7 +58,7 @@ Verificare reproductibilă a catalogului (chei identice, valori, fallback, param
 .\tools\Test-Resources.ps1
 ```
 
-Nu sunt necesare schimbări SQL; versiunea rămâne v.0.01, iar regulile Database First rămân valabile.
+Nu sunt necesare schimbări SQL, iar regulile Database First rămân valabile.
 
 ## Contexte — version_0.01
 
@@ -89,7 +89,28 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 - numai proprietarul editează nota; orice membru al contextului poate crea note în el;
 - un context care are note nu poate fi șters (cheie externă fără cascadă; mesaj „Contextul are note și nu poate fi șters.”).
 
-Există câte o tablă pentru fiecare context: lista de contexte înlocuiește titlul tablei (`/?context={id}`, implicit primul context). Pe tablă notele sunt grupate pe luni după data locală a ultimei modificări, `ISNULL(ModifiedAtUtc, CreatedAtUtc)` (`NoteSummary.LastChangedAtUtc`), cele mai noi luni primele; în fiecare lună apar întâi jurnalele, apoi articolele, fiecare de la cea mai recentă modificare. O notă modificată trece astfel în luna modificării. În `dbo.Notes`, `ModifiedAtUtc` primește la inserare aceeași valoare ca `CreatedAtUtc`, așa că `NoteRepository` raportează nota nemodificată fără dată de modificare (`null`). Gruparea și ordinea sunt în `NoteService`.
+Există câte o tablă pentru fiecare context: lista de contexte înlocuiește titlul tablei (`/?context={id}`, implicit primul context). Pe tablă notele sunt grupate pe luni după data locală a ultimei modificări, `ISNULL(ModifiedAtUtc, CreatedAtUtc)` (`NoteSummary.LastChangedAtUtc`), cele mai noi luni primele; în fiecare lună notele urmează ordinea lor (`Order`, vezi „Ordinea post-it-urilor — version_0.02”). O notă modificată trece astfel în luna modificării. În `dbo.Notes`, `ModifiedAtUtc` primește la inserare aceeași valoare ca `CreatedAtUtc`, așa că `NoteRepository` raportează nota nemodificată fără dată de modificare (`null`). Gruparea și ordinea sunt în `NoteService`.
+
+### Ordinea post-it-urilor — version_0.02
+
+`dbo.Notes.[Order]` (int, implicit 0; scriptul `version_0.02\001_AddNoteOrder.sql`) păstrează locul notei în luna ei. `ORDER` este cuvânt rezervat în SQL Server: scripturile îl scriu mereu `[Order]`, iar EF Core delimitează singur numele în SQL-ul generat (`SET [n].[Order] = …`), deci proprietatea `Note.Order` nu are nevoie de configurare suplimentară. La adăugarea coloanei, notele existente sunt numerotate pe context în ordinea de până atunci (jurnalele, apoi articolele, fiecare de la ultima modificare), așa că fiecare lună își păstrează aranjarea; rularea repetată a scriptului nu mai schimbă nimic. Indexul `IX_Notes_ContextId_Order` servește citirea ordinii minime a contextului.
+
+În fiecare lună, `NoteService` ordonează după:
+
+1. `Order`, crescător (valoarea mai mică apare prima);
+2. ultima modificare, `ISNULL(ModifiedAtUtc, CreatedAtUtc)`, descrescător (cea mai recentă prima);
+3. data creării, descrescător;
+4. `Id`, descrescător, ca rezultatul să fie mereu același.
+
+Criteriile 2–4 departajează notele cu aceeași valoare `Order`. O notă nouă primește ordinea minimă a contextului minus 1, deci apare prima în luna curentă, unde a fost cardul „Notă nouă”. Citirea valorii minime blochează intervalul până la commit (`UPDLOCK, HOLDLOCK`), deci notele create simultan primesc valori diferite. Ordinea nu se schimbă la editare: o notă modificată trece în luna modificării și își păstrează valoarea `Order`.
+
+Proprietarul schimbă locul a două note ale sale din aceeași lună prin drag-and-drop. Cardul se prinde numai de banda adezivă din partea de sus (elementul `note-card__tape`, cu `cursor: pointer`, un grip discret și tooltip); conținutul, titlul și butoanele nu pornesc drag-ul. La drop peste altă notă a lui din aceeași lună, cele două își schimbă locurile imediat, iar `POST /?handler=SwapNotes` (antiforgery, răspuns JSON) salvează schimbul. Serviciul verifică proprietarul, contextul și luna, iar repository-ul schimbă cele două valori într-un singur `UPDATE`, numai dacă ambele note au încă `RowVersion`-ul citit. Datele de audit rămân neschimbate, deci nicio notă nu își schimbă luna. Răspunsul conține ordinea lunii, pe care lista o urmează fără reîncărcare. Un drop în altă lună, pe o notă a altui membru sau în afara cardurilor este ignorat, iar cardul rămâne pe loc. Dacă salvarea eșuează, luna revine la ordinea dinainte și apare mesajul de eroare localizat.
+
+Schimbul modifică `RowVersion`-ul celor două note. Un tab de editor deschis în aceeași pagină pe una dintre ele primește noua versiune (evenimentul `note-board:versions`) și salvează în continuare. Un editor deschis în alt tab sau altă fereastră primește conflict la următoarea salvare, fără să suprascrie nimic.
+
+```powershell
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\001_AddNoteOrder.sql'
+```
 
 Flux: `Pages/Index → INoteService → NoteService → INoteRepository → NoteRepository → WorkNotesDbContext`. `NoteService` validează tipul și titlul și verifică apartenența la context prin `IWorkContextRepository`.
 
@@ -137,7 +158,7 @@ Nu se implementează roluri, recuperare parolă sau confirmare e-mail. Parolele 
 
 Toate modulele folosesc Database First. Schema SQL este sursa de adevăr; nu există migrări EF sau snapshot-uri. AccountsDbContext mapează Users, AspNetUserClaims, AspNetUserLogins și AspNetUserTokens, păstrând integrarea standard Identity. Mapările Identity se actualizează manual după modificarea SQL; nu le suprascrieți prin scaffolding obișnuit. Indexul unic NormalizedEmail păstrează unicitatea e-mailurilor.
 
-Versiunea curentă este 0.01. Regula folderelor: pentru versiunea 0.0x, scripturile se află în E:\GitRepository\Vali\WorkNotes\Scripts\version_0.0x. Un modul nou nu schimbă automat versiunea. Toate scripturile actuale aparțin version_0.01.
+Versiunea curentă este 0.02. Regula folderelor: pentru versiunea 0.0x, scripturile se află în E:\GitRepository\Vali\WorkNotes\Scripts\version_0.0x. Un modul nou nu schimbă automat versiunea. Scripturile Identity actuale aparțin version_0.01; scripturile noi se adaugă în version_0.02.
 
 Din folderul soluției, aplicați în ordine:
 
@@ -211,18 +232,21 @@ E:\GitRepository\Vali\WorkNotes\       # Rădăcina Git
 │       ├── Properties\launchSettings.json
 │       └── wwwroot\css\site.css
 └── Scripts\                           # Scripturile SQL, alături de Solution
-    └── version_0.01\
-        ├── 000_CreateDatabaseVersion.sql
-        ├── 001_InsertDatabaseVersion.sql
-        ├── 002_AddIdentityUsers.sql
-        ├── 004_CreateWorkContexts.sql
-        ├── 005_CreateContextMembers.sql
-        ├── 006_CreateNotes.sql
-        ├── 007_AllowSeveralJournalsPerDay.sql
-        └── 008_CreateNoteBlocks.sql
+    ├── version_0.01\
+    │   ├── 000_CreateDatabaseVersion.sql
+    │   ├── 001_InsertDatabaseVersion.sql
+    │   ├── 002_AddIdentityUsers.sql
+    │   ├── 004_CreateWorkContexts.sql
+    │   ├── 005_CreateContextMembers.sql
+    │   ├── 006_CreateNotes.sql
+    │   ├── 007_AllowSeveralJournalsPerDay.sql
+    │   └── 008_CreateNoteBlocks.sql
+    └── version_0.02\
+        ├── 000_UpdateDatabaseVersion.sql
+        └── 001_AddNoteOrder.sql
 ```
 
-Folderele `Scripts` și `Solution` fac parte din același repository Git. Comenzile dotnet se rulează din `Solution`, iar scripturile se referă de acolo ca `..\Scripts\version_0.01\...`.
+Folderele `Scripts` și `Solution` fac parte din același repository Git. Comenzile dotnet se rulează din `Solution`, iar scripturile se referă de acolo ca `..\Scripts\version_0.0x\...`.
 
 ## Conexiunea locală
 
@@ -248,7 +272,7 @@ dotnet test WorkNotes.sln --no-build --no-restore
 
 ## Pregătirea bazei de date prin SQL
 
-Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scripturile din `..\Scripts\version_0.01` în ordinea numelor, în SQL Server Management Studio, conectat prin Windows Authentication la `localhost\MSSQLSERVER02`:
+Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scripturile din `..\Scripts\version_0.01`, apoi pe cele din `..\Scripts\version_0.02`, în ordinea numelor, în SQL Server Management Studio, conectat prin Windows Authentication la `localhost\MSSQLSERVER02`:
 
 1. `000_CreateDatabaseVersion.sql`: creează `dbo.DatabaseVersion` numai dacă lipsește, cu `Version nvarchar(50) NOT NULL` și cheia primară `PK_DatabaseVersion`.
 2. `001_InsertDatabaseVersion.sql`: inserează `v.0.01` numai dacă lipsește.
@@ -258,6 +282,8 @@ Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scriptu
 6. `006_CreateNotes.sql`: creează `dbo.Notes`, constrângerile și indexurile, dacă lipsesc.
 7. `007_AllowSeveralJournalsPerDay.sql`: elimină indexul unic `UX_Notes_DailyJournal`, astfel încât sunt permise mai multe jurnale pe zi.
 8. `008_CreateNoteBlocks.sql`: creează `dbo.NoteBlocks` (paragrafele notelor, cu audit) și indexul pe `NoteId`, `Position`, dacă lipsesc.
+9. `version_0.02\000_UpdateDatabaseVersion.sql`: inserează `v.0.02` numai dacă lipsește; `v.0.01` rămâne în tabelă, iar footerul afișează versiunea cea mai mare, `v.0.02`.
+10. `version_0.02\001_AddNoteOrder.sql`: adaugă `dbo.Notes.[Order]`, numerotează notele existente în ordinea lor de pe tablă și creează indexul `IX_Notes_ContextId_Order`, dacă lipsesc.
 
 Alternativ, dacă `sqlcmd` este instalat:
 
@@ -270,6 +296,8 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\006_CreateNotes.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\007_AllowSeveralJournalsPerDay.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\008_CreateNoteBlocks.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\000_UpdateDatabaseVersion.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\001_AddNoteOrder.sql'
 ```
 
 Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
@@ -301,6 +329,6 @@ Deschide http://localhost:5018. Pagina are header, body și footer; versiunea di
 
 Tabela goală afișează „Versiune neconfigurată”. Schema trebuie aplicată înainte de rulare; erorile de conexiune nu sunt tratate ca tabelă goală.
 
-Întrucât tabela existentă nu conține o dată de instalare, „versiunea curentă” înseamnă cea mai mare versiune numerică înregistrată, cu formatul `v.major.minor[.build[.revision]]`. Textul original se afișează nemodificat: `v.0.01`. Compararea este numerică, astfel că `v.0.10` urmează după `v.0.9`. Etichetele care nu se pot interpreta numeric sunt ordonate la finalul priorității, determinist, după text.
+Întrucât tabela existentă nu conține o dată de instalare, „versiunea curentă” înseamnă cea mai mare versiune numerică înregistrată, cu formatul `v.major.minor[.build[.revision]]`. Textul original se afișează nemodificat, de exemplu `v.0.02`. Compararea este numerică, astfel că `v.0.10` urmează după `v.0.9`. Etichetele care nu se pot interpreta numeric sunt ordonate la finalul priorității, determinist, după text.
 
 Documentație: [EF Core SQL Server](https://learn.microsoft.com/en-us/ef/core/providers/sql-server/), [comenzile EF Core, inclusiv dbcontext scaffold](https://learn.microsoft.com/en-us/ef/core/cli/dotnet).

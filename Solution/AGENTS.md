@@ -64,12 +64,12 @@ Abordarea curentă, cerută explicit, este Database First. Schema SQL este sursa
 
 Comanda completă este în README.md. Database First este obligatoriu pentru TOATE modulele, inclusiv Identity și AccountsDbContext. Nu creați migrări EF, snapshot-uri sau tabele de istoric (__EFMigrationsHistory / __IdentityMigrationsHistory). Nu folosiți dotnet ef migrations / database update și nu apelați Migrate/EnsureCreated. Schema se creează și se modifică exclusiv prin scripturi SQL explicite. Pentru Identity păstrați clasele standard și moștenirea IdentityUserContext/ApplicationUser; actualizați manual mapările conform schemei SQL, fără scaffolding care suprascrie integrarea Identity.
 
-Versiunea curentă este 0.01 (eticheta din bază: v.0.01). Regula obligatorie: versiunea curentă 0.0x înseamnă folderul E:\GitRepository\Vali\WorkNotes\Scripts\version_0.0x. Pentru 0.01, TOATE scripturile, inclusiv Identity și scripturile de tranziție, se pun în E:\GitRepository\Vali\WorkNotes\Scripts\version_0.01. Nu incrementați versiunea și nu creați un folder de versiune nouă doar pentru un modul sau o modificare; schimbarea versiunii necesită solicitare explicită. Păstrați numerotarea ordonată a scripturilor și evitați suprascrierea altor scripturi. Rădăcina repository-ului Git este E:\GitRepository\Vali\WorkNotes și conține Scripts (scripturile SQL) și Solution (soluția, AGENTS.md, README.md, docs, tools). Comenzile dotnet se rulează din Solution; din Solution scripturile se află la ..\Scripts\version_0.0x.
+Versiunea curentă este 0.02 (eticheta din bază: v.0.02). Regula obligatorie: versiunea curentă 0.0x înseamnă folderul E:\GitRepository\Vali\WorkNotes\Scripts\version_0.0x. Pentru 0.02, TOATE scripturile noi, inclusiv Identity și scripturile de tranziție, se pun în E:\GitRepository\Vali\WorkNotes\Scripts\version_0.02. Nu incrementați versiunea și nu creați un folder de versiune nouă doar pentru un modul sau o modificare; schimbarea versiunii necesită solicitare explicită. Păstrați numerotarea ordonată a scripturilor și evitați suprascrierea altor scripturi. Rădăcina repository-ului Git este E:\GitRepository\Vali\WorkNotes și conține Scripts (scripturile SQL) și Solution (soluția, AGENTS.md, README.md, docs, tools). Comenzile dotnet se rulează din Solution; din Solution scripturile se află la ..\Scripts\version_0.0x.
 
 - Scriptul de creare păstrează tabelele existente; schimbările de structură folosesc scripturi ALTER dedicate.
 - Scripturile de inserare a versiunilor evită duplicatele și păstrează datele existente. Folosiți tranzacții acolo unde atomicitatea este necesară.
 - Nu înlocuiți sau ștergeți tabele/date pentru a rezolva o incompatibilitate de model fără solicitare explicită.
-- Păstrați scriptul și versiunea `v.0.01`. Nu hardcodați versiunea afișată în Web sau Business; ea este citită din DatabaseVersion.
+- Păstrați scriptul și versiunea `v.0.01`; `v.0.02` se adaugă ca rând nou prin `version_0.02\000_UpdateDatabaseVersion.sql`. Nu hardcodați versiunea afișată în Web sau Business; ea este citită din DatabaseVersion.
 - EF Core și instrumentul local dotnet-ef rămân pe versiuni compatibile cu .NET 10. Actualizările majore necesită o cerință explicită și verificarea compatibilității.
 
 ## Fluxul versiunii aplicației
@@ -112,7 +112,7 @@ Utilizarea resurselor .resx este obligatorie pentru toate textele afișate utili
 - Utilizați tokenurile din tokens.css și componentele din site.css / notes-board.css. Nu duplicați paleta și stilurile butoanelor în pagini.
 - Păstrați stările hover, active, disabled, focus vizibil, selecție și eroare, cu contrast lizibil și suport pentru reduced-motion.
 - Toate textele rămân în .resx. Designul nu autorizează introducerea de date fictive sau implementarea unor module fără cerință.
-- Tabla afișează ordinea primită de la serviciu (luni, apoi jurnale și articole). Decalajele și rotațiile mici sunt deterministe din ID, aplicate prin clasele note-card--tilt-* alese de server (fără stiluri inline din JavaScript), încadrate în celula proprie; nu reordonează DOM și nu se recalculează aleatoriu la reîncărcare. Pe mobil sunt eliminate.
+- Tabla afișează ordinea primită de la serviciu (luni, apoi, în fiecare lună, `Order` crescător, ultima modificare și crearea descrescător). Singura reordonare DOM este schimbul prin drag-and-drop a două note ale proprietarului din aceeași lună, prinse numai de bandă; după salvare lista urmează ordinea returnată de server. Decalajele și rotațiile mici sunt deterministe din ID, aplicate prin clasele note-card--tilt-* alese de server (fără stiluri inline din JavaScript), încadrate în celula proprie; nu reordonează DOM și nu se recalculează aleatoriu la reîncărcare. Pe mobil sunt eliminate.
 
 ## Verificarea livrării
 

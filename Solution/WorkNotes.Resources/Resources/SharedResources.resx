@@ -55,7 +55,7 @@
 <data name="Navigation_AccountDetails" xml:space="preserve"><value>Datele contului</value></data>
 <data name="Navigation_MySpace" xml:space="preserve"><value>Spațiul meu</value></data>
 <data name="Dashboard_Title" xml:space="preserve"><value>Pe tabla mea</value></data>
-<data name="Dashboard_Description" xml:space="preserve"><value>Notele contextului, grupate pe luni după ultima modificare: întâi jurnalele, apoi articolele.</value></data>
+<data name="Dashboard_Description" xml:space="preserve"><value>Notele contextului, grupate pe luni după ultima modificare.</value></data>
 <data name="Dashboard_EmptyBoard" xml:space="preserve"><value>Tabla este goală.</value></data>
 <data name="Button_NewNote" xml:space="preserve"><value>Notă nouă</value></data>
 <data name="Navigation_Contexts" xml:space="preserve"><value>Contexte</value></data>
@@ -166,4 +166,8 @@
 <data name="Editor_CloseTab" xml:space="preserve"><value>Închide nota</value></data>
 <data name="Editor_ConfirmCloseTab" xml:space="preserve"><value>Nota „{0}” are modificări nesalvate. O închizi fără să le salvezi?</value></data>
 <data name="Editor_OpenFailed" xml:space="preserve"><value>Nota nu a putut fi deschisă. Încearcă din nou.</value></data>
+<data name="Notes_DragHandle" xml:space="preserve"><value>Trage de bandă ca să muți nota</value></data>
+<data name="Notes_ReorderFailed" xml:space="preserve"><value>Ordinea notelor nu a putut fi salvată. Încearcă din nou.</value></data>
+<data name="Notes_ReorderInvalidTarget" xml:space="preserve"><value>O notă poate schimba locul numai cu altă notă din aceeași lună.</value></data>
+<data name="Notes_ReorderConflict" xml:space="preserve"><value>Notele s-au schimbat între timp, iar ordinea nu a fost salvată. Reîncarcă pagina.</value></data>
 </root>

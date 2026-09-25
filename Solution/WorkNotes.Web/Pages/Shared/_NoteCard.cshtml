@@ -8,9 +8,15 @@
 @* A saved note. The colour says whether it is a journal or an article (the type is also read out to screen readers);
    the board names the context. The header shows the creation date on the left and the last change on the right of
    the same line, in the same format; their labels are only read out to screen readers. The owner renames the title in place (Enter saves, Escape restores) and has Delete.
-   The Open link (/?note={id}) and double-click open the editor over the board (openNoteEditor in notes-board.js). *@
+   The Open link (/?note={id}) and double-click open the editor over the board (openNoteEditor in notes-board.js).
+   On the owner's cards the tape on top is the handle for dragging the card onto another card of the same month, to
+   swap their places (notes-board.js makes it draggable); on other cards it is only drawn by postit.css. *@
 <li class="note-cell">
     <article class="note-card @NoteCardStyle.TypeClass(Model.NoteType) @NoteCardStyle.TiltClass(Model.Id)" data-note-id="@Model.Id" aria-labelledby="@titleId">
+        @if (Model.IsOwner)
+        {
+            <span class="note-card__tape" aria-hidden="true" data-note-drag-handle></span>
+        }
         <p class="note-card__meta note-card__meta--dates">
             <span class="visually-hidden">@(Model.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
             <span class="note-card__date">

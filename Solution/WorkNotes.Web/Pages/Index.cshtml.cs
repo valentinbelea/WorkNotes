@@ -175,10 +175,33 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         return RedirectToPage(new { context });
     }
 
-    // The forms post with ?handler=CreateNote, RenameNote or DeleteNote; opening those addresses directly shows the board.
+    // Called by notes-board.js (Accept: application/json) when the owner drops a card on another card of the same month:
+    // the two notes swap places. The answer has the month's notes in their stored order, which the board then follows,
+    // and the two notes' new versions, so an editor tab open on one of them keeps saving.
+    public async Task<IActionResult> OnPostSwapNotesAsync(int note, int target, CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
+        var result = await notes.SwapOrderAsync(UserId, note, target, cancellationToken);
+        return result.Status switch
+        {
+            NoteOrderStatus.Saved => new JsonResult(new
+            {
+                order = result.NoteIds,
+                versions = (result.Versions ?? []).Select(change => new { id = change.NoteId, previous = change.PreviousVersion, version = change.Version })
+            }),
+            NoteOrderStatus.Conflict => EditorFailure(StatusCodes.Status409Conflict, "Notes_ReorderConflict"),
+            NoteOrderStatus.Forbidden => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
+            NoteOrderStatus.NotFound => EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound"),
+            _ => EditorFailure(StatusCodes.Status400BadRequest, "Notes_ReorderInvalidTarget")
+        };
+    }
+
+    // The forms post with ?handler=CreateNote, RenameNote, DeleteNote or SwapNotes; opening those addresses directly
+    // shows the board.
     public IActionResult OnGetCreateNote(int? context) => RedirectToPage(new { @new = true, context });
     public IActionResult OnGetRenameNote(int? context) => RedirectToPage(new { context });
     public IActionResult OnGetDeleteNote(int? context) => RedirectToPage(new { context });
+    public IActionResult OnGetSwapNotes(int? context) => RedirectToPage(new { context });
 
     private JsonResult EditorFailure(int statusCode, string messageKey) =>
         new(new { message = localizer[messageKey].Value }) { StatusCode = statusCode };

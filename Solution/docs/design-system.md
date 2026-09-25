@@ -7,7 +7,7 @@ Design aprobat: varianta 1. Temă luminoasă, fond crem, verde închis, suprafe�
 1. wwwroot/css/tokens.css — paletă, font, raze, umbre, tranziții.
 2. wwwroot/css/site.css — layout, text, butoane, formulare, mesaje.
 3. wwwroot/css/notes-board.css — tabla și post-it-urile.
-4. wwwroot/js/notes-board.js — modul ES pentru comportamentul tablei (notă nouă, renunțare, deschidere); nu schimbă aspectul sau poziția cardurilor.
+4. wwwroot/js/notes-board.js — modul ES pentru comportamentul tablei (notă nouă, renunțare, deschidere, schimbul a două carduri prin drag-and-drop); nu scrie stiluri și nu poziționează cardurile, doar le schimbă ordinea în DOM la un schimb.
 
 Nu duplicați culorile în pagini. Modificările de paletă se fac în tokens.css.
 
@@ -58,7 +58,7 @@ Sigla WN este images/logo-wn.svg: pătrat rotunjit verde #176C65, literele WN al
 
 Există câte o tablă pentru fiecare context. În locul titlului, dashboardul (Pages/Index) are lista de contexte (board-switch, cu bordură întreruptă ca tabla); primul context este selectat implicit, iar alegerea altuia încarcă /?context={id} (fără JavaScript, cu butonul Afișează). Titlul „Pe tabla mea” rămâne numai pentru cititoarele de ecran. Contextul nu mai apare pe post-it. La focus (click sau tastatură), bordura întreruptă gri a listei devine ea însăși verde plin (--wn-primary), în același loc și cu aceeași grosime, fără un al doilea contur în jur. Contextul se alege aici, înainte de a deschide o notă: editorul îl afișează, nu îl schimbă.
 
-Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul lunii), după data locală a ultimei modificări — ISNULL(data modificării, data creării) —, lunile cele mai noi primele; în fiecare lună apar întâi jurnalele, apoi articolele, fiecare de la cea mai recentă modificare. Cardurile sunt randate de server din partialele Pages/Shared/_NoteCard.cshtml (notă salvată) și Pages/Shared/_NewNoteCard.cshtml (notă nouă, nesalvată):
+Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul lunii), după data locală a ultimei modificări — ISNULL(data modificării, data creării) —, lunile cele mai noi primele; în fiecare lună, după ordinea notei (Order, crescător), apoi după ultima modificare și creare, cele mai recente primele. Fiecare lună este un grup: un card își schimbă locul numai în lista lunii lui (vezi „Ordonarea prin drag-and-drop”). Cardurile sunt randate de server din partialele Pages/Shared/_NoteCard.cshtml (notă salvată) și Pages/Shared/_NewNoteCard.cshtml (notă nouă, nesalvată):
 
 ```html
 <section class="notes-month">
@@ -66,6 +66,7 @@ Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul l
     <ul class="notes-board" data-new-note-target="true">
         <li class="note-cell">
             <article class="note-card note-card--journal note-card--tilt-3" data-note-id="12">
+                <span class="note-card__tape" aria-hidden="true" data-note-drag-handle></span>
                 <p class="note-card__meta note-card__meta--dates">
                     <span class="visually-hidden">Jurnal</span>
                     <span class="note-card__date"><span class="visually-hidden">Creată</span> <time datetime="…">23.09.2026 · 09:40</time></span>
@@ -91,7 +92,7 @@ Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul l
 - În subsol, lângă Open, proprietarul are Delete (note-card__icon--danger): /?delete={id} deschide confirmarea peste tablă; ștergerea (POST cu antiforgery) elimină nota și paragrafele ei.
 - Culoarea urmează tipul: note-card--journal (galben #FFF0B7), note-card--article (salvie #DDEADB). Cardul nou arată culoarea tipului ales în switch, numai prin CSS (:has). Banda adezivă urmează culoarea hârtiei: crem (images/postit-tape.svg) pe galben, verde (images/postit-tape-sage.svg, aceeași transparență) pe hârtia salvie — carduri de articol, panourile postit-panel și foaia editorului pentru articole — prin variabila --postit-tape.
 - Decalajul și rotația sunt deterministe din ID: serverul alege una dintre clasele note-card--tilt-0 … note-card--tilt-11 (NoteCardStyle.TiltClass), în limitele ±12px și ±2°. Marginea de 22px a celulei păstrează cardul în celula proprie. Nu există stiluri inline și niciun script nu poziționează cardurile. Pe ecrane de maximum 450px notele sunt drepte, pe o coloană.
-- Ordinea DOM este ordinea din serviciu și cea de navigare cu tastatura. Grila (auto-fill) mută celelalte carduri spre dreapta și în jos când apare un card nou la început.
+- Ordinea DOM este ordinea din serviciu și cea de navigare cu tastatura; după un schimb prin drag-and-drop, lista urmează ordinea salvată, primită de la server. Grila (auto-fill) mută celelalte carduri spre dreapta și în jos când apare un card nou la început.
 - Luna curentă este randată întotdeauna (ca țintă pentru cardul nou) și ascunsă prin CSS cât timp nu are carduri.
 - Cardul salvat este article; controalele lui (câmpul de titlu, Open, Delete) sunt separate, fără controale interactive unul în altul. Dublu-click pe card deschide editorul, cu excepția câmpului de titlu și a icoanelor.
 
@@ -100,8 +101,16 @@ Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul l
 - Butonul „Notă nouă” este un link către /?new=true. Fără JavaScript, serverul randează cardul nou primul pe tablă; Renunță este un link înapoi la tablă.
 - Cu JavaScript, wwwroot/js/notes-board.js copiază cardul din &lt;template id="new-note-template"&gt; (randat de server, cu textele din .resx și tokenul antiforgery) la începutul lunii curente a tablei alese și mută focusul pe titlu. Renunță sau Escape elimină cardul și readuc focusul pe buton.
 - Cardul nou conține: switch-ul de tip cu iconuri (jurnal / articol), fără bordură și fundal; tipul ales are iconul colorat și subliniat, iar numele tipului apare ca popover la hover și la focus (este și eticheta accesibilă a radio-ului). Urmează titlul editabil pe loc (opțional), Salvează și Renunță. Nota se salvează în contextul tablei selectate.
-- Salvează trimite formularul (POST ?handler=CreateNote); după salvare tabla se reîncarcă, iar nota apare prima în grupul tipului ei (jurnalele înaintea articolelor), fără butoanele de editare inițială, cu iconul Open. La erori (de exemplu un titlu prea lung) cardul rămâne primul, cu valorile introduse.
+- Salvează trimite formularul (POST ?handler=CreateNote); după salvare tabla se reîncarcă, iar nota apare prima în luna curentă, acolo unde a fost cardul nou (primește ordinea cea mai mică a contextului), fără butoanele de editare inițială, cu iconul Open. La erori (de exemplu un titlu prea lung) cardul rămâne primul, cu valorile introduse.
 - Mesajul „Tabla este goală” dispare prin CSS cât timp lista are cel puțin un card.
+
+### Ordonarea prin drag-and-drop
+
+- Proprietarul schimbă locul a două note ale sale din aceeași lună: trage un card peste altul, iar cele două își schimbă locurile. Cardurile altor membri, cardul nou nesalvat și cardurile altor luni nu sunt ținte.
+- Zona de drag este numai banda adezivă din partea de sus. Pe cardurile proprietarului banda este elementul note-card__tape (în locul pseudo-elementului ::before, în aceeași poziție și cu aceeași imagine); notes-board.js îl face draggable. Are cursor: pointer, un grip discret de 2 × 4 puncte (accent #176C65 la hover) și tooltipul Notes_DragHandle. Conținutul, titlul, datele, linkurile și butoanele nu pornesc drag-ul. Fără JavaScript banda rămâne doar decor, fără pointer și fără tooltip.
+- În timpul drag-ului, cardul preluat este estompat, cu contur punctat accent (note-cell--dragging). Celulele eligibile din aceeași lună au o nuanță verde foarte ușoară și un contur fin (note-cell--drop-eligible), iar celula de sub cursor, cu care s-ar face schimbul, o nuanță puțin mai puternică și conturul accent de 2px (note-cell--drop-target). Culorile sunt amestecuri ale tokenului --wn-primary cu transparent (color-mix), fără valori noi în paletă. Celulele altor luni nu primesc nicio clasă. La drop sau la anulare (Escape, drop în altă parte) toate clasele sunt eliminate.
+- La drop, celulele își schimbă imediat locurile în DOM; serverul salvează schimbul și răspunde cu ordinea lunii, pe care lista o urmează. Dacă salvarea eșuează, luna revine la ordinea dinainte și apare mesajul de eroare (status-message--error) cu textul din .resx. Un drop în altă lună este ignorat: browserul arată că nu este permis, iar cardul rămâne pe loc.
+- Imaginea trasă este cardul întreg (setDragImage). Aspectul stărilor este numai în notes-board.css; niciun stil inline. În forced-colors țintele au contururi CanvasText / Highlight, iar banda-mâner rămâne vizibilă ca o bară. Tranzițiile de fundal se opresc la reduced-motion.
 
 ### Deschiderea unei note
 
@@ -134,4 +143,4 @@ Dashboard duce la pagina principală: pentru utilizatorul autentificat aceasta e
 Fundalul principal folosește tokenul --wn-bg, crem cald. Toate panourile de conținut (bun venit pentru vizitatori, autentificare, înregistrare, cont și schimbare parolă) folosesc clasa postit-panel: hârtie verde salvie (#DDEADB), bandă superioară discretă și umbră de post-it. Panourile noi din body trebuie să reutilizeze această clasă. Containerele interne pentru câmpuri și butoane rămân parte din aceeași foaie, fără umbre suprapuse. Formularele nu se rotesc, pentru lizibilitate.
 
 ### Hârtie lipită cu bandă
-postit.css aplică panourilor culoarea plină #DDEADB (--wn-note-sage), iar cardurilor tablei galbenul notelor #FFF0B7 (--wn-note-paper), fără gradient. Tot aspectul hârtiei (fundal, margine, rază, umbră, bandă) este definit numai în postit.css; notes-board.css păstrează doar dispunerea, tipografia și starea hover a cardurilor. Imaginea decorativă images/postit-tape.svg este suprapusă central peste marginea de sus. Umbra inferioară este un singur strat box-shadow (--wn-shadow-paper) aplicat direct elementului, fără pseudo-element la bază și fără un al doilea strat decalat (ambele produc o margine dublată). Aspectul hârtiei este integral CSS static prin clasele postit-panel / note-card, fără JavaScript sau stiluri injectate dinamic. Pseudo-elementele nu interceptează clickuri și nu adaugă text accesibil. Păstrați spațiu deasupra panourilor și overflow vizibil; nu aplicați efectul fiecărui container intern. Stilurile pentru contrast forțat elimină decorațiile.
+postit.css aplică panourilor culoarea plină #DDEADB (--wn-note-sage), iar cardurilor tablei galbenul notelor #FFF0B7 (--wn-note-paper), fără gradient. Tot aspectul hârtiei (fundal, margine, rază, umbră, bandă) este definit numai în postit.css; notes-board.css păstrează doar dispunerea, tipografia și starea hover a cardurilor. Imaginea decorativă images/postit-tape.svg este suprapusă central peste marginea de sus. Umbra inferioară este un singur strat box-shadow (--wn-shadow-paper) aplicat direct elementului, fără pseudo-element la bază și fără un al doilea strat decalat (ambele produc o margine dublată). Aspectul hârtiei este integral CSS static prin clasele postit-panel / note-card, fără JavaScript sau stiluri injectate dinamic. Pseudo-elementele nu interceptează clickuri și nu adaugă text accesibil. Pe cardurile proprietarului banda este elementul note-card__tape (aria-hidden), în aceeași poziție: este mânerul pentru drag-and-drop, iar pseudo-elementul lipsește. Păstrați spațiu deasupra panourilor și overflow vizibil; nu aplicați efectul fiecărui container intern. Stilurile pentru contrast forțat elimină decorațiile.

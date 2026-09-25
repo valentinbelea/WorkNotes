@@ -8,7 +8,8 @@
 
 @if (isAuthenticated)
 {
-    <section class="dashboard" aria-labelledby="dashboard-title" data-notes-dashboard data-rename-failed="@L["Notes_RenameFailed"]">
+    <section class="dashboard" aria-labelledby="dashboard-title" data-notes-dashboard data-rename-failed="@L["Notes_RenameFailed"]"
+             data-reorder-failed="@L["Notes_ReorderFailed"]" data-drag-hint="@L["Notes_DragHandle"]">
         <h1 id="dashboard-title" class="visually-hidden">@L["Dashboard_Title"]</h1>
         <div class="dashboard-header">
             @if (Model.SelectedContext is { } selected)
@@ -43,11 +44,15 @@
         @* Save results added by scripts (status-messages.js): in-place renames on the board and saves in the editor. *@
         <template data-status-template="success"><partial name="_StatusMessage" model="new StatusMessage(StatusMessageKind.Success)" /></template>
         <template data-status-template="error"><partial name="_StatusMessage" model="new StatusMessage(StatusMessageKind.Error)" /></template>
+        @* The owner swaps two notes of a month by dragging a card by its tape onto the other one (notes-board.js).
+           The form only gives that request its address and the antiforgery token. *@
+        <form method="post" asp-page="/Index" asp-page-handler="SwapNotes" hidden data-note-order></form>
         @foreach (var month in Model.Months)
         {
             var isCurrent = (month.Year, month.Month) == Model.CurrentMonth;
             var monthId = $"month-{month.Year}-{month.Month:00}";
-            @* Months newest first; within a month journals come before articles, as the service orders them. *@
+            @* Months newest first; within a month the notes are in the order the service returns (their Order, then
+               the latest change first). Each month is a group: a card changes places only within its own list. *@
             <section class="notes-month" aria-labelledby="@monthId">
                 <h2 class="notes-month__title" id="@monthId">@(new DateTime(month.Year, month.Month, 1).ToString("MMMM yyyy", CultureInfo.CurrentCulture))</h2>
                 <ul class="notes-board" data-new-note-target="@(isCurrent ? "true" : null)">

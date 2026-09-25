@@ -65,8 +65,22 @@
 /* Popover with the type's name; the same text is the radio's accessible label. */
 .note-type-switch__tip { position: absolute; z-index: 2; bottom: calc(100% + 6px); left: 50%; padding: .2rem .5rem; border-radius: 4px; color: var(--wn-on-primary); background: var(--wn-text); font-size: .75rem; font-weight: 600; white-space: nowrap; transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity var(--wn-motion); }
 .note-type-switch__option:hover .note-type-switch__tip, .note-type-switch__option:has(input:focus-visible) .note-type-switch__tip { opacity: 1; }
+/* Drag and drop (notes-board.js): the owner picks a card up only by its tape. Once the script runs, the tape is
+   draggable and says so with the pointer and a small grip, accent green on hover. While a card is dragged it is
+   dimmed in its cell with an accent outline; the cells of the same month it can be dropped on get a light green tint,
+   and the one under the pointer, whose card it would swap with, a stronger tint and an accent border. Cells of other
+   months are not marked. */
+.note-card__tape[draggable="true"] { cursor: pointer; }
+.note-card__tape[draggable="true"]::after { content: ""; position: absolute; top: 50%; left: 50%; width: 1.25rem; height: .5rem; transform: translate(-50%, -50%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--wn-text) 42%, transparent) 1px, transparent 1.5px) 0 0 / .3125rem .25rem; }
+.note-card__tape[draggable="true"]:hover::after { background-image: radial-gradient(circle, var(--wn-primary) 1.1px, transparent 1.6px); }
+.note-cell { border-radius: var(--wn-radius-panel); transition: background-color var(--wn-motion), box-shadow var(--wn-motion); }
+.note-cell--dragging .note-card { opacity: .6; outline: 2px dashed var(--wn-primary); outline-offset: 4px; }
+.note-cell--drop-eligible { background: color-mix(in srgb, var(--wn-primary) 5%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wn-primary) 22%, transparent); }
+.note-cell--drop-target { background: color-mix(in srgb, var(--wn-primary) 11%, transparent); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--wn-primary) 60%, transparent); }
 @media(max-width: 450px) { .notes-board { gap: .5rem; } .note-cell { aspect-ratio: auto; min-height: 17rem; } .note-card, .note-card:hover { inset: 6px; transform: none; } }
-@media(forced-colors: active) { .note-card[aria-pressed="true"] { outline: 3px solid Highlight; } .note-type-switch__option:has(input:checked) { border-bottom-color: Highlight; } .note-type-switch__tip { border: 1px solid CanvasText; } }
+@media(forced-colors: active) { .note-card[aria-pressed="true"] { outline: 3px solid Highlight; } .note-type-switch__option:has(input:checked) { border-bottom-color: Highlight; } .note-type-switch__tip { border: 1px solid CanvasText; }
+    .note-cell--drop-eligible { outline: 1px dashed CanvasText; } .note-cell--drop-target { outline: 3px solid Highlight; } .note-cell--dragging .note-card { outline-color: Highlight; } }
 /* The dashboard is the board: it fills the main area with a small margin; header on top, notes below. */
 .site-main:has(> .dashboard) { display: flex; flex-direction: column; max-width: none; padding: 1rem; }
 .dashboard { flex: 1; display: flex; flex-direction: column; min-height: 24rem; padding: clamp(1rem, 3vw, 2rem); border: 2px dashed var(--wn-border); border-radius: var(--wn-radius-panel); }

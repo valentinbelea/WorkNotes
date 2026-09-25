@@ -41,6 +41,12 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
 
     public async Task<NoteCreateStatus> AddAsync(NewNote note, CancellationToken cancellationToken)
     {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        // The new note goes first on its board, below the smallest order of its context. The lock is held until the
+        // commit, so notes created at the same time in a context take one place each.
+        var first = await dbContext.Database
+            .SqlQuery<int?>($"SELECT MIN([Order]) AS [Value] FROM [dbo].[Notes] WITH (UPDLOCK, HOLDLOCK) WHERE [ContextId] = {note.ContextId}")
+            .SingleAsync(cancellationToken);
         var entity = new NoteEntity
         {
             ContextId = note.ContextId,
@@ -50,12 +56,14 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             JournalDate = note.JournalDate,
             Visibility = note.Visibility,
             CreatedByUserId = note.OwnerUserId,
-            ModifiedByUserId = note.OwnerUserId
+            ModifiedByUserId = note.OwnerUserId,
+            Order = (first ?? 1) - 1
         };
         dbContext.Notes.Add(entity);
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return NoteCreateStatus.Created;
         }
         catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
@@ -64,6 +72,31 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             dbContext.Entry(entity).State = EntityState.Detached;
             return NoteCreateStatus.ContextNotFound;
         }
+    }
+
+    public async Task<IReadOnlyList<NoteVersionChange>?> SwapOrderAsync(string ownerUserId, NoteSummary first, NoteSummary second,
+        CancellationToken cancellationToken)
+    {
+        if (!TryReadVersion(first.Version, out var firstVersion) || !TryReadVersion(second.Version, out var secondVersion)) return null;
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        // One UPDATE exchanges the two orders, only while both notes are still the versions the caller checked.
+        // The audit columns stay as they are: a new place on the board is not a change of the note.
+        var updated = await dbContext.Notes
+            .Where(note => note.OwnerUserId == ownerUserId && note.ArchivedAtUtc == null
+                && ((note.Id == first.Id && note.RowVersion == firstVersion) || (note.Id == second.Id && note.RowVersion == secondVersion)))
+            .ExecuteUpdateAsync(setters => setters.SetProperty(note => note.Order, note => note.Id == first.Id ? second.Order : first.Order),
+                cancellationToken);
+        // Disposing the transaction without a commit rolls back a single updated row.
+        if (updated != 2) return null;
+        var versions = await dbContext.Notes
+            .AsNoTracking()
+            .Where(note => note.Id == first.Id || note.Id == second.Id)
+            .Select(note => new { note.Id, note.RowVersion })
+            .ToListAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return versions
+            .Select(item => new NoteVersionChange(item.Id, item.Id == first.Id ? first.Version : second.Version, Convert.ToBase64String(item.RowVersion)))
+            .ToList();
     }
 
     public async Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken)
@@ -177,6 +210,8 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             CreatedAtUtc = note.CreatedAtUtc,
             ModifiedAtUtc = note.ModifiedAtUtc,
             IsOwner = note.OwnerUserId == userId,
+            Order = note.Order,
+            RowVersion = note.RowVersion,
             FirstParagraphs = note.NoteBlocks
                 .OrderBy(block => block.Position)
                 .Take(NoteRules.PreviewParagraphs)
@@ -188,7 +223,8 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
     // so a note that was never changed is reported with no modification time.
     private static NoteSummary ToSummary(SummaryRow row) =>
         new(row.Id, row.ContextId, row.NoteType, row.Title, NoteRules.BuildPreview(row.FirstParagraphs), row.JournalDate,
-            row.Visibility, Utc(row.CreatedAtUtc), row.ModifiedAtUtc > row.CreatedAtUtc ? Utc(row.ModifiedAtUtc) : null, row.IsOwner);
+            row.Visibility, Utc(row.CreatedAtUtc), row.ModifiedAtUtc > row.CreatedAtUtc ? Utc(row.ModifiedAtUtc) : null, row.IsOwner,
+            row.Order, Convert.ToBase64String(row.RowVersion));
 
     private sealed class SummaryRow
     {
@@ -201,6 +237,8 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         public DateTime CreatedAtUtc { get; init; }
         public DateTime ModifiedAtUtc { get; init; }
         public bool IsOwner { get; init; }
+        public int Order { get; init; }
+        public byte[] RowVersion { get; init; } = [];
         public List<string> FirstParagraphs { get; init; } = [];
     }
 

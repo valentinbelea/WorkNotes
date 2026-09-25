@@ -1,6 +1,6 @@
 # 02 — Model de date
 
-Abordarea este **Database First**: schema se scrie în scripturi SQL explicite, idempotente, în `Scripts/version_0.01` (fără incrementarea versiunii), apoi clasele EF se regenerează prin scaffolding (`--no-onconfiguring`). Nu există migrări EF. Detaliile de rulare sunt în [README](../../README.md).
+Abordarea este **Database First**: schema se scrie în scripturi SQL explicite, idempotente, în folderul versiunii curente (`Scripts/version_0.01`, iar de la taskul 02 `Scripts/version_0.02`; un modul nou nu incrementează versiunea), apoi clasele EF se regenerează prin scaffolding (`--no-onconfiguring`). Nu există migrări EF. Detaliile de rulare sunt în [README](../../README.md).
 
 ## Scripturi (version_0.01)
 
@@ -14,6 +14,13 @@ Abordarea este **Database First**: schema se scrie în scripturi SQL explicite, 
 | 006_CreateNotes | Notele |
 | 007_AllowSeveralJournalsPerDay | Elimină indexul unic „un jurnal pe zi” creat de 006 |
 | 008_CreateNoteBlocks | Paragrafele notelor |
+
+## Scripturi (version_0.02)
+
+| Script | Conținut |
+| --- | --- |
+| 000_UpdateDatabaseVersion | Versiunea `v.0.02`, rând nou lângă `v.0.01` |
+| 001_AddNoteOrder | Coloana `[Order]` a notelor, numerotată în ordinea de atunci a tablei, și indexul `IX_Notes_ContextId_Order` |
 
 ## Tabele realizate
 
@@ -37,8 +44,9 @@ Abordarea este **Database First**: schema se scrie în scripturi SQL explicite, 
 | `ModifiedAtUtc`, `ModifiedByUserId` | auditul ultimei modificări; la inserare este egal cu data creării |
 | `ArchivedAtUtc` | arhivare (coloană pregătită, fără interfață încă) |
 | `RowVersion` | concurență: o salvare dintr-un editor învechit este refuzată |
+| `Order` | locul notei în luna ei pe tablă, crescător (cuvânt rezervat: `[Order]` în SQL); o notă nouă primește minimul contextului minus 1 |
 
-Ordinea pe tablă folosește `ISNULL(ModifiedAtUtc, CreatedAtUtc)`: pentru că `ModifiedAtUtc` nu este niciodată NULL, repository-ul raportează o notă cu `ModifiedAtUtc = CreatedAtUtc` ca nemodificată.
+Tabla grupează notele pe luni după `ISNULL(ModifiedAtUtc, CreatedAtUtc)`: pentru că `ModifiedAtUtc` nu este niciodată NULL, repository-ul raportează o notă cu `ModifiedAtUtc = CreatedAtUtc` ca nemodificată. În fiecare lună notele sunt ordonate după `Order` crescător, apoi după ultima modificare, creare și `Id`, descrescător. Scriptul 001 a numerotat notele existente pe context (jurnalele, apoi articolele, fiecare de la ultima modificare), așa că aranjarea de dinainte s-a păstrat. Schimbul prin drag-and-drop interschimbă valorile `Order` ale celor două note, fără să atingă auditul.
 
 ### NoteBlocks
 | Coloană | Rol |

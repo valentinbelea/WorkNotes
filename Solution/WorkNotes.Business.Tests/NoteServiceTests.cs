@@ -7,6 +7,8 @@ namespace WorkNotes.Business.Tests;
 public sealed class NoteServiceTests
 {
     private const string User = "user-1";
+    // Months are read in the application's local time; these tests use UTC for it.
+    private static readonly TimeProvider UtcTime = new FixedTime(new DateTimeOffset(2026, 9, 10, 12, 0, 0, TimeSpan.Zero), TimeSpan.Zero);
 
     [Fact]
     public async Task JournalIsPrivateAndDatedWithTheLocalDay()
@@ -93,17 +95,17 @@ public sealed class NoteServiceTests
     }
 
     [Fact]
-    public async Task BoardIsGroupedByLocalMonthWithJournalsBeforeArticles()
+    public async Task BoardIsGroupedByLocalMonthAndEachMonthFollowsTheOrder()
     {
         var utc = (int month, int day, int hour) => new DateTime(2026, month, day, hour, 0, 0, DateTimeKind.Utc);
         var notes = new StubNotes(board:
         [
-            Note(1, NoteTypes.Journal, utc(8, 20, 9)),
-            Note(2, NoteTypes.Article, utc(9, 2, 9)),
-            Note(3, NoteTypes.Journal, utc(9, 1, 9)),
-            Note(4, NoteTypes.Article, utc(9, 5, 9)),
+            Note(1, NoteTypes.Journal, utc(8, 20, 9), order: 1),
+            Note(2, NoteTypes.Article, utc(9, 2, 9), order: 4),
+            Note(3, NoteTypes.Journal, utc(9, 1, 9), order: 1),
+            Note(4, NoteTypes.Article, utc(9, 5, 9), order: 3),
             // 22:30 UTC on 31 August is already September at UTC+3.
-            Note(5, NoteTypes.Journal, new DateTime(2026, 8, 31, 22, 30, 0, DateTimeKind.Utc)),
+            Note(5, NoteTypes.Journal, new DateTime(2026, 8, 31, 22, 30, 0, DateTimeKind.Utc), order: 2),
         ]);
         var time = new FixedTime(new DateTimeOffset(2026, 9, 10, 12, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
         var service = new NoteService(notes, new StubContexts(), time);
@@ -118,7 +120,24 @@ public sealed class NoteServiceTests
     }
 
     [Fact]
-    public async Task BoardFollowsTheLastChangeAndTheCreationForNotesNeverChanged()
+    public async Task OrderComesBeforeTheTypeAndTheDates()
+    {
+        var utc = (int day) => new DateTime(2026, 9, day, 9, 0, 0, DateTimeKind.Utc);
+        var notes = new StubNotes(board:
+        [
+            Note(1, NoteTypes.Journal, utc(8), order: 3),
+            Note(2, NoteTypes.Article, utc(1), order: 1),
+            Note(3, NoteTypes.Journal, utc(2), modifiedAtUtc: utc(9), order: 2),
+        ]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        var months = await service.GetBoardAsync(User, 5, CancellationToken.None);
+
+        Assert.Equal([2, 3, 1], months.Single().Notes.Select(note => note.Id));
+    }
+
+    [Fact]
+    public async Task NotesWithTheSameOrderShowTheLatestChangeFirst()
     {
         var utc = (int month, int day) => new DateTime(2026, month, day, 9, 0, 0, DateTimeKind.Utc);
         var notes = new StubNotes(board:
@@ -137,8 +156,26 @@ public sealed class NoteServiceTests
         var months = await service.GetBoardAsync(User, 5, CancellationToken.None);
 
         Assert.Equal([(2026, 9), (2026, 8)], months.Select(month => (month.Year, month.Month)));
-        Assert.Equal([4, 3, 2, 1], months[0].Notes.Select(note => note.Id));
+        // Journals no longer come first: with the same order, the latest change leads.
+        Assert.Equal([3, 2, 4, 1], months[0].Notes.Select(note => note.Id));
         Assert.Equal([5], months[1].Notes.Select(note => note.Id));
+    }
+
+    [Fact]
+    public async Task SameOrderAndLastChangeShowTheLatestCreatedThenTheHighestId()
+    {
+        var utc = (int day) => new DateTime(2026, 9, day, 9, 0, 0, DateTimeKind.Utc);
+        var notes = new StubNotes(board:
+        [
+            Note(1, NoteTypes.Article, utc(1), modifiedAtUtc: utc(10)),
+            Note(2, NoteTypes.Article, utc(5), modifiedAtUtc: utc(10)),
+            Note(3, NoteTypes.Article, utc(5), modifiedAtUtc: utc(10)),
+        ]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        var months = await service.GetBoardAsync(User, 5, CancellationToken.None);
+
+        Assert.Equal([3, 2, 1], months.Single().Notes.Select(note => note.Id));
     }
 
     private static NoteDocument Document(bool isOwner = true) =>
@@ -238,8 +275,9 @@ public sealed class NoteServiceTests
         Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, "v1", null, [new(Guid.NewGuid(), "Text")], CancellationToken.None)).Status);
     }
 
-    private static NoteSummary Note(int id, string type, DateTime createdAtUtc, bool isOwner = true, DateTime? modifiedAtUtc = null) =>
-        new(id, 5, type, null, null, null, NoteVisibilities.Private, createdAtUtc, modifiedAtUtc, isOwner);
+    private static NoteSummary Note(int id, string type, DateTime createdAtUtc, bool isOwner = true, DateTime? modifiedAtUtc = null,
+        int order = 0, int contextId = 5) =>
+        new(id, contextId, type, null, null, null, NoteVisibilities.Private, createdAtUtc, modifiedAtUtc, isOwner, order, $"v{id}");
 
     [Fact]
     public async Task OwnerRenamesWithANormalizedTitleAndAudit()
@@ -326,6 +364,105 @@ public sealed class NoteServiceTests
         await Assert.ThrowsAsync<ArgumentException>(() => service.GetBoardAsync(" ", 5, CancellationToken.None));
     }
 
+    private static readonly DateTime September = new(2026, 9, 5, 9, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public async Task OwnerSwapsTwoNotesOfTheSameMonth()
+    {
+        var notes = new StubNotes(board:
+        [
+            Note(1, NoteTypes.Journal, September, order: 1),
+            Note(2, NoteTypes.Article, September, order: 2),
+            Note(3, NoteTypes.Article, September, order: 3),
+        ]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        var result = await service.SwapOrderAsync(User, 1, 3, CancellationToken.None);
+
+        // Each takes the other's place; the one in between stays where it is.
+        Assert.Equal(NoteOrderStatus.Saved, result.Status);
+        Assert.Equal([3, 2, 1], result.NoteIds);
+        Assert.Equal([new NoteVersionChange(1, "v1", "v1+"), new NoteVersionChange(3, "v3", "v3+")], result.Versions);
+        Assert.Equal((User, 1, 3), (notes.Swapped!.Value.Owner, notes.Swapped.Value.First.Id, notes.Swapped.Value.Second.Id));
+    }
+
+    [Fact]
+    public async Task NotesSwapOnlyWithinTheSameLocalMonth()
+    {
+        var notes = new StubNotes(board:
+        [
+            // 22:30 UTC on 31 August is already September at UTC+3; 20:00 UTC is still August.
+            Note(1, NoteTypes.Journal, new DateTime(2026, 8, 31, 22, 30, 0, DateTimeKind.Utc), order: 1),
+            Note(2, NoteTypes.Journal, new DateTime(2026, 9, 2, 9, 0, 0, DateTimeKind.Utc), order: 2),
+            Note(3, NoteTypes.Journal, new DateTime(2026, 8, 31, 20, 0, 0, DateTimeKind.Utc), order: 3),
+        ]);
+        var time = new FixedTime(new DateTimeOffset(2026, 9, 10, 12, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
+        var service = new NoteService(notes, new StubContexts(), time);
+
+        Assert.Equal(NoteOrderStatus.InvalidTarget, (await service.SwapOrderAsync(User, 3, 2, CancellationToken.None)).Status);
+        Assert.Null(notes.Swapped);
+        Assert.Equal(NoteOrderStatus.Saved, (await service.SwapOrderAsync(User, 1, 2, CancellationToken.None)).Status);
+    }
+
+    [Fact]
+    public async Task NotesOfAnotherBoardOrTheSameNoteCannotBeSwapped()
+    {
+        var notes = new StubNotes(board: [Note(1, NoteTypes.Journal, September), Note(2, NoteTypes.Journal, September, contextId: 6)]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        Assert.Equal(NoteOrderStatus.InvalidTarget, (await service.SwapOrderAsync(User, 1, 2, CancellationToken.None)).Status);
+        Assert.Equal(NoteOrderStatus.InvalidTarget, (await service.SwapOrderAsync(User, 1, 1, CancellationToken.None)).Status);
+        Assert.Null(notes.Swapped);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task OnlyTheOwnerOfBothNotesSwapsThem(bool ownsNote, bool ownsTarget)
+    {
+        var notes = new StubNotes(board: [Note(1, NoteTypes.Journal, September, isOwner: ownsNote), Note(2, NoteTypes.Article, September, isOwner: ownsTarget)]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        Assert.Equal(NoteOrderStatus.Forbidden, (await service.SwapOrderAsync(User, 1, 2, CancellationToken.None)).Status);
+        Assert.Null(notes.Swapped);
+    }
+
+    [Fact]
+    public async Task InvisibleNoteCannotBeSwapped()
+    {
+        var notes = new StubNotes(board: [Note(1, NoteTypes.Journal, September)]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        Assert.Equal(NoteOrderStatus.NotFound, (await service.SwapOrderAsync(User, 1, 2, CancellationToken.None)).Status);
+        Assert.Equal(NoteOrderStatus.NotFound, (await service.SwapOrderAsync(User, 2, 1, CancellationToken.None)).Status);
+        Assert.Null(notes.Swapped);
+    }
+
+    [Fact]
+    public async Task SwapOfANoteChangedInTheMeantimeIsAConflict()
+    {
+        var notes = new StubNotes(board: [Note(1, NoteTypes.Journal, September, order: 1), Note(2, NoteTypes.Article, September, order: 2)],
+            swapConflict: true);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        var result = await service.SwapOrderAsync(User, 1, 2, CancellationToken.None);
+
+        Assert.Equal(new NoteOrderResult(NoteOrderStatus.Conflict), result);
+    }
+
+    [Fact]
+    public async Task CancelledSwapStopsBeforeDataAccess()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var notes = new StubNotes(board: [Note(1, NoteTypes.Journal, September), Note(2, NoteTypes.Article, September)]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.SwapOrderAsync(User, 1, 2, cancellation.Token));
+        Assert.Null(notes.Swapped);
+        await Assert.ThrowsAsync<ArgumentException>(() => service.SwapOrderAsync(" ", 1, 2, CancellationToken.None));
+    }
+
     private sealed class FixedTime(DateTimeOffset utcNow, TimeSpan offset) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => utcNow;
@@ -333,13 +470,29 @@ public sealed class NoteServiceTests
     }
 
     private sealed class StubNotes(NoteCreateStatus outcome = NoteCreateStatus.Created, IReadOnlyList<NoteSummary>? board = null,
-        NoteDocument? document = null, NoteSaveResult? saveResult = null, NoteSummary? summary = null) : INoteRepository
+        NoteDocument? document = null, NoteSaveResult? saveResult = null, NoteSummary? summary = null, bool swapConflict = false) : INoteRepository
     {
+        // The stored notes: a swap changes their orders, like the database.
+        private readonly List<NoteSummary> stored = [.. board ?? []];
+
         public NoteChanges? Saved { get; private set; }
         public (int NoteId, string Owner, string? Title, DateTime SavedAtUtc)? Renamed { get; private set; }
         public (int NoteId, string Owner)? Deleted { get; private set; }
+        public (string Owner, NoteSummary First, NoteSummary Second)? Swapped { get; private set; }
 
-        public Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken) => Task.FromResult(summary);
+        public Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken) =>
+            Task.FromResult(summary ?? stored.FirstOrDefault(note => note.Id == noteId));
+
+        public Task<IReadOnlyList<NoteVersionChange>?> SwapOrderAsync(string ownerUserId, NoteSummary first, NoteSummary second,
+            CancellationToken cancellationToken)
+        {
+            Swapped = (ownerUserId, first, second);
+            if (swapConflict) return Task.FromResult<IReadOnlyList<NoteVersionChange>?>(null);
+            stored[stored.FindIndex(note => note.Id == first.Id)] = first with { Order = second.Order, Version = first.Version + "+" };
+            stored[stored.FindIndex(note => note.Id == second.Id)] = second with { Order = first.Order, Version = second.Version + "+" };
+            return Task.FromResult<IReadOnlyList<NoteVersionChange>?>(
+                [new(first.Id, first.Version, first.Version + "+"), new(second.Id, second.Version, second.Version + "+")]);
+        }
 
         public Task<bool> RenameAsync(int noteId, string ownerUserId, string? title, DateTime savedAtUtc, CancellationToken cancellationToken)
         {
@@ -370,7 +523,7 @@ public sealed class NoteServiceTests
         {
             BoardUser = userId;
             BoardContext = contextId;
-            return Task.FromResult(board ?? []);
+            return Task.FromResult<IReadOnlyList<NoteSummary>>([.. stored]);
         }
 
         public Task<NoteCreateStatus> AddAsync(NewNote note, CancellationToken cancellationToken)
