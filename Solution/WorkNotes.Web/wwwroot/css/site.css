@@ -102,5 +102,5 @@ mark, .text-highlight { color: var(--wn-text); background: var(--wn-highlight); 
 .modal-panel--wide { max-width: 46rem; }
 .modal-form { margin-top: 1.5rem; }
 .modal-panel h2 { margin-top: 0; font-size: 1.6rem; margin-bottom: 1.5rem; }
-body:has(.modal[open]) { overflow: hidden; }
+body:has(.modal[open]:not(.note-editor-dialog--minimized)) { overflow: hidden; }
 @media (forced-colors: active) { .modal-panel { border: 1px solid CanvasText; } }

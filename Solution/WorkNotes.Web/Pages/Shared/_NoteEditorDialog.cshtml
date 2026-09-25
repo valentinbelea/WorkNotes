@@ -5,6 +5,7 @@
     var note = Model.OpenNote!;
     var title = note.Title ?? L["Notes_Untitled"].Value;
     var typeClass = note.NoteType == NoteTypes.Article ? "note-sheet--article" : "note-sheet--journal";
+    var typeName = note.NoteType == NoteTypes.Article ? L["NoteType_Article"].Value : L["NoteType_Journal"].Value;
     var closeUrl = Url.Page("/Index", new { context = note.ContextId });
     // Texts the editor shows; JavaScript reads them instead of carrying its own translations.
     var phrases = new Dictionary<string, string>
@@ -33,32 +34,28 @@
         {
             placeholder = L["Editor_Placeholder"].Value, saved = L["Editor_StatusSaved"].Value, unsaved = L["Editor_StatusUnsaved"].Value,
             saving = L["Editor_StatusSaving"].Value, failed = L["Editor_StatusError"].Value, content = L["Field_Content"].Value,
-            blockNew = L["Editor_BlockNew"].Value, infoHint = L["Editor_InfoHint"].Value
+            blockNew = L["Editor_BlockNew"].Value, infoHint = L["Editor_InfoHint"].Value, untitled = L["Notes_Untitled"].Value
         },
         phrases
     };
 }
 @* The note editor over its board, 90% of the window. Without JavaScript the open dialog is a CSS overlay;
-   modal.js makes it modal (Escape and a click outside go back to the board, after the unsaved-changes warning). *@
-<dialog class="modal" open data-modal data-close-url="@closeUrl" aria-labelledby="note-title">
+   modal.js makes it modal (Escape and a click outside go back to the board, after the unsaved-changes warning).
+   The header only has Minimize and Close; the editor's actions (Save, the context and the other details) are in the footer.
+   Minimize (note-editor.js) only changes how the dialog is shown: the sheet is hidden, with its content, title and unsaved
+   changes, and the compact form in the bottom-left corner brings it back (Maximize or double-click). *@
+<dialog class="modal note-editor-dialog" open data-modal data-close-url="@closeUrl" aria-labelledby="note-title">
     @* Save results, fixed at the top centre of the window, above the editor, until the user closes them. Inside the dialog,
        so they stay usable while it is modal; not a live region: the toolbar status already announces each save. *@
     <div class="status-region" data-editor-messages></div>
     <article class="modal-panel modal-panel--editor postit-panel note-sheet @typeClass">
-        <div class="note-editor-toolbar">
-            <p class="note-editor-toolbar__meta">
-                <span>@(note.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
-                <span>@note.ContextName</span>
-                <span>@(note.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>
-            </p>
-            <p class="note-editor-toolbar__status" role="status" aria-live="polite" data-editor-status></p>
-            <div class="actions">
-                @if (note.IsOwner)
-                {
-                    <button type="button" class="btn btn-primary" data-editor-save disabled hidden>@L["Button_Save"]</button>
-                }
-                <a class="btn btn-secondary" href="@closeUrl">@L["Button_Close"]</a>
-            </div>
+        <div class="note-editor-header">
+            <button type="button" class="note-editor-icon" aria-label="@L["Editor_Minimize"]" title="@L["Editor_Minimize"]" data-editor-minimize hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 17.5h12" /></svg>
+            </button>
+            <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
+            </a>
         </div>
         @if (note.IsOwner)
         {
@@ -81,12 +78,45 @@
                 }
             </noscript>
         </div>
-        @* Info bar: when the paragraph under the mouse (or at the cursor) was created and last changed.
-           Shown, like the Save button, only once the editor runs. *@
-        <div class="note-editor-info" data-editor-info-bar hidden>
-            <p class="note-editor-info__paragraph" data-editor-info>@L["Editor_InfoHint"]</p>
-            <p class="note-editor-info__help">@(note.IsOwner ? L["Editor_Help"] : L["Editor_ReadOnly"])</p>
+        <div class="note-editor-footer">
+            @* Info bar: when the paragraph under the mouse (or at the cursor) was created and last changed.
+               Shown, like the Save button, only once the editor runs. *@
+            <div class="note-editor-info" data-editor-info-bar hidden>
+                <p class="note-editor-info__paragraph" data-editor-info>@L["Editor_InfoHint"]</p>
+                <p class="note-editor-info__help">@(note.IsOwner ? L["Editor_Help"] : L["Editor_ReadOnly"])</p>
+            </div>
+            <div class="note-editor-toolbar">
+                <p class="note-editor-toolbar__meta">
+                    <span>@typeName</span>
+                    <span>@note.ContextName</span>
+                    <span>@(note.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>
+                </p>
+                <p class="note-editor-toolbar__status" role="status" aria-live="polite" data-editor-status></p>
+                @if (note.IsOwner)
+                {
+                    <div class="actions">
+                        <button type="button" class="btn btn-primary" data-editor-save disabled hidden>@L["Button_Save"]</button>
+                    </div>
+                }
+            </div>
         </div>
     </article>
+    @* The minimized editor: shown by the note-editor-dialog--minimized class only. *@
+    <div class="note-editor-minimized postit-panel note-sheet @typeClass" role="group" aria-label="@L["Editor_Minimized"]" data-editor-minimized>
+        <div class="note-editor-minimized__text">
+            <span class="note-editor-minimized__type">@typeName</span>
+            <strong class="note-editor-minimized__title" data-editor-minimized-title>@title</strong>
+            <span class="note-editor-minimized__dates">
+                <span><span class="visually-hidden">@L["Notes_Created"]</span> <time datetime="@NoteDates.Iso(note.CreatedAtUtc)">@NoteDates.Card(note.CreatedAtUtc)</time></span>
+                <span><span class="visually-hidden">@L["Notes_Modified"]</span> <time datetime="@NoteDates.Iso(note.ModifiedAtUtc)" data-editor-modified>@NoteDates.Card(note.ModifiedAtUtc)</time></span>
+            </span>
+        </div>
+        <button type="button" class="note-editor-icon" aria-label="@L["Editor_Maximize"]" title="@L["Editor_Maximize"]" data-editor-maximize>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.5 6.5h11v11h-11Z" /></svg>
+        </button>
+        <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
+        </a>
+    </div>
 </dialog>
 <script type="application/json" id="note-editor-data">@Json.Serialize(editorData)</script>

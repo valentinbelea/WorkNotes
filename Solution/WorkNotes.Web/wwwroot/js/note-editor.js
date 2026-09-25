@@ -228,6 +228,11 @@ function initializeNoteEditor(host, data) {
             savedTitle = title;
             problem = null;
             showStatusMessage(messages, "success", body.message);
+            const modified = document.querySelector("[data-editor-modified]");
+            if (modified && body.modified) {
+                modified.textContent = body.modified.text;
+                modified.dateTime = body.modified.iso;
+            }
             // The saved paragraphs are now the reference for the info bar.
             auditById.clear();
             savedContentById.clear();
@@ -271,9 +276,39 @@ function initializeNoteEditor(host, data) {
     const view = new EditorView({ parent: host, state: EditorState.create({ doc, extensions }) });
     savedDoc = view.state.doc;
 
-    // Ctrl+S / Cmd+S saves from the editor and from the title.
+    // Minimize only changes how the dialog is shown: nothing is saved, closed or reloaded, and the sheet keeps its
+    // content, title, unsaved changes and undo history. The minimized dialog is not modal, so the board can be used.
+    const dialog = host.closest("dialog");
+    const minimized = dialog?.querySelector("[data-editor-minimized]");
+    const minimizeButton = dialog?.querySelector("[data-editor-minimize]");
+    const isMinimized = () => dialog?.classList.contains("note-editor-dialog--minimized") ?? false;
+    function minimize() {
+        if (!dialog || isMinimized()) return;
+        const title = dialog.querySelector("[data-editor-minimized-title]");
+        if (title && titleInput) title.textContent = titleInput.value.trim() || texts.untitled;
+        dialog.close();
+        dialog.classList.add("note-editor-dialog--minimized");
+        dialog.show();
+        minimized.querySelector("[data-editor-maximize]")?.focus();
+    }
+    function restore() {
+        if (!dialog || !isMinimized()) return;
+        dialog.close();
+        dialog.classList.remove("note-editor-dialog--minimized");
+        dialog.showModal();
+        view.requestMeasure();
+        view.focus();
+    }
+    if (minimizeButton && minimized) {
+        minimizeButton.hidden = false;
+        minimizeButton.addEventListener("click", minimize);
+        minimized.querySelector("[data-editor-maximize]")?.addEventListener("click", restore);
+        minimized.addEventListener("dblclick", event => { if (!event.target.closest("a, button")) restore(); });
+    }
+
+    // Ctrl+S / Cmd+S saves from the editor and from the title, not while the editor is minimized.
     document.addEventListener("keydown", event => {
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        if (!isMinimized() && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
             event.preventDefault();
             save();
         }

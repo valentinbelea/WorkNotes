@@ -10,6 +10,7 @@ document.querySelectorAll("dialog[data-modal][open]").forEach(dialog => {
         if (closeUrl) window.location.assign(closeUrl);
     });
     dialog.addEventListener("click", event => {
-        if (event.target === dialog && closeUrl) window.location.assign(closeUrl);
+        // A minimized editor (note-editor.js) is no overlay: a click on it never closes it.
+        if (event.target === dialog && closeUrl && dialog.matches(":modal")) window.location.assign(closeUrl);
     });
 });

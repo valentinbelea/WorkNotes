@@ -1,6 +1,13 @@
 /* Note editor: a dialog over the board, 90% of the window, holding the note's sheet and the CodeMirror editor.
    CodeMirror injects its own base styles; everything WorkNotes adds is here, on normal classes, with the palette tokens. */
 .modal-panel--editor { display: flex; flex-direction: column; gap: 1rem; width: 90vw; max-width: none; height: 90vh; height: 90dvh; margin: 0; padding: clamp(1rem, 2.5vw, 2rem); }
+/* Header: only Minimize and Close, on the right. Footer: the paragraph info, then the details, the save status and Save. */
+.note-editor-header { display: flex; flex: none; justify-content: flex-end; gap: .15rem; margin: -.5rem -.5rem -.75rem 0; }
+.note-editor-icon { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--wn-radius); color: var(--wn-muted); background: transparent; cursor: pointer; }
+.note-editor-icon:hover { color: var(--wn-text); background: rgb(36 58 54 / 8%); }
+.note-editor-icon:active { background: rgb(36 58 54 / 14%); }
+.note-editor-icon svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.note-editor-footer { display: flex; flex: none; flex-direction: column; gap: .75rem; }
 .note-editor-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; }
 .note-editor-toolbar__meta { display: flex; flex-wrap: wrap; gap: .25rem .75rem; margin: 0; color: var(--wn-muted); font-size: .8rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .note-editor-toolbar__status { flex: 1 1 14rem; margin: 0; color: var(--wn-muted); font-size: .875rem; text-align: end; }
@@ -46,6 +53,16 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 .note-editor-info p { margin: 0; }
 .note-editor-info__paragraph { color: var(--wn-text); font-weight: 600; }
 @media (max-width: 450px) { .note-editor-info__help { display: none; } }
+/* Minimized: the dialog is no longer modal and becomes the compact sheet in the bottom-left corner of the window;
+   the editor sheet stays in the page, hidden, with everything typed in it. */
+.note-editor-minimized { display: none; }
+.note-editor-dialog--minimized { inset: auto auto 1rem 1rem; display: block; width: auto; height: auto; max-width: calc(100vw - 2rem); padding: 0; background: transparent; overflow: visible; }
+.note-editor-dialog--minimized > .modal-panel--editor { display: none; }
+.note-editor-dialog--minimized > .note-editor-minimized { display: flex; align-items: center; gap: .25rem .5rem; width: min(24rem, calc(100vw - 2rem)); padding: .75rem .5rem .75rem 1rem; cursor: default; }
+.note-editor-minimized__text { display: grid; flex: 1; min-width: 0; gap: .1rem; }
+.note-editor-minimized__type { color: var(--wn-muted); font-size: .75rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.note-editor-minimized__title { overflow: hidden; font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
+.note-editor-minimized__dates { display: flex; flex-wrap: wrap; gap: 0 .75rem; color: var(--wn-muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
 @media (forced-colors: active) {
     .note-sheet__editor .cm-editor { border: 1px solid CanvasText; }
     .note-sheet__editor .cm-editor .cm-activeLine, .note-sheet__editor .cm-editor .cm-hoveredParagraph { outline: 1px solid Highlight; }

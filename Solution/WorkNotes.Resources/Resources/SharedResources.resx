@@ -157,4 +157,8 @@
 <data name="Message_KindSuccess" xml:space="preserve"><value>Succes</value></data>
 <data name="Message_KindWarning" xml:space="preserve"><value>Avertisment</value></data>
 <data name="Message_KindError" xml:space="preserve"><value>Eroare</value></data>
+<data name="Editor_Minimize" xml:space="preserve"><value>Minimizează editorul</value></data>
+<data name="Editor_Maximize" xml:space="preserve"><value>Maximizează editorul</value></data>
+<data name="Editor_CloseEditor" xml:space="preserve"><value>Închide editorul</value></data>
+<data name="Editor_Minimized" xml:space="preserve"><value>Editor minimizat</value></data>
 </root>

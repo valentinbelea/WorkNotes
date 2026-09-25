@@ -142,7 +142,7 @@ public sealed class NoteServiceTests
     }
 
     private static NoteDocument Document(bool isOwner = true) =>
-        new(7, 5, "TopDev", NoteTypes.Article, "Titlu", NoteVisibilities.Private, isOwner, DateTime.UtcNow, "v1", []);
+        new(7, 5, "TopDev", NoteTypes.Article, "Titlu", NoteVisibilities.Private, isOwner, DateTime.UtcNow, DateTime.UtcNow, "v1", []);
 
     [Fact]
     public async Task OwnerSavesNormalizedParagraphsInOrder()

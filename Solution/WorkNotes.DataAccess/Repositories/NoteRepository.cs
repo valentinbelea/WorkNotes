@@ -74,7 +74,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             .Select(note => new
             {
                 note.Id, note.ContextId, ContextName = note.Context.Name, note.NoteType, note.Title, note.Visibility,
-                IsOwner = note.OwnerUserId == userId, note.CreatedAtUtc, note.RowVersion,
+                IsOwner = note.OwnerUserId == userId, note.CreatedAtUtc, note.ModifiedAtUtc, note.RowVersion,
                 Blocks = note.NoteBlocks.OrderBy(block => block.Position)
                     .Select(block => new NoteBlockDetails(block.Id, block.Content, block.CreatedAtUtc, block.ModifiedAtUtc))
                     .ToList()
@@ -82,7 +82,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             .SingleOrDefaultAsync(cancellationToken);
         if (document is null) return null;
         return new NoteDocument(document.Id, document.ContextId, document.ContextName, document.NoteType, document.Title,
-            document.Visibility, document.IsOwner, Utc(document.CreatedAtUtc), Convert.ToBase64String(document.RowVersion),
+            document.Visibility, document.IsOwner, Utc(document.CreatedAtUtc), Utc(document.ModifiedAtUtc), Convert.ToBase64String(document.RowVersion),
             document.Blocks.Select(block => block with { CreatedAtUtc = Utc(block.CreatedAtUtc), ModifiedAtUtc = Utc(block.ModifiedAtUtc) }).ToList());
     }
 
@@ -144,7 +144,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
 
         if (!changed)
             return note.RowVersion.AsSpan().SequenceEqual(expectedVersion)
-                ? new(NoteSaveStatus.Saved, changes.ExpectedVersion, Audit(saved))
+                ? new(NoteSaveStatus.Saved, changes.ExpectedVersion, Audit(saved), Utc(note.ModifiedAtUtc))
                 : new(NoteSaveStatus.Conflict);
 
         note.ModifiedAtUtc = changes.SavedAtUtc;
@@ -155,7 +155,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            return new(NoteSaveStatus.Saved, Convert.ToBase64String(note.RowVersion), Audit(saved));
+            return new(NoteSaveStatus.Saved, Convert.ToBase64String(note.RowVersion), Audit(saved), Utc(note.ModifiedAtUtc));
         }
         catch (DbUpdateConcurrencyException)
         {

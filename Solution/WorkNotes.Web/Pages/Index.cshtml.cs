@@ -96,6 +96,8 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
             {
                 version = result.Version,
                 message = localizer["Message_NoteSaved"].Value,
+                // The note's last change, for the minimized editor.
+                modified = result.ModifiedAtUtc is { } modifiedAtUtc ? new { text = NoteDates.Card(modifiedAtUtc), iso = NoteDates.Iso(modifiedAtUtc) } : null,
                 blocks = (result.Blocks ?? []).Select(block => new
                 {
                     id = block.Id,
