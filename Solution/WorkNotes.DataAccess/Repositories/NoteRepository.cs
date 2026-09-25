@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using WorkNotes.Business.Abstractions;
@@ -5,6 +6,7 @@ using WorkNotes.Business.Models;
 using WorkNotes.DataAccess.Context;
 using NoteBlockEntity = WorkNotes.DataAccess.Entities.NoteBlock;
 using NoteEntity = WorkNotes.DataAccess.Entities.Note;
+using NoteReferenceEntity = WorkNotes.DataAccess.Entities.NoteReference;
 
 namespace WorkNotes.DataAccess.Repositories;
 
@@ -33,11 +35,23 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
                 .SetProperty(note => note.ModifiedAtUtc, savedAtUtc)
                 .SetProperty(note => note.ModifiedByUserId, ownerUserId), cancellationToken) > 0;
 
-    public async Task<bool> DeleteAsync(int noteId, string ownerUserId, CancellationToken cancellationToken) =>
-        // FK_NoteBlocks_Notes_NoteId cascades: the paragraphs are deleted by SQL Server in the same statement.
-        await dbContext.Notes
+    public async Task<bool> DeleteAsync(int noteId, string ownerUserId, CancellationToken cancellationToken)
+    {
+        // Serializable: no other note can add a reference to this one between the two statements.
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        // The references other notes have to it go first (FK_NoteReferences_Notes_TargetNoteId has no cascade); their text
+        // keeps the number, shown as a reference that can no longer be opened.
+        await dbContext.NoteReferences
+            .Where(reference => reference.TargetNoteId == noteId && reference.TargetNote.OwnerUserId == ownerUserId)
+            .ExecuteDeleteAsync(cancellationToken);
+        // FK_NoteBlocks_Notes_NoteId and FK_NoteReferences_Notes_SourceNoteId cascade: the paragraphs and the note's own
+        // references are deleted by SQL Server in the same statement.
+        var deleted = await dbContext.Notes
             .Where(note => note.Id == noteId && note.OwnerUserId == ownerUserId)
             .ExecuteDeleteAsync(cancellationToken) > 0;
+        await transaction.CommitAsync(cancellationToken);
+        return deleted;
+    }
 
     public async Task<NoteCreateStatus> AddAsync(NewNote note, CancellationToken cancellationToken)
     {
@@ -175,11 +189,13 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         }
         if (note.Title != changes.Title) { note.Title = changes.Title; changed = true; }
 
+        // Unchanged text has unchanged references: the stored ones stay as they were at the last save of the text.
         if (!changed)
             return note.RowVersion.AsSpan().SequenceEqual(expectedVersion)
                 ? new(NoteSaveStatus.Saved, changes.ExpectedVersion, Audit(saved), Utc(note.ModifiedAtUtc))
                 : new(NoteSaveStatus.Conflict);
 
+        await ReplaceReferencesAsync(note.Id, changes.References, changes.SavedAtUtc, cancellationToken);
         note.ModifiedAtUtc = changes.SavedAtUtc;
         note.ModifiedByUserId = changes.OwnerUserId;
         // Always update the note row, even when its audit values are unchanged (two saves in the same second):
@@ -194,6 +210,53 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         {
             dbContext.ChangeTracker.Clear();
             return new(NoteSaveStatus.Conflict);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
+        {
+            // A referenced note was deleted after the references were checked: nothing is saved, as for a conflict.
+            dbContext.ChangeTracker.Clear();
+            return new(NoteSaveStatus.Conflict);
+        }
+    }
+
+    // At most this many candidates are read for one number; the service keeps those with the number as a whole number.
+    private const int MaxReferenceCandidates = 200;
+
+    public async Task<IReadOnlyList<NoteReferenceTarget>> FindReferenceCandidatesAsync(string userId, int contextId, int sourceNoteId,
+        string digits, CancellationToken cancellationToken) =>
+        await VisibleTo(userId)
+            .AsNoTracking()
+            .Where(note => note.ContextId == contextId && note.Id != sourceNoteId && note.Title != null && note.Title.Contains(digits))
+            .OrderByDescending(note => note.ModifiedAtUtc)
+            .ThenByDescending(note => note.Id)
+            .Take(MaxReferenceCandidates)
+            .Select(note => new NoteReferenceTarget(note.Id, note.Title, note.NoteType))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<NoteReferenceTarget>> GetReferenceTargetsAsync(string userId, int contextId, int? sourceNoteId,
+        IReadOnlyCollection<int> noteIds, CancellationToken cancellationToken) =>
+        await VisibleTo(userId)
+            .AsNoTracking()
+            .Where(note => note.ContextId == contextId && noteIds.Contains(note.Id) && (sourceNoteId == null || note.Id != sourceNoteId))
+            .Select(note => new NoteReferenceTarget(note.Id, note.Title, note.NoteType))
+            .ToListAsync(cancellationToken);
+
+    // The note's stored references follow its text: those no longer in it go, new ones get the save time, the others
+    // keep theirs. Saved together with the note, under the same version check.
+    private async Task ReplaceReferencesAsync(int noteId, IReadOnlyList<NoteReferenceInput> references, DateTime savedAtUtc,
+        CancellationToken cancellationToken)
+    {
+        var wanted = references.Select(reference => (reference.TargetNoteId, reference.Text)).ToHashSet();
+        foreach (var stored in await dbContext.NoteReferences.Where(reference => reference.SourceNoteId == noteId).ToListAsync(cancellationToken))
+        {
+            if (!wanted.Remove((stored.TargetNoteId, stored.DisplayText))) dbContext.NoteReferences.Remove(stored);
+        }
+        foreach (var (targetNoteId, text) in wanted)
+        {
+            dbContext.NoteReferences.Add(new NoteReferenceEntity
+            {
+                SourceNoteId = noteId, TargetNoteId = targetNoteId, DisplayText = text, CreatedAtUtc = savedAtUtc
+            });
         }
     }
 

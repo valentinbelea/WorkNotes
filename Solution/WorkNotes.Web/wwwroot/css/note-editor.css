@@ -69,6 +69,31 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 .note-sheet__editor .cm-editor .cm-panel.cm-search .cm-button:hover { color: var(--wn-primary-hover); background: var(--wn-active-line); }
 .note-sheet__editor .cm-editor .cm-panel.cm-search label { display: inline-flex; align-items: center; gap: .25rem; margin: 0; }
 .note-sheet__editor .cm-editor .cm-panel.cm-search [name=close] { top: .5rem; right: .6rem; width: 28px; height: 28px; color: var(--wn-muted); font-size: 1.25rem; }
+/* References to other notes (note-references.js): only the number is shown, as a link in the accent colour, with the
+   target's title and type as its tooltip; one whose note can no longer be opened is muted, with a dotted underline. */
+.note-sheet__editor .cm-editor .cm-note-reference { color: var(--wn-primary); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; cursor: pointer; }
+.note-sheet__editor .cm-editor .cm-note-reference:hover { color: var(--wn-primary-hover); text-decoration-thickness: 2px; }
+.note-sheet__editor .cm-editor .cm-note-reference--broken,
+.note-sheet__editor .cm-editor .cm-note-reference--broken:hover { color: var(--wn-muted); font-weight: inherit; text-decoration-style: dotted; text-decoration-thickness: 1px; cursor: help; }
+/* The suggestion below a number that can become a reference: a small white sheet with the notes to choose from (the
+   type, in the colour of its paper, and the full title), then the keys. It never takes the focus by itself; long lists
+   scroll. */
+.note-sheet__editor .cm-editor .note-reference-suggestion { display: grid; gap: .25rem; width: max-content; max-width: min(26rem, calc(100vw - 2rem)); max-height: 18rem; margin-top: .25rem; padding: .5rem; overflow-y: auto; border: 1px solid var(--wn-border); border-radius: var(--wn-radius); color: var(--wn-text); background: var(--wn-surface); box-shadow: var(--wn-shadow-raised); font-family: var(--wn-font); font-size: .875rem; line-height: 1.4; }
+.note-reference-suggestion__title, .note-reference-suggestion__hint { margin: 0; padding: 0 .35rem; color: var(--wn-muted); font-size: .75rem; }
+.note-reference-suggestion__title { font-weight: 600; }
+.note-reference-suggestion__options { display: grid; gap: .1rem; }
+.note-reference-suggestion__option { display: flex; align-items: baseline; gap: .5rem; width: 100%; min-height: 36px; padding: .35rem; border: 0; border-radius: var(--wn-radius); color: var(--wn-text); background: transparent; font: inherit; text-align: start; cursor: pointer; }
+.note-reference-suggestion__option:hover { background: var(--wn-active-line); }
+.note-reference-suggestion__option:focus-visible { outline: 2px solid var(--wn-primary); outline-offset: 0; background: var(--wn-active-line); }
+.note-reference-suggestion__type { flex: none; padding: .05rem .4rem; border-radius: 4px; background: var(--wn-note-paper); box-shadow: inset 0 0 0 1px rgb(36 58 54 / 18%); font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.note-reference-suggestion__option--article .note-reference-suggestion__type { background: var(--wn-note-sage); }
+.note-reference-suggestion__name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+@media (forced-colors: active) {
+    .note-sheet__editor .cm-editor .note-reference-suggestion { border-color: CanvasText; }
+    .note-reference-suggestion__option:focus-visible { outline-color: Highlight; }
+    .note-sheet__editor .cm-editor .cm-note-reference { color: LinkText; }
+    .note-sheet__editor .cm-editor .cm-note-reference--broken { color: GrayText; }
+}
 /* Info bar under the editor: audit of the paragraph under the mouse (or at the cursor), then the shortcuts. */
 .note-editor-info { display: flex; flex: none; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1.5rem; padding-top: .6rem; border-top: 1px dashed var(--wn-input-border); color: var(--wn-muted); font-size: .8rem; }
 .note-editor-info p { margin: 0; }

@@ -1,18 +1,23 @@
 // Dashboard behaviour only: all appearance comes from CSS classes rendered by the server.
 // Switches the board, inserts the server-rendered new-note card, removes it on Cancel, renames titles in place
-// (and shows the card's new last change), opens saved notes on double-click and swaps two cards of a month by drag
-// and drop. Positions come from the grid: cards move only in the DOM order, and no inline styles are written.
+// (and shows the card's new last change), opens saved notes on double-click and from the references in a card's
+// preview, and swaps two cards of a month by drag and drop. Positions come from the grid: cards move only in the DOM
+// order, and no inline styles are written.
 import { showStatusMessage } from "./status-messages.js";
 
-// Single entry point for opening a note from its card (Open and double-click). When the editor is already on the page
-// (for example minimized), it opens the note in a tab (note-editor.js handles the note-editor:open event), keeping the
-// other tabs; otherwise the card's Open link (/?note={id}, the editor over the board) is followed. Without JavaScript
-// the link works on its own.
+// Single entry point for opening a note from the board: a card's Open and double-click, and a reference in a card's
+// preview. When the editor is already on the page (for example minimized), it opens the note in a tab (note-editor.js
+// handles the note-editor:open event: it brings a minimized editor back and selects the note's tab when it is already
+// open), keeping the other tabs; otherwise the link (/?note={id}, the editor over the board) is followed. Without
+// JavaScript the links work on their own.
+export function openNote(id, href) {
+    const handled = !document.dispatchEvent(new CustomEvent("note-editor:open", { detail: { id }, cancelable: true }));
+    if (!handled) window.location.assign(href);
+}
+
 export function openNoteEditor(card) {
     const link = card.querySelector("[data-note-open]");
-    if (!link) return;
-    const handled = !document.dispatchEvent(new CustomEvent("note-editor:open", { detail: { id: card.dataset.noteId }, cancelable: true }));
-    if (!handled) window.location.assign(link.href);
+    if (link) openNote(card.dataset.noteId, link.href);
 }
 
 export function initializeDashboard(dashboard) {
@@ -54,10 +59,18 @@ export function initializeDashboard(dashboard) {
     initializeRename(dashboard);
     initializeReorder(dashboard);
 
-    // A plain click on Open goes through openNoteEditor too, so an open editor gets a new tab instead of a reload.
+    // A plain click on Open or on a reference goes through openNote too, so an open editor gets a new tab instead of a
+    // reload. A reference whose note can no longer be opened is not a link.
     dashboard.addEventListener("click", event => {
+        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        const reference = event.target.closest("a[data-note-reference]");
+        if (reference) {
+            event.preventDefault();
+            openNote(reference.dataset.noteReference, reference.href);
+            return;
+        }
         const link = event.target.closest("[data-note-open]");
-        if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        if (!link) return;
         event.preventDefault();
         openNoteEditor(link.closest(".note-card"));
     });

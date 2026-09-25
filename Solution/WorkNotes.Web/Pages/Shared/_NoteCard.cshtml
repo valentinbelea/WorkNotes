@@ -9,6 +9,8 @@
    the board names the context. The header shows the creation date on the left and the last change on the right of
    the same line, in the same format; their labels are only read out to screen readers. The owner renames the title in place (Enter saves, Escape restores) and has Delete.
    The Open link (/?note={id}) and double-click open the editor over the board (openNoteEditor in notes-board.js).
+   The preview shows references as links to their notes (NoteReferences.Html; notes-board.js opens them in the editor),
+   or marked as references that can no longer be opened.
    On the owner's cards the tape on top is the handle for dragging the card onto another card of the same month, to
    swap their places (notes-board.js makes it draggable); on other cards it is only drawn by postit.css. *@
 <li class="note-cell">
@@ -44,7 +46,7 @@
         }
         @if (Model.Preview is not null)
         {
-            <p class="note-card__excerpt">@Model.Preview</p>
+            <p class="note-card__excerpt">@NoteReferences.Html(Model.Preview, Model.References, L, Url)</p>
         }
         <div class="note-card__footer">
             <span>@(Model.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>

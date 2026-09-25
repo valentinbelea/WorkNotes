@@ -463,6 +463,152 @@ public sealed class NoteServiceTests
         await Assert.ThrowsAsync<ArgumentException>(() => service.SwapOrderAsync(" ", 1, 2, CancellationToken.None));
     }
 
+    private static readonly NoteReferenceTarget Cr30080 = new(12, "CR 30080", NoteTypes.Article);
+    private static readonly NoteReferenceTarget Journal30080 = new(14, "Analiză 30080-bis", NoteTypes.Journal);
+
+    private static NoteSummary Source(bool isOwner = true) => Note(7, NoteTypes.Journal, September, isOwner: isOwner);
+
+    [Fact]
+    public async Task SuggestedTargetsAreOtherNotesOfTheBoardWhoseTitleHasTheWholeNumber()
+    {
+        var notes = new StubNotes(summary: Source(), targets: [Cr30080, new(13, "CR 130080", NoteTypes.Journal), Journal30080]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        var targets = await service.FindReferenceTargetsAsync(User, 7, "30080", CancellationToken.None);
+
+        Assert.Equal([Cr30080, Journal30080], targets);
+        Assert.Equal((User, 5, 7, "30080"), notes.CandidatesRead);
+    }
+
+    [Fact]
+    public async Task OnlyTheOwnerOfTheNoteIsOfferedReferences()
+    {
+        var notes = new StubNotes(summary: Source(isOwner: false), targets: [Cr30080]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        Assert.Empty((await service.FindReferenceTargetsAsync(User, 7, "30080", CancellationToken.None))!);
+        Assert.Null(notes.CandidatesRead);
+    }
+
+    [Fact]
+    public async Task AnInvisibleNoteHasNoReferenceTargets()
+    {
+        var notes = new StubNotes(targets: [Cr30080]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        Assert.Null(await service.FindReferenceTargetsAsync(User, 7, "30080", CancellationToken.None));
+        Assert.Null(await service.GetReferenceTargetsAsync(User, 7, [12], CancellationToken.None));
+        Assert.Null(notes.CandidatesRead);
+        Assert.Null(notes.TargetsRead);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("12")]
+    [InlineData("30a80")]
+    [InlineData("%30080%")]
+    [InlineData("1234567890123456789")]
+    public async Task OnlyReferenceNumbersAreLookedUp(string? number)
+    {
+        var notes = new StubNotes(summary: Source(), targets: [Cr30080]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        Assert.Empty((await service.FindReferenceTargetsAsync(User, 7, number, CancellationToken.None))!);
+        Assert.Null(notes.CandidatesRead);
+    }
+
+    [Fact]
+    public async Task SavedReferencesAreThoseWhoseTargetTheOwnerMayOpen()
+    {
+        var notes = new StubNotes(document: Document(), targets: [Cr30080]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        await service.SaveAsync(User, 7, "v1", null,
+        [
+            new(Guid.NewGuid(), "Vezi [[note:12|30080]] și [[note:99|30080]]"),
+            new(Guid.NewGuid(), "Din nou [[note:12|30080]], apoi [[note:12|512]]")
+        ], CancellationToken.None);
+
+        // The text is saved as written; the table gets each valid target and number once.
+        Assert.Equal("Vezi [[note:12|30080]] și [[note:99|30080]]", notes.Saved!.Blocks[0].Content);
+        Assert.Equal([new NoteReferenceInput(12, "30080"), new NoteReferenceInput(12, "512")], notes.Saved.References);
+        Assert.Equal((User, 5, (int?)7), (notes.TargetsRead!.Value.UserId, notes.TargetsRead.Value.ContextId, notes.TargetsRead.Value.SourceNoteId));
+        Assert.Equal([12, 99], notes.TargetsRead.Value.NoteIds);
+    }
+
+    [Fact]
+    public async Task TextWithoutReferencesSavesNone()
+    {
+        var notes = new StubNotes(document: Document(), targets: [Cr30080]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        await service.SaveAsync(User, 7, "v1", null, [new(Guid.NewGuid(), "Numărul 30080 fără referință, [[note:12|x]]")], CancellationToken.None);
+
+        Assert.Empty(notes.Saved!.References);
+        Assert.Null(notes.TargetsRead);
+    }
+
+    [Fact]
+    public async Task TheDocumentHasTheNotesItsReferencesCanOpen()
+    {
+        var document = Document() with
+        {
+            Blocks = [new(Guid.NewGuid(), "Vezi [[note:12|30080]] și [[note:99|512]]", DateTime.UtcNow, DateTime.UtcNow)]
+        };
+        var notes = new StubNotes(document: document, targets: [Cr30080]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        var opened = await service.GetDocumentAsync(7, User, CancellationToken.None);
+
+        Assert.Equal([Cr30080], opened!.References);
+        Assert.Equal((5, (int?)7), (notes.TargetsRead!.Value.ContextId, notes.TargetsRead.Value.SourceNoteId));
+    }
+
+    [Fact]
+    public async Task ADocumentWithoutReferencesReadsNoTargets()
+    {
+        var notes = new StubNotes(document: Document(), targets: [Cr30080]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        Assert.Null((await service.GetDocumentAsync(7, User, CancellationToken.None))!.References);
+        Assert.Null(notes.TargetsRead);
+    }
+
+    [Fact]
+    public async Task BoardCardsHaveTheTargetsOfTheReferencesInTheirPreview()
+    {
+        var referring = Note(1, NoteTypes.Journal, September) with { Preview = "[[note:12|30080]] [[note:1|111]] [[note:99|512]]" };
+        var plain = Note(2, NoteTypes.Article, September) with { Preview = "Fără referințe" };
+        var notes = new StubNotes(board: [referring, plain], targets: [Cr30080, new(1, "Nota însăși 111", NoteTypes.Journal)]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+
+        var cards = (await service.GetBoardAsync(User, 5, CancellationToken.None)).Single().Notes;
+
+        // A note never opens itself from its own card.
+        Assert.Equal([Cr30080], cards.Single(note => note.Id == 1).References);
+        Assert.Null(cards.Single(note => note.Id == 2).References);
+        Assert.Equal((5, (int?)null), (notes.TargetsRead!.Value.ContextId, notes.TargetsRead.Value.SourceNoteId));
+    }
+
+    [Fact]
+    public async Task ReferenceTargetsAreReadForTheBoardOfTheNote()
+    {
+        var notes = new StubNotes(summary: Source(isOwner: false), targets: [Cr30080]);
+        var service = new NoteService(notes, new StubContexts(), UtcTime);
+        var asked = Enumerable.Range(0, NoteReferenceRules.MaxTargetsPerRequest + 10).Prepend(12).Prepend(7).Prepend(12).ToList();
+
+        var targets = await service.GetReferenceTargetsAsync(User, 7, asked, CancellationToken.None);
+
+        // Readers of a shared note see its references too; the note itself, invalid ids and repeats are not asked for.
+        Assert.Equal([Cr30080], targets);
+        Assert.Equal((5, (int?)7), (notes.TargetsRead!.Value.ContextId, notes.TargetsRead.Value.SourceNoteId));
+        Assert.Equal(NoteReferenceRules.MaxTargetsPerRequest, notes.TargetsRead.Value.NoteIds.Length);
+        Assert.DoesNotContain(7, notes.TargetsRead.Value.NoteIds);
+        Assert.DoesNotContain(0, notes.TargetsRead.Value.NoteIds);
+        Assert.Equal(12, notes.TargetsRead.Value.NoteIds[0]);
+    }
+
     private sealed class FixedTime(DateTimeOffset utcNow, TimeSpan offset) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => utcNow;
@@ -470,8 +616,29 @@ public sealed class NoteServiceTests
     }
 
     private sealed class StubNotes(NoteCreateStatus outcome = NoteCreateStatus.Created, IReadOnlyList<NoteSummary>? board = null,
-        NoteDocument? document = null, NoteSaveResult? saveResult = null, NoteSummary? summary = null, bool swapConflict = false) : INoteRepository
+        NoteDocument? document = null, NoteSaveResult? saveResult = null, NoteSummary? summary = null, bool swapConflict = false,
+        IReadOnlyList<NoteReferenceTarget>? targets = null) : INoteRepository
     {
+        public (string UserId, int ContextId, int SourceNoteId, string Digits)? CandidatesRead { get; private set; }
+        public (string UserId, int ContextId, int? SourceNoteId, int[] NoteIds)? TargetsRead { get; private set; }
+
+        // Like the data access: the digits anywhere in the title, never the source note.
+        public Task<IReadOnlyList<NoteReferenceTarget>> FindReferenceCandidatesAsync(string userId, int contextId, int sourceNoteId, string digits,
+            CancellationToken cancellationToken)
+        {
+            CandidatesRead = (userId, contextId, sourceNoteId, digits);
+            return Task.FromResult<IReadOnlyList<NoteReferenceTarget>>(
+                (targets ?? []).Where(target => target.Id != sourceNoteId && target.Title?.Contains(digits) == true).ToList());
+        }
+
+        public Task<IReadOnlyList<NoteReferenceTarget>> GetReferenceTargetsAsync(string userId, int contextId, int? sourceNoteId,
+            IReadOnlyCollection<int> noteIds, CancellationToken cancellationToken)
+        {
+            TargetsRead = (userId, contextId, sourceNoteId, [.. noteIds]);
+            return Task.FromResult<IReadOnlyList<NoteReferenceTarget>>(
+                (targets ?? []).Where(target => noteIds.Contains(target.Id) && target.Id != sourceNoteId).ToList());
+        }
+
         // The stored notes: a swap changes their orders, like the database.
         private readonly List<NoteSummary> stored = [.. board ?? []];
 

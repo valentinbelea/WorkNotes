@@ -20,6 +20,8 @@ public partial class WorkNotesDbContext : DbContext
 
     public virtual DbSet<NoteBlock> NoteBlocks { get; set; }
 
+    public virtual DbSet<NoteReference> NoteReferences { get; set; }
+
     public virtual DbSet<WorkContext> WorkContexts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -96,6 +98,24 @@ public partial class WorkNotesDbContext : DbContext
                 .IsConcurrencyToken();
 
             entity.HasOne(d => d.Note).WithMany(p => p.NoteBlocks).HasForeignKey(d => d.NoteId);
+        });
+
+        modelBuilder.Entity<NoteReference>(entity =>
+        {
+            entity.HasIndex(e => e.TargetNoteId, "IX_NoteReferences_TargetNoteId");
+
+            entity.HasIndex(e => new { e.SourceNoteId, e.TargetNoteId, e.DisplayText }, "UX_NoteReferences_SourceNoteId_TargetNoteId_DisplayText").IsUnique();
+
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_NoteReferences_CreatedAtUtc");
+            entity.Property(e => e.DisplayText).HasMaxLength(20);
+
+            entity.HasOne(d => d.SourceNote).WithMany(p => p.NoteReferenceSourceNotes).HasForeignKey(d => d.SourceNoteId);
+
+            entity.HasOne(d => d.TargetNote).WithMany(p => p.NoteReferenceTargetNotes)
+                .HasForeignKey(d => d.TargetNoteId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<WorkContext>(entity =>

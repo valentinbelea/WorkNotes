@@ -17,11 +17,12 @@ Rezumatul funcționalităților lucrate până acum; detaliile sunt în secțiun
 - **Dashboard**: o tablă pentru fiecare context, aleasă din lista cu bordură întreruptă (la focus bordura devine verde plin); subtitlul „Spațiul meu” din header.
 - **Note pe tablă**: post-it-uri galbene (jurnal) și salvie (articol), cu bandă adezivă în culoarea hârtiei și înclinări deterministe; grupate pe luni după ultima modificare (`ISNULL(modificare, creare)`); în fiecare lună, ordinea aleasă de proprietar (`Order`), schimbată prin drag-and-drop, cu cardul prins de bandă (version_0.02); în header data creării (stânga) și a ultimei modificări (dreapta), pe același rând; previzualizarea primelor paragrafe; titlul redenumit pe loc; ștergere cu confirmare; „Notă nouă” direct pe tablă, cu switch jurnal/articol; mai multe jurnale pe zi.
 - **Editorul de note** (CodeMirror 6): se deschide peste tablă; paragrafe cu identitate și audit propriu (bara de informații); căutare/înlocuire, undo/redo, Ctrl+S; detectarea salvărilor concurente; header cu sigla WN, taburile notelor deschise, Minimizează și Închide; acțiunile în footerul fiecărei note; minimizare în stânga-jos fără pierderea modificărilor; mai multe note deschise simultan, în taburi independente.
+- **Referințe interne între note** (version_0.02): după un număr tastat în editor (urmat de spațiu, punctuație, rând nou sau Tab) care apare ca număr întreg în titlul altor note ale tablei, o sugestie discretă oferă transformarea lui în referință (click sau tastatură); referința ține ID-ul notei, se deschide într-un tab al editorului și apare ca link și în previzualizarea cardurilor; relațiile sunt păstrate în `dbo.NoteReferences`.
 - **Mesaje de salvare**: succes, avertisment și eroare, fixe sus pe centru, cu buton de închidere, până le închide utilizatorul (și în dialoguri, deasupra overlay-ului).
 - **Sigla WN**: în fereastra editorului (maximizat și minimizat) și ca favicon (`logo-wn.svg`, `favicon.ico`).
 - **Localizare** ro/en/pl pentru toate textele; design „Hârtie & salvie”; funcționare de bază și fără JavaScript.
 
-Nu sunt încă implementate: referințele CR/bug, linkurile, autocomplete-ul și popup-urile (`WorkReferences`), salvarea automată, schimbarea vizibilității unei note, arhivarea.
+Nu sunt încă implementate: catalogul de referințe CR/bug (`WorkReferences`), linkurile externe, lista „Referințe către această notă”, salvarea automată, schimbarea vizibilității unei note, arhivarea.
 
 ## Localizare
 
@@ -134,12 +135,30 @@ Biblioteca este inclusă local în `wwwroot/lib/codemirror/codemirror.js`, cu `T
 
 Pe tablă, fiecare post-it arată în header data creării în stânga și data ultimei modificări în dreapta, pe același rând (același format, cu anul, fără etichete vizibile; data modificării lipsește cât timp nota nu a fost modificată), începutul primelor paragrafe și, pentru proprietar, titlul editabil pe loc (Enter salvează, Escape anulează) și ștergerea cu confirmare (`/?delete={id}`; paragrafele se șterg în cascadă). `NoteService.RenameAsync` și `DeleteAsync` permit aceste operații numai proprietarului.
 
-Nu sunt încă implementate: referințele CR/bug, linkurile, autocomplete-ul și popup-urile (necesită `WorkReferences`), salvarea automată.
+Nu sunt încă implementate: catalogul de referințe CR/bug și asocierile lui (`WorkReferences`), linkurile externe, salvarea automată. Referințele interne între note sunt descrise mai jos.
 
 ```powershell
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\006_CreateNotes.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\007_AllowSeveralJournalsPerDay.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\008_CreateNoteBlocks.sql'
+```
+
+### Referințe interne între note — version_0.02
+
+O notă poate trimite la alta de pe aceeași tablă (același context), fie ea jurnal sau articol, printr-un număr din titlul ei. Exemplu: există un post-it „CR 30080”; cine tastează într-o altă notă `30080` urmat de spațiu, un semn de punctuație, un rând nou sau Tab primește sub număr o sugestie discretă: „Creează referință către” și notele cu numărul în titlu, fiecare cu tipul (articol / jurnal) și titlul complet. Numărul trebuie să apară întreg, nu ca fragment (`30080` nu se găsește în `130080`), să aibă 3–18 cifre (`NoteReferenceRules.MinNumberLength`, `MaxNumberLength`; numerele mai scurte sunt prea frecvente în text) și să fie un cuvânt numai din cifre (`CR30080` nu se verifică). Sunt propuse numai celelalte note ale tablei pe care utilizatorul le poate vedea (ale lui și cele partajate cu contextul), nu și nota însăși. Nimic nu se schimbă automat: utilizatorul alege nota cu click sau de la tastatură (Tab intră în sugestie, săgețile se mută, Enter alege, Escape închide). Sugestia se închide și la click în afara ei și când tastarea continuă în altă zonă (alt rând sau înaintea numărului). Numai proprietarul, care scrie în notă, primește sugestii.
+
+După alegere, numărul devine o referință evidențiată ca un link. În text ea este păstrată ca `[[note:{id}|{număr}]]` (`NoteReferenceRules` pe server, `wwwroot/js/note-references.js` în editor): ID-ul stabil al notei destinație și numărul afișat. Editorul arată doar numărul, cu titlul și tipul actual al destinației ca tooltip, și tratează referința ca un întreg (cursorul o sare, Backspace o șterge întreagă; Ctrl+Z revine întâi la textul scris după ea, apoi la numărul simplu). Legătura se face prin ID, deci rămâne validă când titlul destinației se schimbă. Un număr care este deja o referință (sau lipit de una) nu mai este verificat.
+
+Click pe o referință (sau Ctrl+Enter lângă ea) deschide nota destinație într-un tab al editorului; dacă este deja deschisă, îi selectează tabul, fără duplicat. Pe tablă, previzualizarea cardurilor arată referințele ca linkuri (`/?note={id}`): cu editorul minimizat, click pe una îl readuce și arată tabul notei. Celelalte taburi își păstrează textul și modificările nesalvate. Fără JavaScript, textul read-only din editor are aceleași linkuri.
+
+O referință care nu mai poate fi deschisă — nota a fost ștearsă, a devenit privată, este în alt context, este nota însăși sau utilizatorul nu o poate vedea — își păstrează numărul, marcat discret (culoare estompată, subliniere punctată, tooltip), fără titlul destinației; click-ul nu deschide nimic. Referințele lipite dintr-o altă notă sunt verificate la server imediat (`?handler=ReferenceTargets`).
+
+Relațiile sunt păstrate în `dbo.NoteReferences` (scriptul `version_0.02\002_CreateNoteReferences.sql`): nota sursă, nota destinație, numărul afișat și data creării; câte un rând pentru fiecare sursă, destinație și număr, oricâte apariții ar avea în text. La fiecare salvare a textului, `NoteService` citește referințele din paragrafe și păstrează numai pe cele către note ale tablei pe care proprietarul le poate vedea; repository-ul înlocuiește rândurile notei în aceeași tranzacție cu salvarea (rândurile rămase își păstrează data creării). Ștergerea sursei îi șterge rândurile (cascadă); ștergerea destinației șterge întâi rândurile care o indică, apoi nota (tranzacție serializabilă; textul surselor păstrează numărul, marcat). Indexul `IX_NoteReferences_TargetNoteId` pregătește lista viitoare „Referințe către această notă”.
+
+Adrese: `GET /?handler=ReferenceSuggestions&note={id}&number={număr}` (notele propuse) și `GET /?handler=ReferenceTargets&note={id}&ids=…` (care dintre referințe se pot deschide; cel mult `NoteReferenceRules.MaxTargetsPerRequest` ID-uri), ambele cu răspuns JSON.
+
+```powershell
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\002_CreateNoteReferences.sql'
 ```
 
 ## Modulul de conturi — version_0.01
@@ -243,7 +262,8 @@ E:\GitRepository\Vali\WorkNotes\       # Rădăcina Git
     │   └── 008_CreateNoteBlocks.sql
     └── version_0.02\
         ├── 000_UpdateDatabaseVersion.sql
-        └── 001_AddNoteOrder.sql
+        ├── 001_AddNoteOrder.sql
+        └── 002_CreateNoteReferences.sql
 ```
 
 Folderele `Scripts` și `Solution` fac parte din același repository Git. Comenzile dotnet se rulează din `Solution`, iar scripturile se referă de acolo ca `..\Scripts\version_0.0x\...`.
@@ -284,6 +304,7 @@ Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scriptu
 8. `008_CreateNoteBlocks.sql`: creează `dbo.NoteBlocks` (paragrafele notelor, cu audit) și indexul pe `NoteId`, `Position`, dacă lipsesc.
 9. `version_0.02\000_UpdateDatabaseVersion.sql`: inserează `v.0.02` numai dacă lipsește; `v.0.01` rămâne în tabelă, iar footerul afișează versiunea cea mai mare, `v.0.02`.
 10. `version_0.02\001_AddNoteOrder.sql`: adaugă `dbo.Notes.[Order]`, numerotează notele existente în ordinea lor de pe tablă și creează indexul `IX_Notes_ContextId_Order`, dacă lipsesc.
+11. `version_0.02\002_CreateNoteReferences.sql`: creează `dbo.NoteReferences` (referințele interne dintre note), cheile externe către `Notes`, indexul unic pe sursă, destinație și număr și indexul pe destinație, dacă lipsesc.
 
 Alternativ, dacă `sqlcmd` este instalat:
 
@@ -298,6 +319,7 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\008_CreateNoteBlocks.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\000_UpdateDatabaseVersion.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\001_AddNoteOrder.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\002_CreateNoteReferences.sql'
 ```
 
 Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
@@ -308,14 +330,14 @@ După modificarea schemei prin SQL, regenerează clasele din baza de date:
 
 ```powershell
 dotnet tool restore
-dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --table dbo.ContextMembers --table dbo.Notes --table dbo.NoteBlocks --no-onconfiguring --force
+dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --table dbo.ContextMembers --table dbo.Notes --table dbo.NoteBlocks --table dbo.NoteReferences --no-onconfiguring --force
 dotnet build WorkNotes.sln
 dotnet test WorkNotes.sln --no-build --no-restore
 ```
 
 Comanda folosește Web pentru pornire și citirea configurației, dar generează fișierele numai în DataAccess. `--no-onconfiguring` păstrează conexiunea în configurație, fără să o scrie în clasele generate. Program.cs transmite connection string-ul extensiei AddDataAccess; această extensie înregistrează DbContext și providerul SQL Server.
 
-`--force` suprascrie fișierele generate `WorkNotes.DataAccess/Context/WorkNotesDbContext.cs`, `WorkNotes.DataAccess/Entities/DatabaseVersion.cs`, `WorkNotes.DataAccess/Entities/WorkContext.cs`, `WorkNotes.DataAccess/Entities/ContextMember.cs` `WorkNotes.DataAccess/Entities/Note.cs` și `WorkNotes.DataAccess/Entities/NoteBlock.cs`. Scaffolding-ul scrie fișierele cu CRLF; repository-ul folosește LF. Extensiile scrise manual se pun în fișiere partial separate. Pentru tabele viitoare, extinde lista de opțiuni `--table` astfel încât regenerarea contextului să includă toate entitățile necesare.
+`--force` suprascrie fișierele generate `WorkNotes.DataAccess/Context/WorkNotesDbContext.cs`, `WorkNotes.DataAccess/Entities/DatabaseVersion.cs`, `WorkNotes.DataAccess/Entities/WorkContext.cs`, `WorkNotes.DataAccess/Entities/ContextMember.cs` `WorkNotes.DataAccess/Entities/Note.cs`, `WorkNotes.DataAccess/Entities/NoteBlock.cs` și `WorkNotes.DataAccess/Entities/NoteReference.cs`. Scaffolding-ul scrie fișierele cu CRLF; repository-ul folosește LF. Extensiile scrise manual se pun în fișiere partial separate. Pentru tabele viitoare, extinde lista de opțiuni `--table` astfel încât regenerarea contextului să includă toate entitățile necesare.
 
 Pachetul EF Core Design este referit cu PrivateAssets=all în DataAccess și în Web (startup project), exclusiv pentru tooling. Providerul SQL Server este referit direct de DataAccess. Business nu are pachete EF. Instrumentul local dotnet-ef este păstrat pentru scaffolding. Niciun context nu folosește migrări EF sau istoric de migrări. Aplicația nu creează sau modifică schema și nu inserează versiuni la pornire.
 

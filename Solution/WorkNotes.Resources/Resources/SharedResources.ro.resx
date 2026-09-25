@@ -111,7 +111,7 @@
 <data name="Button_ShowBoard" xml:space="preserve"><value>Afișează</value></data>
 <data name="Field_Content" xml:space="preserve"><value>Conținutul notei</value></data>
 <data name="Editor_Placeholder" xml:space="preserve"><value>Scrie aici. Un rând gol separă paragrafele.</value></data>
-<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S salvează · Ctrl+F caută · Ctrl+Z anulează · Esc închide · un rând gol începe un paragraf nou</value></data>
+<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S salvează · Ctrl+F caută · Ctrl+Z anulează · Ctrl+Enter deschide referința de la cursor · Esc închide · un rând gol începe un paragraf nou</value></data>
 <data name="Editor_ReadOnly" xml:space="preserve"><value>Poți citi această notă; numai proprietarul o poate modifica.</value></data>
 <data name="Editor_NoScript" xml:space="preserve"><value>Editorul are nevoie de JavaScript. Conținutul notei este afișat mai jos, numai pentru citire.</value></data>
 <data name="Editor_StatusSaved" xml:space="preserve"><value>Salvat</value></data>
@@ -170,4 +170,10 @@
 <data name="Notes_ReorderFailed" xml:space="preserve"><value>Ordinea notelor nu a putut fi salvată. Încearcă din nou.</value></data>
 <data name="Notes_ReorderInvalidTarget" xml:space="preserve"><value>O notă poate schimba locul numai cu altă notă din aceeași lună.</value></data>
 <data name="Notes_ReorderConflict" xml:space="preserve"><value>Notele s-au schimbat între timp, iar ordinea nu a fost salvată. Reîncarcă pagina.</value></data>
+<data name="Notes_ReferenceTarget" xml:space="preserve"><value>„{0}” ({1})</value></data>
+<data name="Notes_ReferenceBroken" xml:space="preserve"><value>Nota acestei referințe nu mai există sau nu o poți deschide.</value></data>
+<data name="Editor_ReferenceSuggestion" xml:space="preserve"><value>Creează referință către</value></data>
+<data name="Editor_ReferenceOption" xml:space="preserve"><value>Creează referință către „{0}” ({1})</value></data>
+<data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab alege · Esc închide</value></data>
+<data name="Editor_ReferenceAvailable" xml:space="preserve"><value>Poți crea o referință către o notă cu acest număr: Tab pentru a alege, Esc pentru a închide.</value></data>
 </root>

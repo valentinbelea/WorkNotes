@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace WorkNotes.Business.Models;
 
 public static class NoteRules
@@ -30,15 +32,35 @@ public static class NoteRules
     public const int PreviewSourceLength = 300;
     public const int PreviewMaxLength = 280;
 
-    // The start of the note for its card: the first paragraphs, one per line, shortened at a word boundary.
+    // The start of the note for its card: the first paragraphs, one per line, shortened at a word boundary. References
+    // stay in their stored form (the card shows them as links); each counts as the number it shows and is never cut in
+    // half. A paragraph read only up to PreviewSourceLength characters may stop inside a reference, which is dropped.
     public static string? BuildPreview(IEnumerable<string>? paragraphs)
     {
-        var text = string.Join("\n", (paragraphs ?? []).Select(paragraph => paragraph.Trim()).Where(paragraph => paragraph.Length > 0));
+        var text = string.Join("\n", (paragraphs ?? [])
+            .Select(paragraph => (paragraph.Length >= PreviewSourceLength ? NoteReferenceRules.WithoutUnfinishedReference(paragraph) : paragraph).Trim())
+            .Where(paragraph => paragraph.Length > 0));
         if (text.Length == 0) return null;
-        if (text.Length <= PreviewMaxLength) return text;
-        var cut = text.LastIndexOfAny([' ', '\n', '\t'], PreviewMaxLength);
+        var parts = NoteReferenceRules.Split(text);
+        var visible = string.Concat(parts.Select(part => part.Text));
+        if (visible.Length <= PreviewMaxLength) return text;
+        var cut = visible.LastIndexOfAny([' ', '\n', '\t'], PreviewMaxLength);
         // A very long word is cut where the limit falls.
         if (cut < PreviewMaxLength / 2) cut = PreviewMaxLength;
-        return text[..cut].TrimEnd() + "…";
+        var preview = new StringBuilder();
+        var shown = 0;
+        foreach (var part in parts)
+        {
+            var room = cut - shown;
+            if (part.Text.Length > room)
+            {
+                // Plain text is cut at the limit; a reference that does not fit whole is left out.
+                if (part.TargetNoteId is null) preview.Append(part.Text, 0, room);
+                break;
+            }
+            preview.Append(part.TargetNoteId is { } targetNoteId ? NoteReferenceRules.Format(targetNoteId, part.Text) : part.Text);
+            shown += part.Text.Length;
+        }
+        return preview.ToString().TrimEnd() + "…";
     }
 }

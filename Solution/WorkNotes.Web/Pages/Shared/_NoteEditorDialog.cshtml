@@ -21,13 +21,20 @@
     {
         tabUrl = Url.Page("/Index", "NoteTab"),
         noteUrl = Url.Page("/Index"),
+        // References: the notes a typed number can refer to, and the notes pasted references can open.
+        referenceSuggestionsUrl = Url.Page("/Index", "ReferenceSuggestions"),
+        referenceTargetsUrl = Url.Page("/Index", "ReferenceTargets"),
+        // Only numbers of this length are looked up (NoteReferenceRules; the server checks again).
+        referenceNumber = new { min = NoteReferenceRules.MinNumberLength, max = NoteReferenceRules.MaxNumberLength },
         closeUrl,
         texts = new
         {
             placeholder = L["Editor_Placeholder"].Value, saved = L["Editor_StatusSaved"].Value, unsaved = L["Editor_StatusUnsaved"].Value,
             saving = L["Editor_StatusSaving"].Value, failed = L["Editor_StatusError"].Value, content = L["Field_Content"].Value,
             blockNew = L["Editor_BlockNew"].Value, infoHint = L["Editor_InfoHint"].Value, untitled = L["Notes_Untitled"].Value,
-            confirmCloseTab = L["Editor_ConfirmCloseTab"].Value, openFailed = L["Editor_OpenFailed"].Value
+            confirmCloseTab = L["Editor_ConfirmCloseTab"].Value, openFailed = L["Editor_OpenFailed"].Value,
+            referenceSuggestion = L["Editor_ReferenceSuggestion"].Value, referenceHint = L["Editor_ReferenceHint"].Value,
+            referenceAvailable = L["Editor_ReferenceAvailable"].Value, referenceBroken = L["Notes_ReferenceBroken"].Value
         },
         phrases
     };

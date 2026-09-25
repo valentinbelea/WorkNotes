@@ -11,6 +11,9 @@
         version = note.Version,
         readOnly = !note.IsOwner,
         saveUrl = Url.Page("/Index", "SaveNote", new { note = note.Id }),
+        // The notes the references in the text can open, with their tooltips; a reference to any other note is shown
+        // as one that can no longer be opened.
+        references = (note.References ?? []).Select(target => new { id = target.Id, label = NoteReferences.Label(L, target) }),
         // Each paragraph with its audit text (created / modified), shown in the info bar.
         blocks = note.Blocks.Select(block => new
         {
@@ -23,7 +26,8 @@
 }
 @* One note in the editor: its title, its own CodeMirror editor (with its own scroll) and its footer: the paragraph info,
    the type, context and visibility, the save status and Save. Each tab keeps its state independently.
-   The data-* values fill the minimized form when this tab is the active one. *@
+   The data-* values fill the minimized form when this tab is the active one. The hidden live region tells screen
+   reader users that a reference can be made from the number they just typed (note-editor.js). *@
 <section class="note-editor-panel" role="tabpanel" id="note-@note.Id-panel" aria-labelledby="note-@note.Id-tab" data-editor-panel="@note.Id"
          data-type-class="@(note.NoteType == NoteTypes.Article ? "note-sheet--article" : "note-sheet--journal")" data-type-name="@typeName"
          data-created-text="@NoteDates.Card(note.CreatedAtUtc)" data-created-iso="@NoteDates.Iso(note.CreatedAtUtc)"
@@ -44,10 +48,11 @@
             <p class="field-error">@L["Editor_NoScript"]</p>
             @foreach (var block in note.Blocks)
             {
-                <p class="note-sheet__paragraph">@block.Content</p>
+                <p class="note-sheet__paragraph">@NoteReferences.Html(block.Content, note.References, L, Url)</p>
             }
         </noscript>
     </div>
+    <p class="visually-hidden" aria-live="polite" data-editor-announce></p>
     <div class="note-editor-footer">
         @* Info bar: when the paragraph under the mouse (or at the cursor) was created and last changed.
            Shown, like the Save button, only once the editor runs. *@

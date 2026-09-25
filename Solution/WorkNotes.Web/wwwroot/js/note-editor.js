@@ -1,6 +1,7 @@
 // Note editor: CodeMirror 6 plus paragraph identity. A paragraph is the text between blank lines; it keeps a stable
 // id while it is edited, so the server can keep each paragraph's creation audit and change only what was modified.
-// The info bar shows that audit for the paragraph under the mouse, or at the cursor.
+// The info bar shows that audit for the paragraph under the mouse, or at the cursor. References to other notes are
+// note-references.js; opening one uses the editor's tabs.
 // Appearance comes from note-editor.css; texts come from the page (resources), never from this file.
 import {
     EditorState, StateField, StateEffect, Transaction, EditorView, Decoration, keymap, placeholder, highlightActiveLine,
@@ -8,6 +9,7 @@ import {
     search, searchKeymap, highlightSelectionMatches
 } from "../lib/codemirror/codemirror.js";
 import { showStatusMessage } from "./status-messages.js";
+import { noteReferences } from "./note-references.js";
 
 // ---- Paragraphs of a document ------------------------------------------------------------------------------
 
@@ -150,7 +152,9 @@ function createNoteEditor(panel, data, shared) {
     const infoElement = panel.querySelector("[data-editor-info]");
     const saveButton = panel.querySelector("[data-editor-save]");
     const titleInput = panel.querySelector("[data-editor-title]");
+    const announcer = panel.querySelector("[data-editor-announce]");
     const messages = shared.messages;
+    const noteId = panel.dataset.editorPanel;
 
     // Audit texts (as stored, and with unsaved changes) and last saved content of each stored paragraph, by id.
     const auditById = new Map(data.blocks.map(block => [block.id, block]));
@@ -265,6 +269,15 @@ function createNoteEditor(panel, data, shared) {
         placeholder(texts.placeholder),
         EditorState.phrases.of(shared.phrases),
         EditorView.contentAttributes.of({ "aria-label": texts.content }),
+        // Before the default keys: Tab, Escape and Ctrl+Enter have a meaning around references.
+        noteReferences({
+            texts, readOnly: data.readOnly, targets: data.references ?? [], lengths: shared.referenceNumber,
+            findTargets: number => shared.references(`${shared.urls.suggestions}&note=${noteId}&number=${encodeURIComponent(number)}`),
+            resolveTargets: ids => shared.references(`${shared.urls.targets}&note=${noteId}&${ids.map(id => `ids=${encodeURIComponent(id)}`).join("&")}`),
+            open: id => shared.openNote(id),
+            // A live region is read only when its text changes.
+            announce: text => { if (announcer) { announcer.textContent = ""; announcer.textContent = text; } }
+        }),
         keymap.of([...searchKeymap, ...historyKeymap, ...defaultKeymap]),
         EditorView.updateListener.of(update => {
             if (update.docChanged) updateStatus();
@@ -309,7 +322,16 @@ function initializeEditorWindow(dialog, settings) {
         texts: settings.texts,
         phrases: settings.phrases,
         messages: dialog.querySelector("[data-editor-messages]"),
-        token: dialog.querySelector("input[name='__RequestVerificationToken']")?.value ?? ""
+        token: dialog.querySelector("input[name='__RequestVerificationToken']")?.value ?? "",
+        // References: a reference opens its note in a tab of this window, like a note opened from the board.
+        urls: { suggestions: settings.referenceSuggestionsUrl, targets: settings.referenceTargetsUrl },
+        referenceNumber: settings.referenceNumber,
+        references: async url => {
+            const response = await fetch(url, { headers: { Accept: "application/json" } });
+            if (!response.ok) throw new Error(String(response.status));
+            return (await response.json()).targets ?? [];
+        },
+        openNote: id => openNote(String(id))
     };
     const windowPanel = dialog.querySelector("[data-editor-window]");
     const tabList = dialog.querySelector("[data-editor-tabs]");
@@ -391,10 +413,11 @@ function initializeEditorWindow(dialog, settings) {
         if (activeId === id) activate(order[index + 1] ?? order[index - 1]);
     }
 
-    // A note opened from the board: its tab if it is already open, otherwise a new tab fetched from the server.
+    // A note opened from the board or from a reference: its tab if it is already open, otherwise a new tab fetched from
+    // the server. The other tabs keep everything, unsaved changes included. False when the note could not be opened.
     async function openNote(id) {
         if (isMinimized()) restore({ focus: false });
-        if (tabs.has(id)) { activate(id); return; }
+        if (tabs.has(id)) { activate(id); return true; }
         try {
             const response = await fetch(`${settings.tabUrl}&note=${encodeURIComponent(id)}`, { headers: { Accept: "text/html" } });
             if (!response.ok) throw new Error(String(response.status));
@@ -403,12 +426,14 @@ function initializeEditorWindow(dialog, settings) {
             const item = fragment.content.querySelector("[data-editor-tab]");
             const panel = fragment.content.querySelector("[data-editor-panel]");
             if (!item || !panel) throw new Error("fragment");
-            if (tabs.has(id)) { activate(id); return; } // opened twice while loading
+            if (tabs.has(id)) { activate(id); return true; } // opened twice while loading
             tabList.append(item);
             panels.append(panel);
             activate(addTab(item, panel));
+            return true;
         } catch {
             showStatusMessage(shared.messages, "error", shared.texts.openFailed);
+            return false;
         }
     }
 
