@@ -10,7 +10,7 @@ Mesajele de salvare (succes, avertisment, eroare) apar fixe în partea de sus a 
 
 ## Stadiu — ce este implementat (version_0.01)
 
-Rezumatul funcționalităților lucrate până acum; detaliile sunt în secțiunile de mai jos și în [docs/design-system.md](docs/design-system.md).
+Rezumatul funcționalităților lucrate până acum; detaliile sunt în secțiunile de mai jos și în [docs/design-system.md](docs/design-system.md). Planificarea (viziune, model de date, arhitectură, pași realizați, decizii, backlog) este în [docs/planning](docs/planning/README.md).
 
 - **Conturi**: înregistrare, autentificare, datele contului, schimbarea parolei, deconectare (ASP.NET Core Identity, Database First).
 - **Contexte** (`/Contexts`): listare, adăugare, editare și ștergere în overlay pe aceeași pagină; creatorul devine `Owner`; lista arată doar contextele în care utilizatorul este membru; numai proprietarul editează, șterge și gestionează membrii (adăugare după e-mail, eliminare).
