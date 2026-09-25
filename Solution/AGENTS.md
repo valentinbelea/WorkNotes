@@ -112,7 +112,8 @@ Utilizarea resurselor .resx este obligatorie pentru toate textele afișate utili
 - Utilizați tokenurile din tokens.css și componentele din site.css / notes-board.css. Nu duplicați paleta și stilurile butoanelor în pagini.
 - Păstrați stările hover, active, disabled, focus vizibil, selecție și eroare, cu contrast lizibil și suport pentru reduced-motion.
 - Toate textele rămân în .resx. Designul nu autorizează introducerea de date fictive sau implementarea unor module fără cerință.
-- Tabla afișează ordinea primită de la serviciu (luni, apoi, în fiecare lună, `Order` crescător, ultima modificare și crearea descrescător). Singura reordonare DOM este schimbul prin drag-and-drop a două note ale proprietarului din aceeași lună, prinse numai de bandă; după salvare lista urmează ordinea returnată de server. Decalajele și rotațiile mici sunt deterministe din ID, aplicate prin clasele note-card--tilt-* alese de server (fără stiluri inline din JavaScript), încadrate în celula proprie; nu reordonează DOM și nu se recalculează aleatoriu la reîncărcare. Pe mobil sunt eliminate.
+- Tabla afișează ordinea primită de la serviciu (luni, apoi, în fiecare lună, `Order` crescător, ultima modificare și crearea descrescător). Singura reordonare DOM este schimbul prin drag-and-drop a două note ale proprietarului din aceeași lună, prinse numai de bandă; după salvări lista urmează ordinea returnată de server. Decalajele și rotațiile mici sunt deterministe din ID, aplicate prin clasele note-card--tilt-* alese de server (fără stiluri inline din JavaScript), încadrate în celula proprie; nu reordonează DOM și nu se recalculează aleatoriu la reîncărcare. Pe mobil sunt eliminate.
+- Drag-and-drop pe tablă (notes-board.js): un drag nou nu se anulează și nu se blochează cât timp un schimb anterior se salvează; schimbul se aplică imediat, iar salvările se trimit pe rând, în ordinea schimburilor. În timpul drag-ului nu se mută nicio celulă, nici elementul tras, nici în handlerul `drop`: schimbul se face la `dragend`, iar lista urmează ordinea serverului abia când nu mai există salvări în curs și niciun drag. Observație (taskul 02): după prima reordonare a doua nu mai pornea, deoarece `dragstart` era anulat până la răspunsul primei salvări (lentă, de exemplu la primele interogări EF), fără niciun semn vizibil.
 
 ## Verificarea livrării
 
@@ -135,6 +136,7 @@ dotnet test WorkNotes.sln --no-build --no-restore
 ## Git și limitele sarcinii
 
 - Nu faceți commit sau push fără solicitare explicită.
+- Commit-ul și push-ul cerute se fac în branch-ul curent selectat, cel activ în copia de lucru (în prezent `main_task_02`): `git push -u origin <branch-ul curent>`. Verificați numele înainte de push (`git branch --show-current`); nu creați alt branch și nu faceți push într-un branch cu nume asemănător (de exemplu `main_task_002` în loc de `main_task_02`) fără solicitare explicită.
 - Nu executați resetări, git clean, force push, rescrieri de istoric, checkout/restore care aruncă modificări, ștergeri de branch-uri sau alte operații Git distructive fără solicitare explicită.
 - Păstrați modificările existente ale utilizatorului. Inspectarea statusului și diff-urilor este permisă.
 - Implementați numai funcționalitatea cerută, simplu și clar. Nu adăugați automat modulele descrise în analiza de produs, autentificare, editor sau servicii externe.
