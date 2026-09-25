@@ -6,6 +6,7 @@ public interface INoteRepository
 {
     // Notes of one context that the user may see: their own and those shared with the context. Empty for non-members.
     Task<IReadOnlyList<NoteSummary>> GetBoardAsync(string userId, int contextId, CancellationToken cancellationToken);
+    // The new note goes first on its board: its order is below that of every note of its context.
     Task<NoteCreateStatus> AddAsync(NewNote note, CancellationToken cancellationToken);
     // The note with its paragraphs in order, when the user may see it (same rule as the board).
     Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken);
@@ -18,4 +19,8 @@ public interface INoteRepository
     Task<bool> RenameAsync(int noteId, string ownerUserId, string? title, DateTime savedAtUtc, CancellationToken cancellationToken);
     // Deletes a note owned by ownerUserId together with its paragraphs; false when there is no such note.
     Task<bool> DeleteAsync(int noteId, string ownerUserId, CancellationToken cancellationToken);
+    // Exchanges the orders of two notes owned by ownerUserId while both are still at the versions they were read with;
+    // null, with nothing saved, when either changed in the meantime. Otherwise each note's version before and after.
+    Task<IReadOnlyList<NoteVersionChange>?> SwapOrderAsync(string ownerUserId, NoteSummary first, NoteSummary second,
+        CancellationToken cancellationToken);
 }

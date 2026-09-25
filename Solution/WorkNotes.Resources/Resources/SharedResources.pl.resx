@@ -55,7 +55,7 @@
 <data name="Navigation_AccountDetails" xml:space="preserve"><value>Dane konta</value></data>
 <data name="Navigation_MySpace" xml:space="preserve"><value>Moja przestrzeń</value></data>
 <data name="Dashboard_Title" xml:space="preserve"><value>Na mojej tablicy</value></data>
-<data name="Dashboard_Description" xml:space="preserve"><value>Notatki kontekstu, pogrupowane według miesiąca ostatniej zmiany: najpierw dzienniki, potem artykuły.</value></data>
+<data name="Dashboard_Description" xml:space="preserve"><value>Notatki kontekstu, pogrupowane według miesiąca ostatniej zmiany.</value></data>
 <data name="Dashboard_EmptyBoard" xml:space="preserve"><value>Tablica jest pusta.</value></data>
 <data name="Button_NewNote" xml:space="preserve"><value>Nowa notatka</value></data>
 <data name="Navigation_Contexts" xml:space="preserve"><value>Konteksty</value></data>
@@ -166,4 +166,8 @@
 <data name="Editor_CloseTab" xml:space="preserve"><value>Zamknij notatkę</value></data>
 <data name="Editor_ConfirmCloseTab" xml:space="preserve"><value>Notatka „{0}” ma niezapisane zmiany. Zamknąć ją bez zapisywania?</value></data>
 <data name="Editor_OpenFailed" xml:space="preserve"><value>Nie udało się otworzyć notatki. Spróbuj ponownie.</value></data>
+<data name="Notes_DragHandle" xml:space="preserve"><value>Przeciągnij taśmę, aby przenieść notatkę</value></data>
+<data name="Notes_ReorderFailed" xml:space="preserve"><value>Nie udało się zapisać kolejności notatek. Spróbuj ponownie.</value></data>
+<data name="Notes_ReorderInvalidTarget" xml:space="preserve"><value>Notatka może zamienić się miejscem tylko z inną notatką z tego samego miesiąca.</value></data>
+<data name="Notes_ReorderConflict" xml:space="preserve"><value>Notatki zmieniły się w międzyczasie i kolejność nie została zapisana. Odśwież stronę.</value></data>
 </root>

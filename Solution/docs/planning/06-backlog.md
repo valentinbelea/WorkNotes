@@ -26,6 +26,9 @@
 - Pe telefon, bara de taburi arată aproximativ un tab și jumătate; restul se derulează.
 - Cu fonturi foarte late (de exemplu pe unele sisteme Linux), data modificării de pe card trece pe al doilea rând.
 - Redenumirea pe loc nu mută cardul imediat; ordinea se actualizează la următoarea încărcare a tablei.
+- După un schimb pe tablă, un editor deschis pe aceeași notă în alt tab sau în altă fereastră primește conflict la următoarea salvare (fără să suprascrie ceva); editorul din aceeași pagină primește noua versiune.
+- Ordonarea se face numai cu mouse-ul (drag-and-drop HTML5); nu există încă o alternativă de la tastatură, iar pe ecranele tactile depinde de suportul browserului.
+- Două note cu aceeași valoare `Order` (posibil numai prin inserări directe în SQL) nu își schimbă locurile prin drag-and-drop; tabla le ordonează după date.
 
 ## Întrebări deschise
 

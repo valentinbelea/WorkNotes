@@ -24,3 +24,12 @@
 | 20 | Contextul se alege pe tablă, înainte de editor; editorul doar îl afișează | Confirmat de utilizator |
 | 21 | Sigla WN numai în fereastra editorului; favicon păstrat | Cerința utilizatorului |
 | 22 | Taskul 02 trece la versiunea 0.02: scripturile noi merg în `Scripts/version_0.02`, iar `v.0.02` se adaugă ca rând nou în `DatabaseVersion`, fără a modifica `v.0.01` | Cerința utilizatorului; tabela nu are dată de instalare, versiunea curentă este cea mai mare înregistrată, iar scripturile de versiune păstrează datele existente |
+| 23 | Coloana de ordonare se numește `Order`, scrisă `[Order]` în SQL | Numele cerut; EF Core delimitează singur identificatorii, iar regulile proiectului nu interzic cuvintele rezervate |
+| 24 | Notele existente sunt numerotate pe context: jurnalele, apoi articolele, fiecare de la ultima modificare | Reproduce exact ordinea de până atunci în fiecare lună, fără calculul lunilor în SQL |
+| 25 | În lună: `Order` crescător, apoi ultima modificare, crearea și `Id` descrescător | Cerința utilizatorului; direcțiile descrescătoare păstrează „cele mai recente primele”, iar `Id` face rezultatul determinist |
+| 26 | O notă nouă primește minimul contextului minus 1, citit cu `UPDLOCK, HOLDLOCK` | Apare prima în luna curentă, unde a fost cardul nou; notele create simultan primesc valori diferite |
+| 27 | Schimbul este permis numai proprietarului ambelor note, în același context și aceeași lună locală; se verifică și pe server | Doar proprietarul modifică o notă; grupul tablei este luna |
+| 28 | Schimbul interschimbă cele două valori într-un singur `UPDATE`, cu verificarea `RowVersion`, fără să schimbe auditul | Atomic și sigur la modificări concurente; o notă nu își schimbă luna când este mutată |
+| 29 | Serverul răspunde cu ordinea lunii, iar lista o urmează; la eșec lista revine la ordinea dinainte | Interfața rămâne la fel ca baza de date, și când tabla din pagină era veche |
+| 30 | Banda este un element real (`note-card__tape`) doar pe cardurile proprietarului; drag-and-drop HTML5 nativ | Zona de drag este exact banda; browserul desenează imaginea trasă, deci nu sunt necesare stiluri inline |
+| 31 | După un schimb, taburile editorului din pagină primesc noile versiuni ale notelor (`note-board:versions`) | Ordinea nu este conținut: editorul deschis nu trebuie să raporteze un conflict fals |

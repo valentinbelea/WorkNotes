@@ -37,6 +37,7 @@ Business întoarce coduri de stare (`NoteSaveStatus`, `WorkContextSaveStatus` et
 | `/?handler=NoteTab&note={id}` (GET) | Un tab nou pentru editorul deja deschis (HTML) |
 | `/?handler=SaveNote&note={id}` (POST JSON) | Salvarea unei note din editor |
 | `/?handler=CreateNote`, `RenameNote`, `DeleteNote` (POST) | Crearea, redenumirea pe loc, ștergerea |
+| `/?handler=SwapNotes` (POST, răspuns JSON) | Schimbul a două note din aceeași lună, după drag-and-drop; răspunde cu ordinea lunii și versiunile noi |
 | `/Contexts`, `?add=true`, `?edit={id}`, `?delete={id}`, `?members={id}` | Contextele și overlay-urile lor |
 | `/Account/...` | Înregistrare, autentificare, cont, parolă, deconectare |
 
@@ -58,8 +59,8 @@ Starea overlay-urilor este în URL: fiecare dialog se poate deschide și fără 
 
 | Fișier | Rol |
 | --- | --- |
-| `notes-board.js` | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există) |
-| `note-editor.js` | Editorul: câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea |
+| `notes-board.js` | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există), schimbul a două carduri prin drag-and-drop, prinse de bandă |
+| `note-editor.js` | Editorul: câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; după un schimb pe tablă, taburile notelor mutate primesc versiunile noi (`note-board:versions`) |
 | `status-messages.js` | Afișarea mesajelor de salvare din scripturi, din template-uri randate de server |
 | `modal.js` | Dialogurile modale (Escape și click în afară revin la adresa de închidere) |
 | `navigation.js`, `language.js`, `validation.js` | Meniul, selectorul de limbă, validarea client |

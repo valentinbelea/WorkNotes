@@ -290,6 +290,9 @@ function createNoteEditor(panel, data, shared) {
 
     return {
         view, save, isDirty,
+        // The note changed places on the board (notes-board.js): its row has a new version, its content is the same.
+        // An editor that was up to date goes on with the new version; a stale one still gets the conflict.
+        followVersion: (previous, current) => { if (version === previous) version = current; },
         title: () => (titleInput ? titleInput.value.trim() : panel.querySelector(".note-sheet__title")?.textContent.trim()) || texts.untitled,
         focus: () => { view.requestMeasure(); if (!data.readOnly) view.focus(); }
     };
@@ -471,6 +474,10 @@ function initializeEditorWindow(dialog, settings) {
     document.addEventListener("note-editor:open", event => {
         event.preventDefault();
         openNote(String(event.detail.id));
+    });
+    // Two cards swapped on the board: the tabs of those notes take the notes' new versions.
+    document.addEventListener("note-board:versions", event => {
+        for (const change of event.detail) tabs.get(String(change.id))?.editor.followVersion(change.previous, change.version);
     });
 
     const first = dialog.querySelector("[data-editor-tab]");

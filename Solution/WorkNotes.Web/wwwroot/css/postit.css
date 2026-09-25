@@ -13,9 +13,9 @@
 /* The sage panel is close to the selection green, so selections and ghost hovers on it use the note yellow. */
 .postit-panel ::selection { background: var(--wn-note-paper); }
 .postit-panel .btn-ghost:hover { background: var(--wn-note-paper); }
-/* Decorative image straddles the top edge and never captures pointer input. */
-.postit-panel::before, .note-card::before {
-    content: "";
+/* The tape straddles the top edge. As a pseudo-element it is decoration and never captures pointer input. On the
+   owner's cards it is an element instead (note-card__tape), in the same place: the handle for dragging the card. */
+.postit-panel::before, .note-card::before, .note-card__tape {
     position: absolute;
     z-index: 1;
     top: -1rem;
@@ -24,8 +24,9 @@
     height: 2.2rem;
     background: var(--postit-tape) center / contain no-repeat;
     transform: translateX(-50%) rotate(-2deg);
-    pointer-events: none;
 }
+.postit-panel::before, .note-card::before { content: ""; pointer-events: none; }
+.note-card:has(> .note-card__tape)::before { content: none; }
 .note-card--sage { --postit-color: var(--wn-note-sage); --postit-tape: url("../images/postit-tape-sage.svg"); }
 /* Journals are paper yellow, articles sage; the unsaved card previews the colour of the chosen type. */
 .note-card--article, .note-card--draft:has(.note-type-switch input[value="Article"]:checked) {
@@ -41,4 +42,6 @@
 @media (forced-colors: active) {
     .postit-panel, .note-card { background: Canvas; border: 1px solid CanvasText; }
     .postit-panel::before, .note-card::before { display: none; }
+    /* The handle stays, drawn as a small bar. */
+    .note-card__tape { background: ButtonFace; border: 1px solid ButtonText; }
 }

@@ -1,4 +1,4 @@
 namespace WorkNotes.Business.Models;
 
-// One month of a board, by the notes' local creation date; journals come before articles.
+// One month of a board, by the local date of the notes' last change; the notes are in their board order.
 public sealed record NoteMonthGroup(int Year, int Month, IReadOnlyList<NoteSummary> Notes);
