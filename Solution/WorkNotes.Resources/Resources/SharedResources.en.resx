@@ -161,4 +161,9 @@
 <data name="Editor_Maximize" xml:space="preserve"><value>Maximize the editor</value></data>
 <data name="Editor_CloseEditor" xml:space="preserve"><value>Close the editor</value></data>
 <data name="Editor_Minimized" xml:space="preserve"><value>Minimized editor</value></data>
+<data name="Editor_Title" xml:space="preserve"><value>Note editor</value></data>
+<data name="Editor_Tabs" xml:space="preserve"><value>Open notes</value></data>
+<data name="Editor_CloseTab" xml:space="preserve"><value>Close the note</value></data>
+<data name="Editor_ConfirmCloseTab" xml:space="preserve"><value>The note “{0}” has unsaved changes. Close it without saving them?</value></data>
+<data name="Editor_OpenFailed" xml:space="preserve"><value>The note could not be opened. Please try again.</value></data>
 </root>

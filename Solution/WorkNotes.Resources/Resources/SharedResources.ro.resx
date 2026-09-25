@@ -161,4 +161,9 @@
 <data name="Editor_Maximize" xml:space="preserve"><value>Maximizează editorul</value></data>
 <data name="Editor_CloseEditor" xml:space="preserve"><value>Închide editorul</value></data>
 <data name="Editor_Minimized" xml:space="preserve"><value>Editor minimizat</value></data>
+<data name="Editor_Title" xml:space="preserve"><value>Editor de note</value></data>
+<data name="Editor_Tabs" xml:space="preserve"><value>Note deschise</value></data>
+<data name="Editor_CloseTab" xml:space="preserve"><value>Închide nota</value></data>
+<data name="Editor_ConfirmCloseTab" xml:space="preserve"><value>Nota „{0}” are modificări nesalvate. O închizi fără să le salvezi?</value></data>
+<data name="Editor_OpenFailed" xml:space="preserve"><value>Nota nu a putut fi deschisă. Încearcă din nou.</value></data>
 </root>

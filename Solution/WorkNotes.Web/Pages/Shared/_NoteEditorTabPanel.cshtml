@@ -1,0 +1,74 @@
+@model WorkNotes.Business.Models.NoteDocument
+@using WorkNotes.Business.Models
+@using WorkNotes.Web.Notes
+@{
+    var note = Model;
+    var title = note.Title ?? L["Notes_Untitled"].Value;
+    var typeName = note.NoteType == NoteTypes.Article ? L["NoteType_Article"].Value : L["NoteType_Journal"].Value;
+    // The note's own data; the texts shared by all tabs are in the dialog (#note-editor-data).
+    var noteData = new
+    {
+        version = note.Version,
+        readOnly = !note.IsOwner,
+        saveUrl = Url.Page("/Index", "SaveNote", new { note = note.Id }),
+        // Each paragraph with its audit text (created / modified), shown in the info bar.
+        blocks = note.Blocks.Select(block => new
+        {
+            id = block.Id,
+            content = block.Content,
+            info = NoteDates.BlockAudit(L, block.CreatedAtUtc, block.ModifiedAtUtc),
+            unsavedInfo = NoteDates.BlockAudit(L, block.CreatedAtUtc, block.ModifiedAtUtc, unsaved: true)
+        })
+    };
+}
+@* One note in the editor: its title, its own CodeMirror editor (with its own scroll) and its footer: the paragraph info,
+   the type, context and visibility, the save status and Save. Each tab keeps its state independently.
+   The data-* values fill the minimized form when this tab is the active one. *@
+<section class="note-editor-panel" role="tabpanel" id="note-@note.Id-panel" aria-labelledby="note-@note.Id-tab" data-editor-panel="@note.Id"
+         data-type-class="@(note.NoteType == NoteTypes.Article ? "note-sheet--article" : "note-sheet--journal")" data-type-name="@typeName"
+         data-created-text="@NoteDates.Card(note.CreatedAtUtc)" data-created-iso="@NoteDates.Iso(note.CreatedAtUtc)"
+         data-modified-text="@NoteDates.Card(note.ModifiedAtUtc)" data-modified-iso="@NoteDates.Iso(note.ModifiedAtUtc)">
+    @if (note.IsOwner)
+    {
+        <h2 id="note-@note.Id-title" class="visually-hidden">@title</h2>
+        <label class="visually-hidden" for="note-@note.Id-title-input">@L["Field_Title"]</label>
+        <input id="note-@note.Id-title-input" class="note-sheet__title" value="@note.Title" placeholder="@L["Notes_TitlePlaceholder"]" maxlength="@NoteRules.TitleMaxLength" autocomplete="off" data-editor-title />
+    }
+    else
+    {
+        <h2 id="note-@note.Id-title" class="note-sheet__title">@title</h2>
+    }
+    @* The editor container has its own scroll; the dialog and the board behind it do not move. *@
+    <div class="note-sheet__editor" data-note-editor>
+        <noscript>
+            <p class="field-error">@L["Editor_NoScript"]</p>
+            @foreach (var block in note.Blocks)
+            {
+                <p class="note-sheet__paragraph">@block.Content</p>
+            }
+        </noscript>
+    </div>
+    <div class="note-editor-footer">
+        @* Info bar: when the paragraph under the mouse (or at the cursor) was created and last changed.
+           Shown, like the Save button, only once the editor runs. *@
+        <div class="note-editor-info" data-editor-info-bar hidden>
+            <p class="note-editor-info__paragraph" data-editor-info>@L["Editor_InfoHint"]</p>
+            <p class="note-editor-info__help">@(note.IsOwner ? L["Editor_Help"] : L["Editor_ReadOnly"])</p>
+        </div>
+        <div class="note-editor-toolbar">
+            <p class="note-editor-toolbar__meta">
+                <span>@typeName</span>
+                <span>@note.ContextName</span>
+                <span>@(note.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>
+            </p>
+            <p class="note-editor-toolbar__status" role="status" aria-live="polite" data-editor-status></p>
+            @if (note.IsOwner)
+            {
+                <div class="actions">
+                    <button type="button" class="btn btn-primary" data-editor-save disabled hidden>@L["Button_Save"]</button>
+                </div>
+            }
+        </div>
+    </div>
+    <script type="application/json" data-editor-note>@Json.Serialize(noteData)</script>
+</section>

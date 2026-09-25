@@ -1,0 +1,17 @@
+@model WorkNotes.Business.Models.NoteDocument
+@using WorkNotes.Business.Models
+@{
+    var title = Model.Title ?? L["Notes_Untitled"].Value;
+    var typeModifier = Model.NoteType == NoteTypes.Article ? "note-editor-tab--article" : "note-editor-tab--journal";
+}
+@* One open note in the editor's tab bar: selecting it shows its panel; its own close button closes only this note
+   (note-editor.js, which also shows the close button). The dot has the colour of the note type. *@
+<div class="note-editor-tab @typeModifier" data-editor-tab="@Model.Id">
+    <button type="button" role="tab" id="note-@Model.Id-tab" class="note-editor-tab__select" aria-controls="note-@Model.Id-panel" aria-selected="true" data-editor-tab-select>
+        <span class="visually-hidden">@(Model.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
+        <span class="note-editor-tab__title" title="@title" data-editor-tab-title>@title</span>
+    </button>
+    <button type="button" class="note-editor-tab__close" aria-label="@L["Editor_CloseTab"]" title="@L["Editor_CloseTab"]" data-editor-tab-close hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 8l8 8M16 8l-8 8" /></svg>
+    </button>
+</div>

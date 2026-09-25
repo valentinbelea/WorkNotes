@@ -82,6 +82,14 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         return Page();
     }
 
+    // A note opened from the board while the editor is already on the page: note-editor.js adds it as a new tab.
+    public async Task<IActionResult> OnGetNoteTabAsync(int note, CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return Unauthorized();
+        var document = await notes.GetDocumentAsync(note, UserId, cancellationToken);
+        return document is null ? NotFound() : Partial("_NoteEditorTab", document);
+    }
+
     // Called by note-editor.js with a JSON body; the antiforgery token travels in the RequestVerificationToken header.
     public async Task<IActionResult> OnPostSaveNoteAsync(int note, [FromBody] NoteSaveRequest? request, CancellationToken cancellationToken)
     {

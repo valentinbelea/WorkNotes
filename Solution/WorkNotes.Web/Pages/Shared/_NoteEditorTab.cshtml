@@ -1,0 +1,7 @@
+@model WorkNotes.Business.Models.NoteDocument
+@* A note added to an editor that is already open (IndexModel.OnGetNoteTabAsync): note-editor.js moves the tab button
+   into the tab bar and the panel into the editor. *@
+<div data-editor-tab-fragment>
+    <partial name="_NoteEditorTabButton" model="Model" />
+    <partial name="_NoteEditorTabPanel" model="Model" />
+</div>

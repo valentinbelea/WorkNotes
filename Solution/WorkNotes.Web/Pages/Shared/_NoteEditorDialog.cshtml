@@ -5,7 +5,6 @@
     var note = Model.OpenNote!;
     var title = note.Title ?? L["Notes_Untitled"].Value;
     var typeClass = note.NoteType == NoteTypes.Article ? "note-sheet--article" : "note-sheet--journal";
-    var typeName = note.NoteType == NoteTypes.Article ? L["NoteType_Article"].Value : L["NoteType_Journal"].Value;
     var closeUrl = Url.Page("/Index", new { context = note.ContextId });
     // Texts the editor shows; JavaScript reads them instead of carrying its own translations.
     var phrases = new Dictionary<string, string>
@@ -17,41 +16,39 @@
         ["replaced $ matches"] = L["Editor_Phrase_ReplacedMatches"], ["replaced match on line $"] = L["Editor_Phrase_ReplacedOnLine"],
         ["on line"] = L["Editor_Phrase_OnLine"], ["Go to line"] = L["Editor_Phrase_GoToLine"], ["go"] = L["Editor_Phrase_Go"]
     };
+    // Shared by all tabs; each tab carries its own note data (_NoteEditorTabPanel).
     var editorData = new
     {
-        version = note.Version,
-        readOnly = !note.IsOwner,
-        saveUrl = Url.Page("/Index", "SaveNote", new { note = note.Id }),
-        // Each paragraph with its audit text (created / modified), shown in the info bar.
-        blocks = note.Blocks.Select(block => new
-        {
-            id = block.Id,
-            content = block.Content,
-            info = NoteDates.BlockAudit(L, block.CreatedAtUtc, block.ModifiedAtUtc),
-            unsavedInfo = NoteDates.BlockAudit(L, block.CreatedAtUtc, block.ModifiedAtUtc, unsaved: true)
-        }),
+        tabUrl = Url.Page("/Index", "NoteTab"),
+        noteUrl = Url.Page("/Index"),
+        closeUrl,
         texts = new
         {
             placeholder = L["Editor_Placeholder"].Value, saved = L["Editor_StatusSaved"].Value, unsaved = L["Editor_StatusUnsaved"].Value,
             saving = L["Editor_StatusSaving"].Value, failed = L["Editor_StatusError"].Value, content = L["Field_Content"].Value,
-            blockNew = L["Editor_BlockNew"].Value, infoHint = L["Editor_InfoHint"].Value, untitled = L["Notes_Untitled"].Value
+            blockNew = L["Editor_BlockNew"].Value, infoHint = L["Editor_InfoHint"].Value, untitled = L["Notes_Untitled"].Value,
+            confirmCloseTab = L["Editor_ConfirmCloseTab"].Value, openFailed = L["Editor_OpenFailed"].Value
         },
         phrases
     };
 }
 @* The note editor over its board, 90% of the window. Without JavaScript the open dialog is a CSS overlay;
    modal.js makes it modal (Escape and a click outside go back to the board, after the unsaved-changes warning).
-   The header only has Minimize and Close; the editor's actions (Save, the context and the other details) are in the footer.
-   Minimize (note-editor.js) only changes how the dialog is shown: the sheet is hidden, with its content, title and unsaved
-   changes, and the compact form in the bottom-left corner brings it back (Maximize or double-click). *@
-<dialog class="modal note-editor-dialog" open data-modal data-close-url="@closeUrl" aria-labelledby="note-title">
+   Each open note is a tab (note-editor.js adds the notes opened later from the board, without reloading the page).
+   The header has the tabs and, on the right, Minimize and Close (which closes the editor with all its tabs); each
+   note's actions are in its own footer. Minimize only changes how the dialog is shown: the tabs keep their state,
+   and the compact form in the bottom-left corner shows the active tab and brings the editor back. *@
+<dialog class="modal note-editor-dialog" open data-modal data-close-url="@closeUrl" aria-label="@L["Editor_Title"]">
     @* Save results, fixed at the top centre of the window, above the editor, until the user closes them. Inside the dialog,
        so they stay usable while it is modal; not a live region: the toolbar status already announces each save. *@
     <div class="status-region" data-editor-messages></div>
-    <article class="modal-panel modal-panel--editor postit-panel note-sheet @typeClass">
+    <article class="modal-panel modal-panel--editor postit-panel note-sheet @typeClass" data-editor-window>
         <div class="note-editor-header">
-            @* The WN mark belongs to the editor window only (decorative); the header's actions stay on the right. *@
+            @* The WN mark belongs to the editor window only (decorative). *@
             <img class="note-editor-logo" src="~/images/logo-wn.svg" alt="" width="32" height="32" asp-append-version="true" />
+            <div class="note-editor-tabs" role="tablist" aria-label="@L["Editor_Tabs"]" data-editor-tabs>
+                <partial name="_NoteEditorTabButton" model="note" />
+            </div>
             <button type="button" class="note-editor-icon" aria-label="@L["Editor_Minimize"]" title="@L["Editor_Minimize"]" data-editor-minimize hidden>
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 17.5h12" /></svg>
             </button>
@@ -59,58 +56,20 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
             </a>
         </div>
-        @if (note.IsOwner)
-        {
-            <h2 id="note-title" class="visually-hidden">@title</h2>
-            <label class="visually-hidden" for="note-title-input">@L["Field_Title"]</label>
-            <input id="note-title-input" class="note-sheet__title" value="@note.Title" placeholder="@L["Notes_TitlePlaceholder"]" maxlength="@NoteRules.TitleMaxLength" autocomplete="off" data-editor-title />
-        }
-        else
-        {
-            <h2 id="note-title" class="note-sheet__title">@title</h2>
-        }
         @Html.AntiForgeryToken()
-        @* The editor container has its own scroll; the dialog and the board behind it do not move. *@
-        <div class="note-sheet__editor" data-note-editor>
-            <noscript>
-                <p class="field-error">@L["Editor_NoScript"]</p>
-                @foreach (var block in note.Blocks)
-                {
-                    <p class="note-sheet__paragraph">@block.Content</p>
-                }
-            </noscript>
-        </div>
-        <div class="note-editor-footer">
-            @* Info bar: when the paragraph under the mouse (or at the cursor) was created and last changed.
-               Shown, like the Save button, only once the editor runs. *@
-            <div class="note-editor-info" data-editor-info-bar hidden>
-                <p class="note-editor-info__paragraph" data-editor-info>@L["Editor_InfoHint"]</p>
-                <p class="note-editor-info__help">@(note.IsOwner ? L["Editor_Help"] : L["Editor_ReadOnly"])</p>
-            </div>
-            <div class="note-editor-toolbar">
-                <p class="note-editor-toolbar__meta">
-                    <span>@typeName</span>
-                    <span>@note.ContextName</span>
-                    <span>@(note.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>
-                </p>
-                <p class="note-editor-toolbar__status" role="status" aria-live="polite" data-editor-status></p>
-                @if (note.IsOwner)
-                {
-                    <div class="actions">
-                        <button type="button" class="btn btn-primary" data-editor-save disabled hidden>@L["Button_Save"]</button>
-                    </div>
-                }
-            </div>
+        <div class="note-editor-panels" data-editor-panels>
+            <partial name="_NoteEditorTabPanel" model="note" />
         </div>
     </article>
-    @* The minimized editor: shown by the note-editor-dialog--minimized class only. *@
+    @* The minimized editor, shown by the note-editor-dialog--minimized class only; note-editor.js fills it with the
+       tab that is active when the editor is minimized. *@
     <div class="note-editor-minimized postit-panel note-sheet @typeClass" role="group" aria-label="@L["Editor_Minimized"]" data-editor-minimized>
         <img class="note-editor-logo" src="~/images/logo-wn.svg" alt="" width="32" height="32" asp-append-version="true" />
         <div class="note-editor-minimized__text">
-            <span class="note-editor-minimized__type">@typeName</span>
+            <span class="note-editor-minimized__type" data-editor-minimized-type>@(note.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
             <strong class="note-editor-minimized__title" data-editor-minimized-title>@title</strong>
             <span class="note-editor-minimized__dates">
-                <span><span class="visually-hidden">@L["Notes_Created"]</span> <time datetime="@NoteDates.Iso(note.CreatedAtUtc)">@NoteDates.Card(note.CreatedAtUtc)</time></span>
+                <span><span class="visually-hidden">@L["Notes_Created"]</span> <time datetime="@NoteDates.Iso(note.CreatedAtUtc)" data-editor-created>@NoteDates.Card(note.CreatedAtUtc)</time></span>
                 <span><span class="visually-hidden">@L["Notes_Modified"]</span> <time datetime="@NoteDates.Iso(note.ModifiedAtUtc)" data-editor-modified>@NoteDates.Card(note.ModifiedAtUtc)</time></span>
             </span>
         </div>

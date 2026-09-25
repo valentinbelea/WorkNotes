@@ -161,4 +161,9 @@
 <data name="Editor_Maximize" xml:space="preserve"><value>Maksymalizuj edytor</value></data>
 <data name="Editor_CloseEditor" xml:space="preserve"><value>Zamknij edytor</value></data>
 <data name="Editor_Minimized" xml:space="preserve"><value>Zminimalizowany edytor</value></data>
+<data name="Editor_Title" xml:space="preserve"><value>Edytor notatek</value></data>
+<data name="Editor_Tabs" xml:space="preserve"><value>Otwarte notatki</value></data>
+<data name="Editor_CloseTab" xml:space="preserve"><value>Zamknij notatkę</value></data>
+<data name="Editor_ConfirmCloseTab" xml:space="preserve"><value>Notatka „{0}” ma niezapisane zmiany. Zamknąć ją bez zapisywania?</value></data>
+<data name="Editor_OpenFailed" xml:space="preserve"><value>Nie udało się otworzyć notatki. Spróbuj ponownie.</value></data>
 </root>

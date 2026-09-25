@@ -1,11 +1,29 @@
 /* Note editor: a dialog over the board, 90% of the window, holding the note's sheet and the CodeMirror editor.
    CodeMirror injects its own base styles; everything WorkNotes adds is here, on normal classes, with the palette tokens. */
 .modal-panel--editor { display: flex; flex-direction: column; gap: 1rem; width: 90vw; max-width: none; height: 90vh; height: 90dvh; margin: 0; padding: clamp(1rem, 2.5vw, 2rem); }
-/* Header: only Minimize and Close, on the right. Footer: the paragraph info, then the details, the save status and Save. */
-.note-editor-header { display: flex; flex: none; align-items: center; justify-content: flex-end; gap: .15rem; margin: -.5rem -.5rem -.75rem 0; }
+/* Header: the WN mark, the tabs of the open notes and, on the right, Minimize and Close. Each note's footer: the paragraph
+   info, then the details, the save status and Save. */
+.note-editor-header { display: flex; flex: none; align-items: center; gap: .15rem .35rem; margin: -.5rem -.5rem 0 0; padding-bottom: .35rem; border-bottom: 1px dashed var(--wn-input-border); }
 /* The WN mark (images/logo-wn.svg): on the left of the editor's header and of its minimized form. */
 .note-editor-logo { flex: none; width: 2rem; height: 2rem; }
-.note-editor-header > .note-editor-logo { margin-inline-end: auto; }
+.note-editor-header > .note-editor-logo { margin-inline-end: .35rem; }
+/* Tabs: one per open note. They share the width left in the header, shrink down to a readable minimum (the title is cut
+   with an ellipsis, its full text is the tooltip) and scroll sideways when there are more. The dot has the colour of the
+   note type; the active tab is lighter and underlined in the accent colour. */
+.note-editor-tabs { display: flex; flex: 1 1 auto; align-items: flex-end; gap: .25rem; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.note-editor-tab { display: flex; flex: 0 1 13rem; align-items: center; min-width: 7.5rem; border-radius: var(--wn-radius) var(--wn-radius) 0 0; color: var(--wn-muted); background: rgb(36 58 54 / 6%); }
+.note-editor-tab:hover { color: var(--wn-text); background: rgb(36 58 54 / 10%); }
+.note-editor-tab--active, .note-editor-tab--active:hover { color: var(--wn-text); background: rgb(255 255 255 / 60%); box-shadow: inset 0 -3px var(--wn-primary); }
+.note-editor-tab__select { display: flex; flex: 1; align-items: center; gap: .45rem; min-width: 0; min-height: 40px; padding: .35rem .2rem .35rem .65rem; border: 0; color: inherit; background: transparent; font: inherit; font-size: clamp(.8rem, 1.1vw, .9rem); font-weight: 600; text-align: start; cursor: pointer; }
+.note-editor-tab--active .note-editor-tab__select { font-weight: 700; }
+.note-editor-tab__select::before { content: ""; flex: none; width: .6rem; height: .6rem; border-radius: 2px; background: var(--wn-note-paper); box-shadow: inset 0 0 0 1px rgb(36 58 54 / 30%); }
+.note-editor-tab--article .note-editor-tab__select::before { background: var(--wn-note-sage); }
+.note-editor-tab__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-editor-tab__close { display: inline-grid; flex: none; place-items: center; width: 32px; height: 32px; margin-inline-end: .2rem; padding: 0; border: 0; border-radius: var(--wn-radius); color: var(--wn-muted); background: transparent; cursor: pointer; }
+.note-editor-tab__close:hover { color: var(--wn-text); background: rgb(36 58 54 / 12%); }
+.note-editor-tab__close svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+/* Only the active tab's panel is shown; the others keep their editors, hidden. */
+.note-editor-panels, .note-editor-panel { display: flex; flex: 1 1 auto; flex-direction: column; gap: 1rem; min-height: 0; }
 .note-editor-icon { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--wn-radius); color: var(--wn-muted); background: transparent; cursor: pointer; }
 .note-editor-icon:hover { color: var(--wn-text); background: rgb(36 58 54 / 8%); }
 .note-editor-icon:active { background: rgb(36 58 54 / 14%); }
@@ -59,6 +77,8 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 /* Minimized: the dialog is no longer modal and becomes the compact sheet in the bottom-left corner of the window;
    the editor sheet stays in the page, hidden, with everything typed in it. */
 .note-editor-minimized { display: none; }
+/* Room below the page, so the last cards can be scrolled out from under the minimized form. */
+body:has(.note-editor-dialog--minimized) .site-main { padding-bottom: 8rem; }
 .note-editor-dialog--minimized { inset: auto auto 1rem 1rem; display: block; width: auto; height: auto; max-width: calc(100vw - 2rem); padding: 0; background: transparent; overflow: visible; }
 .note-editor-dialog--minimized > .modal-panel--editor { display: none; }
 .note-editor-dialog--minimized > .note-editor-minimized { display: flex; align-items: center; gap: .25rem .5rem; width: min(24rem, calc(100vw - 2rem)); padding: .75rem .5rem .75rem 1rem; cursor: default; }
