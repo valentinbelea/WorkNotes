@@ -50,6 +50,10 @@ Paleta de bază este: accent #176C65, hover #10564F, fond #F5F3EB, note #FFF0B7 
 
 Focus vizibil pentru tastatură, ținte de minimum 44px pentru controalele principale, reducerea animației când utilizatorul solicită acest lucru și contururi în forced-colors.
 
+## Sigla
+
+Sigla WN este images/logo-wn.svg: pătrat rotunjit verde #176C65, literele WN albe și banda adezivă în verdele de selecție #CCE6DF. În header stă înaintea numelui WorkNotes (clasa brand-logo, 28px, decorativă: alt gol, numele o urmează) și este favicon-ul (link rel="icon", SVG). Nu modificați culorile sau proporțiile; la dimensiuni sub 16px se folosește tot acest fișier.
+
 ## Tabla de note
 
 Există câte o tablă pentru fiecare context. În locul titlului, dashboardul (Pages/Index) are lista de contexte (board-switch, cu bordură întreruptă ca tabla); primul context este selectat implicit, iar alegerea altuia încarcă /?context={id} (fără JavaScript, cu butonul Afișează). Titlul „Pe tabla mea” rămâne numai pentru cititoarele de ecran. Contextul nu mai apare pe post-it.

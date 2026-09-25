@@ -4,7 +4,7 @@
 
 Tema aprobată folosește verdele #176C65, fundal crem și post-it-uri pastelate. Stilurile sunt separate în tokens.css (valori comune), site.css (componente), notes-board.css (tablă) și postit.css (hârtia). Decalajele cardurilor sunt clase CSS alese de server din ID-ul notei; notes-board.js se ocupă doar de comportament (notă nouă, renunțare, deschidere).
 
-Ghidul componentelor și contractul de integrare sunt în [docs/design-system.md](docs/design-system.md). Pagina principală este dashboardul utilizatorului autentificat: notele vizibile pentru el, ca post-it-uri, și butonul Notă nouă (vezi „Note — version_0.01”). Subtitlul din header (de exemplu „Spațiul meu”) este dedus din secțiunea meniului curent prin WorkNotes.Web/Navigation/NavigationSections.cs.
+Ghidul componentelor și contractul de integrare sunt în [docs/design-system.md](docs/design-system.md). Sigla WN (verde #176C65, cu banda post-it-urilor) este în `wwwroot/images/logo-wn.svg`: apare în header, lângă numele aplicației, și este favicon-ul. Pagina principală este dashboardul utilizatorului autentificat: notele vizibile pentru el, ca post-it-uri, și butonul Notă nouă (vezi „Note — version_0.01”). Subtitlul din header (de exemplu „Spațiul meu”) este dedus din secțiunea meniului curent prin WorkNotes.Web/Navigation/NavigationSections.cs.
 
 Mesajele de salvare (succes, avertisment, eroare) apar fixe în partea de sus a ferestrei, centrate, cu buton de închidere, și rămân până le închide utilizatorul, cu sau fără JavaScript (`Pages/Shared/_StatusMessage.cshtml`). Paginile le setează prin `TempData.SetStatusMessage(cheie, tip)` (`WorkNotes.Web/Messages`).
 
