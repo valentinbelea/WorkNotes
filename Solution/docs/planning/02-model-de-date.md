@@ -21,6 +21,7 @@ Abordarea este **Database First**: schema se scrie în scripturi SQL explicite, 
 | --- | --- |
 | 000_UpdateDatabaseVersion | Versiunea `v.0.02`, rând nou lângă `v.0.01` |
 | 001_AddNoteOrder | Coloana `[Order]` a notelor, numerotată în ordinea de atunci a tablei, și indexul `IX_Notes_ContextId_Order` |
+| 002_CreateNoteReferences | Tabela `NoteReferences` (referințele interne dintre note), cheile externe și indexurile ei |
 
 ## Tabele realizate
 
@@ -59,7 +60,18 @@ Tabla grupează notele pe luni după `ISNULL(ModifiedAtUtc, CreatedAtUtc)`: pent
 | `CreatedAtUtc`, `CreatedByUserId`, `ModifiedAtUtc`, `ModifiedByUserId` | auditul paragrafului |
 | `RowVersion` | pregătit pentru concurență |
 
-Textul notei există numai în `NoteBlocks` (nicio copie în `Notes`). Limite: maximum 5000 de paragrafe și 1 000 000 de caractere pe notă (`NoteRules`).
+Textul notei există numai în `NoteBlocks` (nicio copie în `Notes`). Limite: maximum 5000 de paragrafe și 1 000 000 de caractere pe notă (`NoteRules`). O referință internă către altă notă este păstrată chiar în text, ca `[[note:{id}|{număr}]]` (`NoteReferenceRules`): se mută, se copiază și se șterge odată cu textul, iar ID-ul destinației nu depinde de titlul ei.
+
+### NoteReferences
+| Coloană | Rol |
+| --- | --- |
+| `Id` | identitate |
+| `SourceNoteId` | nota care conține referința (cascadă la ștergerea ei) |
+| `TargetNoteId` | nota destinație (fără cascadă: aplicația șterge rândurile care o indică înainte să o șteargă) |
+| `DisplayText` | numărul afișat, nvarchar(20), numai cifre (`CK_NoteReferences_DisplayText`) |
+| `CreatedAtUtc` | prima salvare a referinței |
+
+Tabela este evidența referințelor din textul fiecărei note, de la ultima salvare a textului: câte un rând pentru fiecare sursă, destinație și număr (`UX_NoteReferences_SourceNoteId_TargetNoteId_DisplayText`), oricâte apariții ar avea în text. Conține numai referințele către alte note ale aceluiași context pe care proprietarul le poate vedea (`CK_NoteReferences_OtherNote` exclude nota însăși); celelalte rămân în text, marcate ca referințe care nu se mai pot deschide. `IX_NoteReferences_TargetNoteId` servește ștergerea destinației și lista viitoare „Referințe către această notă”.
 
 ## Regulile paragrafelor (confirmate și implementate în editor)
 
@@ -83,4 +95,4 @@ Textul notei există numai în `NoteBlocks` (nicio copie în `Notes`). Limite: m
 | `NotePlatforms` | Nota ↔ platformele la care se referă (când există modulul de platforme) |
 | Ulterior | `NoteClients`, `NoteProjects`, `NoteBranches`, `NoteEvents`, `NoteReleases`, `NotePublishes`, când există modulele respective |
 
-Relațiile se fac prin chei externe explicite, nu printr-o tabelă generică `EntityType + EntityId`. Toate asocierile trebuie să respecte contextul notei. Poziția unei referințe în text (pentru evidențiere în CodeMirror) este o problemă separată: ancorele trebuie actualizate la editare, numărul rândului nu ajunge.
+Relațiile se fac prin chei externe explicite, nu printr-o tabelă generică `EntityType + EntityId`. Toate asocierile trebuie să respecte contextul notei. Poziția unei referințe în text (pentru evidențiere în CodeMirror) este o problemă separată: ancorele trebuie actualizate la editare, numărul rândului nu ajunge. Referințele interne dintre note au rezolvat-o păstrând referința în text (vezi `NoteBlocks` și `NoteReferences`); referințele CR/bug pot folosi aceeași abordare.

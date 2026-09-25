@@ -1,18 +1,23 @@
 // Dashboard behaviour only: all appearance comes from CSS classes rendered by the server.
 // Switches the board, inserts the server-rendered new-note card, removes it on Cancel, renames titles in place
-// (and shows the card's new last change), opens saved notes on double-click and swaps two cards of a month by drag
-// and drop. Positions come from the grid: cards move only in the DOM order, and no inline styles are written.
+// (and shows the card's new last change), opens saved notes on double-click and from the references in a card's
+// preview, and swaps two cards of a month by drag and drop. Positions come from the grid: cards move only in the DOM
+// order, and no inline styles are written.
 import { showStatusMessage } from "./status-messages.js";
 
-// Single entry point for opening a note from its card (Open and double-click). When the editor is already on the page
-// (for example minimized), it opens the note in a tab (note-editor.js handles the note-editor:open event), keeping the
-// other tabs; otherwise the card's Open link (/?note={id}, the editor over the board) is followed. Without JavaScript
-// the link works on its own.
+// Single entry point for opening a note from the board: a card's Open and double-click, and a reference in a card's
+// preview. When the editor is already on the page (for example minimized), it opens the note in a tab (note-editor.js
+// handles the note-editor:open event: it brings a minimized editor back and selects the note's tab when it is already
+// open), keeping the other tabs; otherwise the link (/?note={id}, the editor over the board) is followed. Without
+// JavaScript the links work on their own.
+export function openNote(id, href) {
+    const handled = !document.dispatchEvent(new CustomEvent("note-editor:open", { detail: { id }, cancelable: true }));
+    if (!handled) window.location.assign(href);
+}
+
 export function openNoteEditor(card) {
     const link = card.querySelector("[data-note-open]");
-    if (!link) return;
-    const handled = !document.dispatchEvent(new CustomEvent("note-editor:open", { detail: { id: card.dataset.noteId }, cancelable: true }));
-    if (!handled) window.location.assign(link.href);
+    if (link) openNote(card.dataset.noteId, link.href);
 }
 
 export function initializeDashboard(dashboard) {
@@ -54,10 +59,18 @@ export function initializeDashboard(dashboard) {
     initializeRename(dashboard);
     initializeReorder(dashboard);
 
-    // A plain click on Open goes through openNoteEditor too, so an open editor gets a new tab instead of a reload.
+    // A plain click on Open or on a reference goes through openNote too, so an open editor gets a new tab instead of a
+    // reload. A reference whose note can no longer be opened is not a link.
     dashboard.addEventListener("click", event => {
+        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        const reference = event.target.closest("a[data-note-reference]");
+        if (reference) {
+            event.preventDefault();
+            openNote(reference.dataset.noteReference, reference.href);
+            return;
+        }
         const link = event.target.closest("[data-note-open]");
-        if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        if (!link) return;
         event.preventDefault();
         openNoteEditor(link.closest(".note-card"));
     });
@@ -130,19 +143,25 @@ function initializeRename(dashboard) {
 }
 
 // The owner changes the order of their notes by drag and drop. A card is picked up only by its tape and dropped on
-// another of the owner's cards in the same month (the same list); the two swap places. The cells change places at
-// once, the server saves the swap and returns the month's order, which the list then follows. When the save fails the
-// month goes back to its previous order and an error message is shown. While dragging, CSS classes mark the picked-up
-// card, the cells it can be dropped on and the cell under the pointer; a drop anywhere else is ignored and the card
-// stays where it was. Every class is removed after the drop or when the drag is cancelled.
+// another of the owner's cards in the same month (the same list); the two swap places. The cells change places as soon
+// as the drag is over and the swap is saved in the background, so the next drag can start at once, even while earlier
+// swaps are still being saved: the saves go to the server one at a time, in the order of the swaps. Once every save
+// has its answer, each list follows the order the server stored; a failed save shows an error message and its swap is
+// undone. While dragging, CSS classes mark the picked-up card, the cells it can be dropped on and the cell under the
+// pointer; a drop anywhere else is ignored and the card stays where it was. Every class is removed when the drag ends
+// or is cancelled. No cell moves during a drag: the browser follows the dragged tape until dragend, and a tape moved
+// on drop can lose its dragend (Firefox), so the swap waits for dragend.
 function initializeReorder(dashboard) {
     const form = dashboard.querySelector("[data-note-order]");
     if (!form) return;
     const messages = document.querySelector("[data-status-region]");
     const noteId = cell => cell.querySelector("[data-note-id]")?.dataset.noteId;
+    const noteIds = board => [...board.children].map(noteId).filter(Boolean);
     const cellAt = target => (target instanceof Element ? target.closest(".note-cell") : null);
-    let drag = null;      // { cell, targets, target } while a card is dragged
-    let saving = false;   // one swap at a time
+    const stored = new Map();       // list -> its note ids in the order the server last stored
+    let drag = null;                // { cell, targets, target, dropped } while a card is dragged
+    let saves = Promise.resolve();  // the swaps, saved one after another
+    let unsaved = 0;                // swaps still waiting for the server's answer
 
     // Without JavaScript the tape is only decoration.
     for (const handle of dashboard.querySelectorAll("[data-note-drag-handle]")) {
@@ -157,22 +176,26 @@ function initializeReorder(dashboard) {
         cell?.classList.add("note-cell--drop-target");
     }
 
+    // The drag is over: the marks go, and a card dropped on another one changes places with it.
     function endDrag() {
         if (!drag) return;
-        drag.cell.classList.remove("note-cell--dragging");
-        for (const cell of drag.targets) cell.classList.remove("note-cell--drop-eligible", "note-cell--drop-target");
+        const { cell, targets, dropped } = drag;
+        cell.classList.remove("note-cell--dragging");
+        for (const other of targets) other.classList.remove("note-cell--drop-eligible", "note-cell--drop-target");
         drag = null;
+        if (dropped) swap(cell, dropped);
+        settle();
     }
 
     dashboard.addEventListener("dragstart", event => {
         const handle = event.target instanceof Element ? event.target.closest("[data-note-drag-handle]") : null;
         if (!handle) return; // links and selected text keep the browser's own dragging
-        if (saving) { event.preventDefault(); return; }
+        endDrag(); // a previous drag whose dragend never came
         const cell = handle.closest(".note-cell");
         const card = cell.querySelector(".note-card");
         // The owner's other cards of the same month can take its place.
         const targets = [...cell.parentElement.children].filter(other => other !== cell && other.querySelector("[data-note-drag-handle]"));
-        const current = drag = { cell, targets: new Set(targets), target: null };
+        const current = drag = { cell, targets: new Set(targets), target: null, dropped: null };
         const box = card.getBoundingClientRect();
         event.dataTransfer.effectAllowed = "move";
         // A type of its own, so the note is never dropped as text into a field.
@@ -201,32 +224,40 @@ function initializeReorder(dashboard) {
         if (drag && !dashboard.contains(event.relatedTarget)) setTarget(null);
     });
 
+    // The drop is only noted: the cells change places on the dragend that follows it. Should a browser never send that
+    // dragend, the swap still happens a moment later.
     dashboard.addEventListener("drop", event => {
         if (!drag) return;
         const target = cellAt(event.target);
         if (!drag.targets.has(target)) return;
         event.preventDefault();
-        const cell = drag.cell;
-        endDrag();
-        swap(cell, target);
+        const current = drag;
+        current.dropped = target;
+        setTimeout(() => { if (drag === current) endDrag(); }, 500);
     });
     dashboard.addEventListener("dragend", endDrag);
 
-    async function swap(cell, target) {
+    // The two cells change places at once; the swap is saved after the ones made before it.
+    function swap(cell, target) {
         const board = cell.parentElement;
-        const previous = [...board.children];
+        if (!stored.has(board)) stored.set(board, noteIds(board));
+        const note = noteId(cell), other = noteId(target);
         exchange(cell, target);
-        saving = true;
+        unsaved++;
         board.setAttribute("aria-busy", "true");
+        saves = saves.then(() => save(board, note, other));
+    }
+
+    async function save(board, note, target) {
         let failure = dashboard.dataset.reorderFailed;
         try {
             const data = new FormData(form);
-            data.set("note", noteId(cell));
-            data.set("target", noteId(target));
+            data.set("note", note);
+            data.set("target", target);
             const response = await fetch(form.action, { method: "POST", body: data, headers: { Accept: "application/json" } });
             const body = await response.json().catch(() => ({}));
-            if (response.ok) {
-                follow(board, body.order ?? []);
+            if (response.ok && Array.isArray(body.order)) {
+                stored.set(board, body.order.map(String));
                 // An editor tab of one of the two notes (note-editor.js) goes on saving with the note's new version.
                 document.dispatchEvent(new CustomEvent("note-board:versions", { detail: body.versions ?? [] }));
                 failure = null;
@@ -235,24 +266,24 @@ function initializeReorder(dashboard) {
             }
         } catch {
             // The request did not get an answer: the generic message.
-        } finally {
-            saving = false;
-            board.removeAttribute("aria-busy");
         }
-        if (failure === null) return;
-        // Back to the order stored in the database.
-        for (const item of previous) if (item.parentElement === board) board.append(item);
-        showStatusMessage(messages, "error", failure);
+        unsaved--;
+        settle();
+        if (failure !== null) showStatusMessage(messages, "error", failure);
     }
 
-    // The month's cards in the order the server stored; an unsaved new card stays first.
-    function follow(board, ids) {
-        const cells = [...board.children];
-        if (cells.map(noteId).filter(Boolean).join() === ids.join()) return;
-        const byId = new Map(cells.map(item => [noteId(item), item]));
-        for (const id of ids) {
-            const item = byId.get(String(id));
-            if (item) board.append(item);
+    // Once every swap has its answer and no card is being dragged, each list takes the order the server stored (after
+    // a failed save, the order from before that swap); an unsaved new card stays first.
+    function settle() {
+        if (unsaved > 0 || drag) return;
+        for (const [board, ids] of stored) {
+            board.removeAttribute("aria-busy");
+            if (noteIds(board).join() === ids.join()) continue;
+            const byId = new Map([...board.children].map(item => [noteId(item), item]));
+            for (const id of ids) {
+                const item = byId.get(id);
+                if (item) board.append(item);
+            }
         }
     }
 }

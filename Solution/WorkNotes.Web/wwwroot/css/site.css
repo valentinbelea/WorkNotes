@@ -8,6 +8,12 @@ h2 { font-size: 1.5rem; } h3 { font-size: 1.15rem; }
 p { margin: 0 0 1rem; overflow-wrap: anywhere; }
 a { color: var(--wn-primary); text-underline-offset: .2em; }
 a:hover { color: var(--wn-primary-hover); }
+/* A reference to another note (NoteReferences.Html; in the editor .cm-note-reference): its number reads as a link in the
+   accent colour. One whose note can no longer be opened keeps its number, muted, with a dotted underline and a tooltip. */
+.note-reference { color: var(--wn-primary); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
+a.note-reference:hover { color: var(--wn-primary-hover); text-decoration-thickness: 2px; }
+.note-reference--broken { color: var(--wn-muted); font-weight: inherit; text-decoration-style: dotted; cursor: help; }
+@media (forced-colors: active) { a.note-reference { color: LinkText; } .note-reference--broken { color: GrayText; } }
 button, input, select, textarea { font: inherit; }
 button, select { cursor: pointer; }
 :where(a, button, input, select, textarea, summary):focus-visible { outline: 3px solid var(--wn-primary); outline-offset: 3px; }

@@ -9,7 +9,8 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        var board = await notes.GetBoardAsync(userId, contextId, cancellationToken);
+        var board = await WithPreviewReferencesAsync(userId, contextId, await notes.GetBoardAsync(userId, contextId, cancellationToken),
+            cancellationToken);
         // Grouped by the last change, ISNULL(modified, created): a note changed this month moves to it.
         // Months follow the application's local calendar, like the journal date. Within a month the order the owner
         // arranged comes first (smaller first); notes with the same order show the latest change first, then the
@@ -48,11 +49,16 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         return (now.Year, now.Month);
     }
 
-    public Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken)
+    public async Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        return notes.GetDocumentAsync(noteId, userId, cancellationToken);
+        var document = await notes.GetDocumentAsync(noteId, userId, cancellationToken);
+        if (document is null) return null;
+        var targetIds = ReferencedIds(document.Blocks.Select(block => block.Content));
+        return targetIds.Count == 0
+            ? document
+            : document with { References = await notes.GetReferenceTargetsAsync(userId, document.ContextId, document.Id, targetIds, cancellationToken) };
     }
 
     public async Task<NoteSaveResult> SaveAsync(string userId, int noteId, string expectedVersion, string? title,
@@ -69,8 +75,18 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (!document.IsOwner) return new(NoteSaveStatus.Forbidden);
         if (string.IsNullOrWhiteSpace(expectedVersion)) return new(NoteSaveStatus.Conflict);
 
+        // The text keeps every reference as it was written; only those whose target the owner may open are stored.
+        var mentioned = NoteReferenceRules.Find(paragraphs.Select(paragraph => paragraph.Content));
+        IReadOnlyList<NoteReferenceInput> references = [];
+        if (mentioned.Count > 0)
+        {
+            var targets = await notes.GetReferenceTargetsAsync(userId, document.ContextId, document.Id,
+                mentioned.Select(reference => reference.TargetNoteId).Distinct().ToList(), cancellationToken);
+            var valid = targets.Select(target => target.Id).ToHashSet();
+            references = mentioned.Where(reference => valid.Contains(reference.TargetNoteId)).ToList();
+        }
         return await notes.SaveAsync(
-            new NoteChanges(noteId, userId, expectedVersion, NoteRules.NormalizeTitle(title), paragraphs, SavedAtUtc()),
+            new NoteChanges(noteId, userId, expectedVersion, NoteRules.NormalizeTitle(title), paragraphs, references, SavedAtUtc()),
             cancellationToken);
     }
 
@@ -127,6 +143,55 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         var noteIds = board.FirstOrDefault(group => (group.Year, group.Month) == month)?.Notes.Select(item => item.Id).ToList() ?? [];
         return new(NoteOrderStatus.Saved, noteIds, versions);
     }
+
+    public async Task<IReadOnlyList<NoteReferenceTarget>?> FindReferenceTargetsAsync(string userId, int noteId, string? number,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
+        if (note is null) return null;
+        // Only the owner writes in the note, so only the owner is offered references.
+        if (!note.IsOwner || !NoteReferenceRules.IsReferenceNumber(number)) return [];
+        var candidates = await notes.FindReferenceCandidatesAsync(userId, note.ContextId, note.Id, number!, cancellationToken);
+        // The data access matches the digits anywhere in the title; the number must be whole (not part of 130080).
+        return candidates.Where(candidate => NoteReferenceRules.TitleContainsNumber(candidate.Title, number!)).ToList();
+    }
+
+    public async Task<IReadOnlyList<NoteReferenceTarget>?> GetReferenceTargetsAsync(string userId, int noteId,
+        IReadOnlyCollection<int> targetNoteIds, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        ArgumentNullException.ThrowIfNull(targetNoteIds);
+        cancellationToken.ThrowIfCancellationRequested();
+        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
+        if (note is null) return null;
+        var ids = targetNoteIds.Where(id => id > 0 && id != note.Id).Distinct().Take(NoteReferenceRules.MaxTargetsPerRequest).ToList();
+        return ids.Count == 0 ? [] : await notes.GetReferenceTargetsAsync(userId, note.ContextId, note.Id, ids, cancellationToken);
+    }
+
+    // Each card gets the notes the references in its preview can open: other notes of the board the user may see.
+    private async Task<IReadOnlyList<NoteSummary>> WithPreviewReferencesAsync(string userId, int contextId, IReadOnlyList<NoteSummary> board,
+        CancellationToken cancellationToken)
+    {
+        var referenced = board.Select(note => (Note: note, TargetIds: ReferencedIds([note.Preview]))).ToList();
+        var targetIds = referenced.SelectMany(item => item.TargetIds).Distinct().ToList();
+        if (targetIds.Count == 0) return board;
+        var targets = (await notes.GetReferenceTargetsAsync(userId, contextId, null, targetIds, cancellationToken)).ToDictionary(target => target.Id);
+        return referenced
+            .Select(item => item.TargetIds.Count == 0 ? item.Note : item.Note with
+            {
+                References = item.TargetIds.Where(id => id != item.Note.Id && targets.ContainsKey(id)).Select(id => targets[id]).ToList()
+            })
+            .ToList();
+    }
+
+    private static List<int> ReferencedIds(IEnumerable<string?> texts) =>
+        texts.SelectMany(text => NoteReferenceRules.Split(text))
+            .Select(part => part.TargetNoteId)
+            .OfType<int>()
+            .Distinct()
+            .ToList();
 
     // Audit times are kept to the second, the precision of the stored columns, so they read the same after a reload.
     private DateTime SavedAtUtc()
