@@ -84,6 +84,9 @@
 .board-switch { display: grid; grid-template-columns: minmax(0, max-content); gap: .35rem; min-width: 0; max-width: 100%; }
 .board-switch__select { width: 100%; text-overflow: ellipsis; min-height: 44px; padding: .35rem 2.25rem .35rem .75rem; border: 2px dashed var(--wn-border); border-radius: var(--wn-radius); color: var(--wn-text); background: transparent; font-size: clamp(1.25rem, 2.5vw, 1.6rem); font-weight: 650; cursor: pointer; }
 .board-switch__select:hover { border-color: var(--wn-input-border); }
+/* Focus (click or keyboard): the dashed grey border itself turns solid accent green, in place, instead of a second
+   outline drawn around it. */
+.board-switch__select:focus, .board-switch__select:focus-visible { outline: none; border-style: solid; border-color: var(--wn-primary); }
 .board-switch p { margin: 0; }
 .dashboard-header__aside { display: grid; justify-items: end; gap: .25rem; text-align: end; }
 .notes-board-empty { flex: 1; display: grid; place-items: center; margin: 1.5rem 0 0; color: var(--wn-muted); text-align: center; }
