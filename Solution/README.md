@@ -322,6 +322,7 @@ Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scriptu
 9. `version_0.02\000_UpdateDatabaseVersion.sql`: inserează `v.0.02` numai dacă lipsește; `v.0.01` rămâne în tabelă, iar footerul afișează versiunea cea mai mare, `v.0.02`.
 10. `version_0.02\001_AddNoteOrder.sql`: adaugă `dbo.Notes.[Order]`, numerotează notele existente în ordinea lor de pe tablă și creează indexul `IX_Notes_ContextId_Order`, dacă lipsesc.
 11. `version_0.02\002_CreateNoteReferences.sql`: creează `dbo.NoteReferences` (referințele interne dintre note), cheile externe către `Notes`, indexul unic pe sursă, destinație și număr și indexul pe destinație, dacă lipsesc.
+12. `version_0.02\003_InsertNoteReferences.sql` (opțional, date): completează `dbo.NoteReferences` din textul notelor existente, fără să schimbe textul: pentru fiecare număr de 3–18 cifre scris ca un cuvânt întreg într-un paragraf, care apare întreg în titlul altei note a contextului, vizibilă proprietarului, un rând către acea notă; între mai multe note, către singurul articol dintre ele. Inserează numai rândurile lipsă; cu `@Save = 0` doar arată ce ar insera. Rândurile unei note dispar la următoarea salvare a textului ei, pentru că aplicația reface rândurile din referințele din text.
 
 Alternativ, dacă `sqlcmd` este instalat:
 
@@ -337,6 +338,7 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\000_UpdateDatabaseVersion.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\001_AddNoteOrder.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\002_CreateNoteReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\003_InsertNoteReferences.sql'
 ```
 
 Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. După scripturile version_0.02, notele existente pot primi referințele cu comanda `create-note-references` (vezi „Referințe în notele existente”); nu este un script SQL, pentru că folosește regulile referințelor din aplicație. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
