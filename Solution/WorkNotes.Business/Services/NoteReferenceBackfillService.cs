@@ -33,25 +33,18 @@ public sealed class NoteReferenceBackfillService(INoteReferenceBackfillRepositor
         CancellationToken cancellationToken)
     {
         var matches = new List<NoteReferenceBackfillMatch>();
-        // The other notes of the board with the number whole in their title, as the editor would offer them. A single one
-        // is the target; among several, the only article is (a CR or a bug is documented in its article, and journals
-        // mention it). Otherwise the choice is left to the owner, in the editor.
+        // The other notes of the board with the number whole in their title, as the editor would offer them. Only a
+        // single one is certain; between several, the choice is the owner's, in the editor.
         int? TargetOf(string number)
         {
             if (!candidates.TryGetValue(number, out var found))
                 candidates[number] = found = targets.Where(target => NoteReferenceRules.TitleContainsNumber(target.Title, number)).ToList();
-            var index = matches.FindIndex(match => match.Number == number);
-            if (index >= 0)
-            {
-                matches[index] = matches[index] with { Count = matches[index].Count + 1 };
-                return matches[index].Target?.Id;
-            }
             var others = found.Where(target => target.Id != document.Id).ToList();
             if (others.Count == 0) return null;
-            var articles = others.Where(target => target.NoteType == NoteTypes.Article).Take(2).ToList();
-            var chosen = others.Count == 1 ? others[0] : articles.Count == 1 ? articles[0] : null;
-            matches.Add(new NoteReferenceBackfillMatch(number, others, chosen, 1));
-            return chosen?.Id;
+            var index = matches.FindIndex(match => match.Number == number);
+            if (index < 0) matches.Add(new NoteReferenceBackfillMatch(number, others, 1));
+            else matches[index] = matches[index] with { Count = matches[index].Count + 1 };
+            return others.Count == 1 ? others[0].Id : null;
         }
 
         var paragraphs = document.Blocks

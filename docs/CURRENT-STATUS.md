@@ -18,10 +18,9 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 - **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main` (care a fost adus în branch prin merge), cu commit-urile:
   - „Board: the next drag is no longer refused while a swap is being saved” — schimburile se aplică la `dragend` și se salvează pe rând;
   - „Editor and board: internal references between notes” — referințe interne între note, tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`;
-  - „Notes: create-note-references command for the existing notes” — comanda de mentenanță `create-note-references`, care creează o dată, în notele existente, referințele pe care editorul le-ar fi oferit (numai numerele cu o singură notă posibilă sau, dintre mai multe, cu un singur articol; fără `--save` doar le arată), deciziile 42–47; descrisă în `Solution/README.md`;
+  - „Notes: create-note-references command for the existing notes” — comanda de mentenanță `create-note-references`, care creează o dată, în notele existente, referințele pe care editorul le-ar fi oferit (numai numerele cu o singură notă posibilă; fără `--save` doar le arată), deciziile 42–47; descrisă în `Solution/README.md`;
   - „Data access: card previews number only the paragraphs of the notes read” și „Board: a note opens over the board without reloading the page” — previzualizarea cardurilor nu mai numerotează toate paragrafele din bază, iar o notă deschisă de pe tablă apare peste tabla din pagină (`?handler=NoteEditor`), fără reîncărcare; deciziile 48–49;
-  - „Modal dialogs: Escape closes them in Firefox too” — `modal.js` tratează Escape la `keydown`, cu tasta prevenită, apoi navighează la adresa de închidere; decizia 50;
-  - „Notes: among several notes, create-note-references links the only article” — un număr aflat în titlul mai multor note duce la articol, dacă este unul singur; decizia 51.
+  - „Modal dialogs: Escape closes them in Firefox too” — `modal.js` tratează Escape la `keydown`, cu tasta prevenită, apoi navighează la adresa de închidere; decizia 50.
 - **Branch-ul de documentare** `claude/worknotes-markdown-docs-6xyqw4` — această structură de documentație; nu modifică codul, schema sau funcționalitățile.
 
 ## Probleme cunoscute
