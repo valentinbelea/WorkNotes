@@ -234,7 +234,12 @@ Scripturile sunt descrise în [ARCHITECTURE.md](ARCHITECTURE.md#javascript). Nu 
 ## Referințe interne
 
 - [ ] Pe `main` nu există referințe între note.
-- [~] PR #4 propune: după un număr de 3–18 cifre tastat în editor, dacă numărul apare întreg în titlul altor note ale aceluiași context pe care utilizatorul le poate vedea, o sugestie discretă („Creează referință către”, cu tipul și titlul notelor) oferă transformarea lui în referință — prin click sau cu Tab, săgeți și Enter —, fără nicio transformare automată. Referința arată ca un link, cu tooltip (titlul și tipul destinației), deschide nota într-un tab al editorului și apare ca link și în previzualizarea cardurilor; o referință care nu se mai poate deschide rămâne în text, marcată discret, fără titlul destinației. Descrierea se mută aici, ca implementată, la integrarea PR-ului.
+- [~] PR #4 ([ADR-003](decisions/ADR-003-internal-references.md)): un CR sau un bug scris în text (`CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `bug_1234`, `Bug-1234`…) care are o notă destinație apare ca link: toată expresia, cu separatorul și literele așa cum sunt scrise, în culoarea accent, îngroșată și subliniată (`.cm-note-reference`; în modul forced-colors `LinkText`), cu titlul și tipul notei ca tooltip. Textul notei rămâne exact cel scris. Fiecare apariție a referinței în paragraf, oricare îi este forma, duce la aceeași notă.
+- [~] Click pe link (fără selecție și fără taste modificatoare) sau Ctrl+Enter cu cursorul pe el deschide nota într-un tab nou al editorului; dacă nota are deja un tab, i se selectează tabul; un editor minimizat este readus; celelalte taburi își păstrează conținutul și modificările nesalvate. Textul scris în interiorul unui link sau lângă el îl elimină până la salvare; după salvare, linkurile textului salvat apar fără reîncărcare, inclusiv pentru referințele nou scrise.
+- [~] O referință fără destinație sau cu mai multe note posibile rămâne text simplu, fără niciun semn; nu există sugestii în timpul scrierii.
+- [~] Fără JavaScript, paragrafele din dialogul editorului au aceleași linkuri, ca linkuri HTML (`a.note-reference`, `/?note={id}`).
+- [!] Previzualizarea cardurilor de pe tablă este text simplu, fără linkuri.
+- Descrierea se mută aici, ca implementată, la integrarea PR-ului.
 
 ## Stări: loading, empty, error
 
@@ -262,5 +267,5 @@ Scripturile sunt descrise în [ARCHITECTURE.md](ARCHITECTURE.md#javascript). Nu 
 - [x] Focus vizibil pentru tastatură (contur accent de 3px), ținte de minimum 44px pentru controalele principale, reducerea animațiilor la `prefers-reduced-motion` și contururi în `forced-colors`.
 - [x] Etichete pentru cititoarele de ecran (`visually-hidden`) acolo unde informația este vizuală: tipul notei, „Creată” / „Modificată”, titlul tablei; iconurile au `aria-label` și `title`; elementele decorative au `aria-hidden`.
 - [x] Semantică: dialoguri native cu focus captiv, `role=tablist` / `tab` / `tabpanel` în editor, `aria-current` în meniu, `role=status` și `role=alert` pentru stări și erori, `aria-live` pentru zona de mesaje a paginii, `aria-busy` în timpul unui schimb.
-- [x] Tastatura: Escape închide dialogurile și meniul, Enter salvează titlul, Ctrl+S salvează, Ctrl+F caută, săgețile navighează între taburi.
+- [x] Tastatura: Escape închide dialogurile și meniul, Enter salvează titlul, Ctrl+S salvează, Ctrl+F caută, săgețile navighează între taburi; cu PR #4, Ctrl+Enter deschide referința internă de la cursor.
 - [!] Reordonarea se face numai cu mouse-ul (drag-and-drop HTML5); pe ecranele tactile depinde de suportul browserului.

@@ -127,18 +127,16 @@ Iconul Open al cardului este un link către /?note={id}, deci funcționează și
 - Bara de informații (note-editor-info), sub editor: pentru paragraful de sub mouse, iar fără mouse pentru cel cu cursorul, arată data creării și a ultimei modificări (auditul NoteBlocks), „modificări nesalvate” sau „paragraf nou”; în dreapta, scurtăturile. Paragraful descris primește clasa cm-hoveredParagraph (evidențiere discretă). Bara nu acoperă textul și funcționează și de la tastatură.
 - Stilurile WorkNotes pentru editor sunt în note-editor.css, pe clasele CodeMirror (.cm-editor, .cm-content, .cm-activeLine, panoul de căutare). Rândul activ folosește stilul active-line al paletei, selecția --wn-selection, rezultatele căutării --wn-highlight. CodeMirror își injectează doar stilurile de bază.
 - Starea salvării (Salvat / Modificări nesalvate / Se salvează… / eroare) este un role=status; o eroare folosește clasa note-editor-toolbar__status--error.
-- Referințele către alte note și sugestia care le creează sunt descrise în „Referințe între note”, mai jos. Bara de informații arată și Ctrl+Enter, care deschide referința de lângă cursor.
+- Referințele către alte note sunt descrise în „Referințe între note”, mai jos. Bara de informații arată și Ctrl+Enter, care deschide referința de la cursor.
 - Fiecare salvare afișează și un mesaj de salvare: „Nota a fost salvată.” sau eroarea (salvare eșuată, conflict, sesiune expirată), în status-region din dialogul editorului, fixată sus, pe centru, deasupra editorului. Mesajul rămâne până îl închide utilizatorul; închiderea lui nu închide editorul. Zona nu este live region: starea din bară anunță deja fiecare salvare cititoarelor de ecran.
 - Pentru cine poate doar citi, editorul nu este editabil, butonul Salvează lipsește, iar bara de informații o spune.
 - Textele (placeholder, stări, informațiile de audit, frazele panoului de căutare) sunt randate de server din .resx în datele paginii; note-editor.js nu conține traduceri.
 
 ### Referințe între note
 
-- O referință arată numai numărul din care a fost făcută, ca un link: accent #176C65, semibold, subliniat (mai gros la hover), cu tooltipul „„titlu” (tip)” al notei destinație, citit la încărcare. În editor clasa este cm-note-reference (note-editor.css), pe tablă și în textul fără JavaScript note-reference (site.css); forma păstrată în text, [[note:{id}|{număr}]], nu se vede.
-- O referință care nu mai poate fi deschisă (nota ștearsă, privată, din alt context sau nevăzută de utilizator) păstrează numărul, estompat (--wn-muted), cu subliniere punctată, cursor help și tooltipul Notes_ReferenceBroken, fără titlul destinației: cm-note-reference--broken / note-reference--broken.
-- Sugestia (note-reference-suggestion) apare sub numărul terminat, ca o foaie albă mică (--wn-surface, bordură --wn-border, umbra --wn-shadow-raised, colțuri --wn-radius): titlul mic „Creează referință către” (muted), apoi câte un buton pe notă — eticheta tipului în culoarea hârtiei lui (galben pentru jurnal, salvie pentru articol, majuscule mici) și titlul complet, semibold, rupt pe rânduri dacă este lung — și, jos, tastele („Tab alege · Esc închide”). Listele lungi se derulează (maximum 18rem). Hover și focus: fundal --wn-active-line; focusul are și conturul accent de 2px.
-- Sugestia nu ia focusul singură; Tab o face activă, săgețile, Home și End se mută între note, Enter sau click aleg, Escape o închide și readuce cursorul în text. Un click pe ea nu mută focusul din text. Cititoarele de ecran află de ea dintr-o regiune live ascunsă din panoul notei (Editor_ReferenceAvailable).
-- În forced-colors: referințele folosesc LinkText / GrayText, sugestia are bordura CanvasText, iar focusul Highlight.
+- Un CR sau un bug scris în text (CR 30080, CR-30080, CR_30080, CR30080, bug_1234...) care are o notă destinație arată ca un link: toată expresia, așa cum e scrisă, accent #176C65, semibold, subliniat (mai gros la hover), cursor pointer, cu tooltipul „„titlu” (tip)” al notei destinație. Textul nu se schimbă: linkul este desenat peste el, din pozițiile trimise de server. În editor clasa este cm-note-reference (note-editor.css), în textul fără JavaScript note-reference (site.css).
+- O referință fără destinație sau cu mai multe note posibile rămâne text simplu, fără niciun semn. Nu există sugestii în timpul scrierii; o referință nou scrisă devine link după salvare, iar textul scris într-un link îl ascunde până la salvare.
+- În forced-colors: referințele folosesc LinkText.
 
 ## Verificare vizuală
 

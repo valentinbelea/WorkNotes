@@ -7,7 +7,7 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 ## Implementat
 
 - **Conturi** (ASP.NET Core Identity, Database First): înregistrare, autentificare, datele contului, schimbarea parolei, deconectare; politica de parolă și blocarea după 5 încercări.
-- **Localizare** ro/en/pl pentru toate textele (168 de chei, aceleași în cele patru fișiere .resx).
+- **Localizare** ro/en/pl pentru toate textele (168 de chei, aceleași în cele patru fișiere .resx; 169 cu PR #4).
 - **Contexte și membri**: listare, adăugare, editare, ștergere în overlay; proprietarul gestionează membrii după e-mail.
 - **Tabla**: o tablă pentru fiecare context, notele grupate pe luni după ultima modificare; post-it-uri pentru jurnale și articole, create, redenumite și șterse direct pe tablă; ordonarea prin drag-and-drop în aceeași lună (version_0.02).
 - **Editorul** CodeMirror 6: paragrafe cu identitate și audit propriu, căutare, undo/redo, Ctrl+S, detectarea salvărilor concurente, taburi, minimizare.
@@ -17,11 +17,12 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 
 - **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main` (care a fost adus în branch prin merge), cu commit-urile:
   - „Board: the next drag is no longer refused while a swap is being saved” — schimburile se aplică la `dragend` și se salvează pe rând;
-  - „Editor and board: internal references between notes” — referințe interne între note, tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`;
-  - „Notes: create-note-references command for the existing notes” — comanda de mentenanță `create-note-references`, care creează o dată, în notele existente, referințele pe care editorul le-ar fi oferit (numai numerele cu o singură notă posibilă; fără `--save` doar le arată), deciziile 42–47; descrisă în `Solution/README.md`;
+  - „Editor and board: internal references between notes” — primul model al referințelor interne (legătura în text, `[[note:{id}|{număr}]]`), tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`; modelul este înlocuit (vezi mai jos);
+  - „Notes: create-note-references command for the existing notes” — comanda de mentenanță `create-note-references` (primul model), deciziile 42–47; eliminată odată cu modelul;
   - „Data access: card previews number only the paragraphs of the notes read” și „Board: a note opens over the board without reloading the page” — previzualizarea cardurilor nu mai numerotează toate paragrafele din bază, iar o notă deschisă de pe tablă apare peste tabla din pagină (`?handler=NoteEditor`), fără reîncărcare; deciziile 48–49;
   - „Modal dialogs: Escape closes them in Firefox too” — `modal.js` tratează Escape la `keydown`, cu tasta prevenită, apoi navighează la adresa de închidere; decizia 50;
-  - „Scripts: 003_InsertNoteReferences.sql fills NoteReferences from the existing text” — script SQL de date, opțional, care inserează în `dbo.NoteReferences` rândurile pentru numerele din paragrafe aflate în titlul altei note (între mai multe, singurul articol), fără să schimbe textul.
+  - „Scripts: 003_InsertNoteReferences.sql fills NoteReferences from the existing text” — script SQL de date pentru tabela primului model; rămâne nemodificat;
+  - referințele interne refăcute la cererea utilizatorului din 2026-09-28 ([ADR-003](decisions/ADR-003-internal-references.md), deciziile 51–58): referințele CR/bug scrise în paragrafe (`CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `bug_1234`…), destinația aflată din titluri (exact o notă a contextului vizibilă proprietarului paragrafului), relații pe paragraf în tabela `NoteReferences` recreată de `Scripts/version_0.02/004_ReplaceNoteReferences.sql` (care reindexează și conținutul existent și listează referințele fără destinație și pe cele ambigue), recalculare la salvare, la schimbarea titlului, la crearea și la ștergerea notelor, prin `INoteReferenceService`; editorul desenează linkurile din relații, fără să schimbe textul. Sugestiile din editor, comanda `create-note-references` și linkurile din previzualizarea cardurilor au fost eliminate.
 - **Branch-ul de documentare** `claude/worknotes-markdown-docs-6xyqw4` — această structură de documentație; nu modifică codul, schema sau funcționalitățile.
 
 ## Probleme cunoscute
@@ -38,6 +39,15 @@ Limitări documentate în version_0.01–0.02:
 - După un schimb pe tablă, un editor deschis pe aceeași notă în alt tab sau în altă fereastră primește conflict la următoarea salvare (fără să suprascrie ceva); editorul din aceeași pagină primește noua versiune.
 - Ordonarea se face numai cu mouse-ul (drag-and-drop HTML5); nu există alternativă de la tastatură, iar pe ecranele tactile depinde de suportul browserului.
 - Două note cu aceeași valoare `Order` (posibil numai prin inserări directe în SQL) nu își schimbă locurile prin drag-and-drop; tabla le ordonează după date.
+
+Limitări ale referințelor interne din PR #4 ([ADR-003](decisions/ADR-003-internal-references.md#consecințe)):
+
+- O referință nou scrisă devine link abia după salvare; textul scris într-un link îl ascunde până la salvare.
+- Referințele fără destinație și cele ambigue nu au semn în editor; `004_ReplaceNoteReferences.sql`, rulat din nou (și cu `@Save = 0`), le listează.
+- Recalcularea după schimbarea unui titlu, crearea sau ștergerea unei note este o tranzacție separată de operație: două operații simultane pe aceeași referință sau o cerere întreruptă între ele pot lăsa o legătură învechită până la următoarea salvare ([DATABASE.md](DATABASE.md#concurență)).
+- Schimbarea vizibilității, arhivarea și ieșirea unui membru din context nu recalculează legăturile (nu au interfață).
+- Previzualizarea cardurilor afișează textul fără linkuri.
+- După `004`, scripturile `002` și `003` nu se mai pot rula.
 
 Constatări din analiza din 2026-09-25 (codul nu a fost modificat):
 
@@ -72,16 +82,16 @@ Contradicțiile nu au fost rezolvate prin alegerea arbitrară a unei variante; t
 
 PR #4 modifică `Solution/AGENTS.md`, `Solution/README.md`, `Solution/docs/design-system.md` și `Solution/docs/planning/02`–`06`, pe care branch-ul de documentare le-a mutat sau integrat. Oricare dintre cele două se integrează al doilea va avea conflicte (fișiere modificate într-o parte și eliminate în cealaltă). La rezolvare, modificările de documentație din PR #4 se portează în noua structură:
 
-- [AGENTS.md](../AGENTS.md): regula drag-and-drop cu salvări pe rând, regulile referințelor interne și regula Git (armonizată cu contradicția 2);
-- [DATABASE.md](DATABASE.md) și [Scripts/README.md](../Scripts/README.md): tabela `NoteReferences`, scriptul `version_0.02/002_CreateNoteReferences.sql` (structura, ordinea, comanda `sqlcmd`), `--table dbo.NoteReferences` și `NoteReference.cs` în comanda de scaffolding;
-- [decisions/README.md](decisions/README.md): deciziile 32–47 (sunt deja în jurnal) și, eventual, un ADR pentru formatul referințelor;
-- comanda `create-note-references`: [README.md](../README.md) și [ARCHITECTURE.md](ARCHITECTURE.md) (comanda, pornită din `Program.cs`, și fluxul `NoteReferenceBackfillCommand → INoteReferenceBackfillService → INoteReferenceBackfillRepository`), [SECURITY.md](SECURITY.md) (modifică textul notelor tuturor utilizatorilor, numai cu referințe vizibile proprietarului), [TESTING.md](TESTING.md) (`NoteReferenceBackfillServiceTests` și rularea cu previzualizare înainte de `--save`), fișierele `CLAUDE.md` din Web, Business și DataAccess (noile tipuri; `SaveReferencesAsync` nu actualizează rândul notei, decizia 45);
-- scriptul `version_0.02/003_InsertNoteReferences.sql`: [Scripts/README.md](../Scripts/README.md) (lista și ordinea, ca script opțional de date) și [DATABASE.md](DATABASE.md);
-- deschiderea fără reîncărcare: [ARCHITECTURE.md](ARCHITECTURE.md) (handlerul `NoteEditor`, evenimentul `modal:open`, subinterogarea previzualizării limitată la paragrafele notelor citite), [TESTING.md](TESTING.md) (deschiderea de pe tablă, Back și căderea pe pagina notei), decizia 49 și în [DATABASE.md](DATABASE.md);
-- [UI-UX.md](UI-UX.md), [REQUIREMENTS.md](REQUIREMENTS.md), [DOMAIN-MODEL.md](DOMAIN-MODEL.md), [SECURITY.md](SECURITY.md): referințele interne și noul comportament drag-and-drop, cu statusurile trecute din [~] în [x];
-- [ARCHITECTURE.md](ARCHITECTURE.md): `note-references.js`, `WorkNotes.Web/Notes/NoteReferences.cs`, handlerele `ReferenceSuggestions` și `ReferenceTargets`;
-- [ROADMAP.md](ROADMAP.md) și această pagină: lista „Referințe către această notă” și cele cinci limitări noi din backlog-ul PR-ului;
-- [CHANGELOG.md](../CHANGELOG.md), [LOCALIZATION.md](LOCALIZATION.md) (numărul de chei) și [TESTING.md](TESTING.md) (`NoteReferenceRulesTests` și noile totaluri).
+- [AGENTS.md](../AGENTS.md): regula drag-and-drop cu salvări pe rând, regulile referințelor interne (în `Solution/AGENTS.md`, după [ADR-003](decisions/ADR-003-internal-references.md)) și regula Git (armonizată cu contradicția 2);
+- [DATABASE.md](DATABASE.md) și [Scripts/README.md](../Scripts/README.md): portate — tabela `NoteReferences` (modelul nou), scripturile `002`, `003` și `004`, `--table dbo.NoteReferences` în comanda de scaffolding; marcajele „PR #4” se elimină la integrare;
+- [decisions/README.md](decisions/README.md): deciziile 32–58 și [ADR-003](decisions/ADR-003-internal-references.md) sunt deja în jurnal; deciziile 33–38 și 40–47 sunt marcate ca înlocuite;
+- [ARCHITECTURE.md](ARCHITECTURE.md): `INoteReferenceService` / `NoteReferenceService`, `INoteReferenceRepository` (implementat de `NoteRepository`), fluxurile salvării și al recalculării, `note-references.js` și `WorkNotes.Web/Notes/NoteReferences.cs`; deschiderea fără reîncărcare (handlerul `NoteEditor`, evenimentul `modal:open`, subinterogarea previzualizării limitată la paragrafele notelor citite);
+- [SECURITY.md](SECURITY.md): legăturile respectă contextul și vizibilitatea proprietarului paragrafului, cititorul vede numai linkurile către notele pe care le poate vedea, iar recalcularea modifică legăturile paragrafelor altor membri ai contextului;
+- [TESTING.md](TESTING.md): `NoteReferenceRulesTests`, `NoteReferenceServiceTests`, noile teste din `NoteServiceTests` și totalurile; verificările manuale ale linkurilor și ale scriptului `004`;
+- fișierele `CLAUDE.md` din Web, Business și DataAccess: noile tipuri (`INoteReferenceService`, `INoteReferenceRepository`, `NoteReference.cs` generat prin scaffolding);
+- [UI-UX.md](UI-UX.md), [REQUIREMENTS.md](REQUIREMENTS.md), [DOMAIN-MODEL.md](DOMAIN-MODEL.md): actualizate pentru modelul nou; statusurile trec din [~] în [x] la integrare;
+- [ROADMAP.md](ROADMAP.md) și această pagină: lista „Referințe către această notă” și limitările de mai sus;
+- [CHANGELOG.md](../CHANGELOG.md), [LOCALIZATION.md](LOCALIZATION.md) (169 de chei, cu `Notes_ReferenceTarget`) și [TESTING.md](TESTING.md) (noile totaluri).
 
 ## Informații mutate sau consolidate
 
@@ -124,6 +134,20 @@ Rulate pe 2026-09-25, în sesiunea cloud de documentare (Linux, .NET SDK 10.0.11
 | Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale) | niciun rezultat (regulile sunt respectate) |
 | `tools/Test-Resources.ps1` | neefectuat: PowerShell nu este disponibil în sesiune; o verificare echivalentă ad-hoc (aceleași chei și parametri în cele patru fișiere, fallback românesc identic, fără chei lipsă sau neutilizate) a trecut pentru 168 de chei |
 | Aplicația și scripturile SQL | neverificate: sesiunea nu are SQL Server; nu s-a aplicat niciun script |
+
+Pe 2026-09-28, pentru referințele interne refăcute din PR #4 (sesiune cloud Linux, .NET SDK 10.0.112, fără SQL Server):
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet tool restore`, `dotnet restore WorkNotes.sln` | reușite |
+| `dotnet build WorkNotes.sln --no-restore` | reușit, 0 avertismente, 0 erori |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 196 de teste trecute, 0 eșuate, 0 omise |
+| `tools/Test-Resources.ps1` (PowerShell 7 ca instrument .NET global) | `PASS`: 169 de chei, aceleași în cele patru fișiere |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale) | niciun rezultat, inclusiv pentru fișierele noi |
+| Paginile reale, pe o gazdă de test cu depozit în memorie în locul SQL Server (Chromium și Firefox 136, cu mouse și tastatură reale în Firefox) | linkurile desenate din relații, click și Ctrl+Enter în taburi (tab nou, tab existent, editor minimizat, modificări nesalvate păstrate), editarea și salvarea, redenumirea, crearea și ștergerea notelor, ștergerea unui paragraf, afișarea fără JavaScript și textul HTML afișat ca text; deschiderea de pe tablă, Escape și drag-and-drop funcționează ca înainte |
+| `004_ReplaceNoteReferences.sql` | fără erori de sintaxă (parserul Microsoft ScriptDom, gramaticile SQL Server 2016 și 2022, inclusiv instrucțiunile din `EXEC`); logica de recunoaștere și de transformare a legăturilor vechi, reprodusă în C#, dă aceleași rezultate ca aplicația pe 400 000 de texte generate |
+| Interogările EF noi | SQL-ul generat, verificat offline (`ToQueryString`) |
+| Aplicația pe SQL Server, scaffolding-ul și aplicarea `004` | neverificate: sesiunea nu are SQL Server; scriptul nu a fost aplicat pe nicio bază |
 
 ## Următorii pași
 

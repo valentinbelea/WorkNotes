@@ -18,7 +18,7 @@ Utilizator ──membru (Owner / Member)──► Context de lucru ──conțin
 | Notă | implementată | `NoteSummary`, `NoteDocument`, `NewNote`, `NoteRules`, `NoteTypes`, `NoteVisibilities` | `Notes` |
 | Paragraf (bloc) | implementată | `NoteBlockDetails`, `NoteBlockInput`, `NoteBlockAudit` | `NoteBlocks` |
 | Versiunea bazei | implementată | `ApplicationVersionService` | `DatabaseVersion` |
-| Referință internă între note | în dezvoltare (PR #4) | — | `NoteReferences` (PR #4) |
+| Referință internă între note | în dezvoltare (PR #4) | `NoteReferenceRules`, `NoteReferenceTypes`, `NoteReferenceMatch`, `NoteBlockReference`, `INoteReferenceService` (PR #4) | `NoteReferences` (PR #4) |
 | Referință de lucru, legătură, platformă și modulele ulterioare | planificate | — | — |
 
 Tabla nu este o entitate: este afișarea notelor unui context, grupate pe luni.
@@ -116,7 +116,15 @@ Jurnalul păstrează cronologia, iar articolul adună explicațiile; codul CR-ul
 
 ## În dezvoltare
 
-**Referința internă între note** (PR #4, branch `main_task_02`, neintegrat în `main`): textul paragrafului păstrează referința ca `[[note:{id}|{număr}]]`, legată prin ID-ul notei destinație, nu prin titlu; tabela `NoteReferences` (sursă, destinație, numărul afișat, data creării) este refăcută la fiecare salvare a textului (și de comanda `create-note-references`, care creează referințele în notele existente), numai cu referințele valide; se propun numai celelalte note ale aceluiași context vizibile utilizatorului, numai proprietarului notei. Regulile se mută în secțiunea entităților implementate la integrarea PR-ului.
+**Referința internă între note** (PR #4, branch `main_task_02`, neintegrat în `main`). Regulile sunt în `NoteReferenceRules` și `NoteReferenceService`; decizia este [ADR-003](decisions/ADR-003-internal-references.md).
+
+- Scop: un CR sau un bug scris într-un paragraf deschide nota care îl are în titlu — de exemplu `CR 30080` din jurnalul „CRs” deschide articolul „CR 30080 Export facturi”.
+- Formele recunoscute: tipul `CR` sau `BUG`, cu orice combinație de litere mari și mici, apoi unul până la 50 de spații (sau spații neseparabile), un `-`, un `_` ori nimic, apoi un număr de 1–18 cifre ASCII: `CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `cr 30080`, `Cr-30080`, `bug 1234`, `bug-1234`, `bug_1234`, `bug1234`, `BUG 1234`, `Bug-1234`. Tipul și numărul sunt cuvinte întregi: o literă, o cifră sau un semn diacritic combinat lipit înainte de tip ori după număr le face parte dintr-un cuvânt mai lung (`XCR30080A` nu este referință); punctuația, `/` și `_` nu (`feature/CR-30080_export` conține `CR-30080`).
+- Normalizarea: tipul (`CR`, `BUG`, constantele `NoteReferenceTypes`), numărul (fără zerourile de la început) și forma normalizată `CR:30080` / `BUG:1234`, după care se compară referințele; textul original (`CR_30080`) se păstrează. `CR 1234` și `bug 1234` sunt referințe diferite.
+- Nota destinație: titlurile notelor se citesc cu aceleași reguli. O referință dintr-un paragraf deschide nota atunci când exact o notă a contextului — dintre cele pe care proprietarul notei paragrafului le poate vedea (ale lui sau partajate cu contextul), nearhivate, nota însăși inclusă — are referința în titlu, iar aceasta este altă notă. Fără nicio notă referința rămâne text (fără destinație); cu mai multe note nu se alege automat (ambiguă); dacă numai nota însăși o are, rămâne text. Contextul rămâne granița de acces.
+- Stocarea: câte un rând în `NoteReferences` pentru fiecare paragraf și referință normalizată cu destinație, oricâte apariții ar avea referința în paragraf; rândul păstrează textul primei apariții. Textul paragrafului nu se modifică niciodată pentru a conține linkul.
+- Actualizarea: salvarea unei note scrie referințele paragrafelor ei în aceeași tranzacție cu paragrafele (cele ale paragrafelor șterse dispar, cele noi se adaugă, cele valabile rămân cu data creării); schimbarea titlului unei note, crearea unei note cu titlu și ștergerea unei note recalculează, în context, referințele pentru formele normalizate pe care titlul le-a câștigat sau le-a pierdut. Ștergerea notei destinație elimină rândurile care o deschideau; paragrafele își păstrează textul.
+- Afișarea: fiecare loc din paragraf în care este scrisă o referință stocată, oricare i-ar fi forma, este un link către nota ei, pentru cititorii care pot vedea nota destinație; pozițiile se calculează din text la fiecare afișare, nu se stochează.
 
 ## Entități planificate
 

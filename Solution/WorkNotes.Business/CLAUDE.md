@@ -4,9 +4,9 @@ Proiectul regulilor de business. Regulile generale sunt în [AGENTS.md](../../AG
 
 ## Conținut
 
-- `Abstractions/` — interfețele serviciilor (`INoteService`, `IWorkContextService`, `IContextMemberService`, `IApplicationVersionService`, `IAccountService`, `IAuthenticationService`) și ale accesului la date (`INoteRepository`, `IWorkContextRepository`, `IContextMemberRepository`, `IApplicationVersionRepository`).
-- `Services/` — `NoteService`, `WorkContextService`, `ContextMemberService`, `ApplicationVersionService`.
-- `Models/` — DTO-uri `sealed record`, reguli (`NoteRules`, `WorkContextRules`, `AccountRules`), constante (`NoteTypes`, `NoteVisibilities`, `ContextRoles`) și coduri de stare (`*Status`).
+- `Abstractions/` — interfețele serviciilor (`INoteService`, `IWorkContextService`, `IContextMemberService`, `IApplicationVersionService`, `IAccountService`, `IAuthenticationService` și, cu PR #4, `INoteReferenceService`) și ale accesului la date (`INoteRepository`, `IWorkContextRepository`, `IContextMemberRepository`, `IApplicationVersionRepository`; PR #4: `INoteReferenceRepository`).
+- `Services/` — `NoteService`, `WorkContextService`, `ContextMemberService`, `ApplicationVersionService`; PR #4: `NoteReferenceService`.
+- `Models/` — DTO-uri `sealed record`, reguli (`NoteRules`, `WorkContextRules`, `AccountRules`; PR #4: `NoteReferenceRules`, singurul loc care citește referințele CR/bug din text), constante (`NoteTypes`, `NoteVisibilities`, `ContextRoles`; PR #4: `NoteReferenceTypes`) și coduri de stare (`*Status`).
 
 ## Reguli
 

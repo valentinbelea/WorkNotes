@@ -7,7 +7,7 @@ Proiectul de prezentare: Razor Pages, ViewModel-uri, localizare, CSS, JavaScript
 - `Program.cs` — serviciile, `AddDataAccess`, cookie-urile și pipeline-ul HTTP; singurul loc care referă `WorkNotes.DataAccess`.
 - `Pages/` — `Index.cshtml` (tabla, notele, editorul), `Contexts/Index.cshtml`, `Account/*.cshtml`, `Language.cshtml`; `Pages/Shared/` — layout-ul și partialele (`_NoteCard`, `_NewNoteCard`, `_NoteEditor*`, `_DeleteNoteDialog`, `_StatusMessage`, `_MainMenu`, `_LanguageSelector`).
 - `ViewModels/` — intrările formularelor și corpul JSON al editorului; `ViewComponents/` — versiunea din footer.
-- `Localization/`, `Messages/`, `Navigation/`, `Notes/` — localizarea, mesajele de salvare, secțiunile meniului, formatele datelor și clasele cardurilor.
+- `Localization/`, `Messages/`, `Navigation/`, `Notes/` — localizarea, mesajele de salvare, secțiunile meniului, formatele datelor și clasele cardurilor; PR #4: `Notes/NoteReferences.cs`, care afișează linkurile referințelor interne din pozițiile date de `INoteReferenceService` (fără să citească referințe din text).
 - `wwwroot/` — `css/`, `js/`, `images/`, `lib/codemirror/` (bundle generat).
 
 ## Reguli

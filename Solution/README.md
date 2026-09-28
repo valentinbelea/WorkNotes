@@ -17,7 +17,7 @@ Rezumatul funcționalităților lucrate până acum; detaliile sunt în secțiun
 - **Dashboard**: o tablă pentru fiecare context, aleasă din lista cu bordură întreruptă (la focus bordura devine verde plin); subtitlul „Spațiul meu” din header.
 - **Note pe tablă**: post-it-uri galbene (jurnal) și salvie (articol), cu bandă adezivă în culoarea hârtiei și înclinări deterministe; grupate pe luni după ultima modificare (`ISNULL(modificare, creare)`); în fiecare lună, ordinea aleasă de proprietar (`Order`), schimbată prin drag-and-drop, cu cardul prins de bandă (version_0.02); în header data creării (stânga) și a ultimei modificări (dreapta), pe același rând; previzualizarea primelor paragrafe; titlul redenumit pe loc; ștergere cu confirmare; „Notă nouă” direct pe tablă, cu switch jurnal/articol; mai multe jurnale pe zi.
 - **Editorul de note** (CodeMirror 6): se deschide peste tablă; paragrafe cu identitate și audit propriu (bara de informații); căutare/înlocuire, undo/redo, Ctrl+S; detectarea salvărilor concurente; header cu sigla WN, taburile notelor deschise, Minimizează și Închide; acțiunile în footerul fiecărei note; minimizare în stânga-jos fără pierderea modificărilor; mai multe note deschise simultan, în taburi independente.
-- **Referințe interne între note** (version_0.02): după un număr tastat în editor (urmat de spațiu, punctuație, rând nou sau Tab) care apare ca număr întreg în titlul altor note ale tablei, o sugestie discretă oferă transformarea lui în referință (click sau tastatură); referința ține ID-ul notei, se deschide într-un tab al editorului și apare ca link și în previzualizarea cardurilor; relațiile sunt păstrate în `dbo.NoteReferences`. Notele existente primesc referințele cu comanda `create-note-references`, numai pentru numerele cu o singură notă posibilă.
+- **Referințe interne între note** (version_0.02): un CR sau un bug scris în text (`CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `bug_1234`…) este link către singura notă a tablei care îl are în titlu; se deschide într-un tab al editorului; relațiile, pe paragraf, sunt păstrate în `dbo.NoteReferences` și se recalculează automat; conținutul existent se reindexează cu scriptul `version_0.02\004_ReplaceNoteReferences.sql`.
 - **Mesaje de salvare**: succes, avertisment și eroare, fixe sus pe centru, cu buton de închidere, până le închide utilizatorul (și în dialoguri, deasupra overlay-ului).
 - **Sigla WN**: în fereastra editorului (maximizat și minimizat) și ca favicon (`logo-wn.svg`, `favicon.ico`).
 - **Localizare** ro/en/pl pentru toate textele; design „Hârtie & salvie”; funcționare de bază și fără JavaScript.
@@ -145,38 +145,23 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 
 ### Referințe interne între note — version_0.02
 
-O notă poate trimite la alta de pe aceeași tablă (același context), fie ea jurnal sau articol, printr-un număr din titlul ei. Exemplu: există un post-it „CR 30080”; cine tastează într-o altă notă `30080` urmat de spațiu, un semn de punctuație, un rând nou sau Tab primește sub număr o sugestie discretă: „Creează referință către” și notele cu numărul în titlu, fiecare cu tipul (articol / jurnal) și titlul complet. Numărul trebuie să apară întreg, nu ca fragment (`30080` nu se găsește în `130080`), să aibă 3–18 cifre (`NoteReferenceRules.MinNumberLength`, `MaxNumberLength`; numerele mai scurte sunt prea frecvente în text) și să fie un cuvânt numai din cifre (`CR30080` nu se verifică). Sunt propuse numai celelalte note ale tablei pe care utilizatorul le poate vedea (ale lui și cele partajate cu contextul), nu și nota însăși. Nimic nu se schimbă automat: utilizatorul alege nota cu click sau de la tastatură (Tab intră în sugestie, săgețile se mută, Enter alege, Escape închide). Sugestia se închide și la click în afara ei și când tastarea continuă în altă zonă (alt rând sau înaintea numărului). Numai proprietarul, care scrie în notă, primește sugestii.
+Decizia și motivele: [docs/decisions/ADR-003-internal-references.md](../docs/decisions/ADR-003-internal-references.md).
 
-După alegere, numărul devine o referință evidențiată ca un link. În text ea este păstrată ca `[[note:{id}|{număr}]]` (`NoteReferenceRules` pe server, `wwwroot/js/note-references.js` în editor): ID-ul stabil al notei destinație și numărul afișat. Editorul arată doar numărul, cu titlul și tipul actual al destinației ca tooltip, și tratează referința ca un întreg (cursorul o sare, Backspace o șterge întreagă; Ctrl+Z revine întâi la textul scris după ea, apoi la numărul simplu). Legătura se face prin ID, deci rămâne validă când titlul destinației se schimbă. Un număr care este deja o referință (sau lipit de una) nu mai este verificat.
+Un paragraf poate trimite la o notă a aceleiași table (același context) scriind CR-ul sau bugul pe care nota îl are în titlu. Exemplu: există articolul „CR 30080 Export facturi”; în jurnalul „CRs”, textul `CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `cr 30080` sau `Cr-30080` este un link către el; la fel `bug_1234` către „Rezolvare Bug-1234”. Tipul (`CR`, `BUG`) se recunoaște în orice combinație de litere mari și mici; între tip și număr pot fi spații (cel mult 50), un `-`, un `_` sau nimic; numărul are 1–18 cifre. Tipul și numărul trebuie să fie întregi: `XCR30080A` nu este referință. Referințele se compară după tip și număr (`CR:30080`), deci `CR 1234` și `bug 1234` sunt diferite (`NoteReferenceRules`).
 
-Click pe o referință (sau Ctrl+Enter lângă ea) deschide nota destinație într-un tab al editorului; dacă este deja deschisă, îi selectează tabul, fără duplicat. Pe tablă, previzualizarea cardurilor arată referințele ca linkuri (`/?note={id}`): cu editorul minimizat, click pe una îl readuce și arată tabul notei. Celelalte taburi își păstrează textul și modificările nesalvate. Fără JavaScript, textul read-only din editor are aceleași linkuri.
+Titlurile notelor se citesc cu aceleași reguli. O referință are link numai dacă exact o notă a tablei — dintre cele pe care proprietarul notei o poate vedea (ale lui și cele partajate cu contextul), nearhivate, nota însăși inclusă — o are în titlu, iar aceasta este altă notă. Fără nicio notă sau cu mai multe, textul rămâne simplu; scriptul `004` le listează.
 
-O referință care nu mai poate fi deschisă — nota a fost ștearsă, a devenit privată, este în alt context, este nota însăși sau utilizatorul nu o poate vedea — își păstrează numărul, marcat discret (culoare estompată, subliniere punctată, tooltip), fără titlul destinației; click-ul nu deschide nimic. Referințele lipite dintr-o altă notă sunt verificate la server imediat (`?handler=ReferenceTargets`).
+Textul notei nu se schimbă: editorul (`wwwroot/js/note-references.js`) desenează linkurile peste text, din pozițiile trimise de server, cu titlul și tipul notei ca tooltip. Toată expresia, așa cum e scrisă, este linkul; fiecare apariție a referinței în paragraf duce la aceeași notă. Click pe link (sau Ctrl+Enter cu cursorul pe el) deschide nota într-un tab nou; dacă nota este deja deschisă, îi selectează tabul, fără duplicat; un editor minimizat este readus, iar celelalte taburi își păstrează textul și modificările nesalvate. Textul scris într-un link îl ascunde până la salvare; după salvare, linkurile textului salvat apar singure, inclusiv pentru referințele nou scrise. Fără JavaScript, textul read-only din editor are aceleași linkuri. Previzualizarea cardurilor este text simplu.
 
-Relațiile sunt păstrate în `dbo.NoteReferences` (scriptul `version_0.02\002_CreateNoteReferences.sql`): nota sursă, nota destinație, numărul afișat și data creării; câte un rând pentru fiecare sursă, destinație și număr, oricâte apariții ar avea în text. La fiecare salvare a textului, `NoteService` citește referințele din paragrafe și păstrează numai pe cele către note ale tablei pe care proprietarul le poate vedea; repository-ul înlocuiește rândurile notei în aceeași tranzacție cu salvarea (rândurile rămase își păstrează data creării). Ștergerea sursei îi șterge rândurile (cascadă); ștergerea destinației șterge întâi rândurile care o indică, apoi nota (tranzacție serializabilă; textul surselor păstrează numărul, marcat). Indexul `IX_NoteReferences_TargetNoteId` pregătește lista viitoare „Referințe către această notă”.
+Relațiile sunt păstrate în `dbo.NoteReferences`: câte un rând pentru fiecare paragraf și referință cu destinație (paragraful, nota destinație, tipul, numărul, textul primei apariții, forma normalizată, data creării), oricâte apariții ar avea referința în paragraf. `INoteReferenceService` le calculează: la salvarea unei note, în aceeași tranzacție cu paragrafele (cele nevalabile se șterg, cele noi se adaugă, cele valabile rămân; ștergerea unui paragraf îi șterge rândurile prin cascadă); la schimbarea titlului unei note, la crearea și la ștergerea unei note, pentru referințele pe care titlul le-a câștigat sau le-a pierdut, în tot contextul. Ștergerea destinației șterge întâi rândurile care o indică, apoi nota (tranzacție serializabilă); textul surselor rămâne. Indexul `IX_NoteReferences_TargetNoteId` pregătește lista viitoare „Referințe către această notă”.
 
-Adrese: `GET /?handler=ReferenceSuggestions&note={id}&number={număr}` (notele propuse) și `GET /?handler=ReferenceTargets&note={id}&ids=…` (care dintre referințe se pot deschide; cel mult `NoteReferenceRules.MaxTargetsPerRequest` ID-uri), ambele cu răspuns JSON.
+#### Tranziția și reindexarea conținutului existent
 
-```powershell
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\002_CreateNoteReferences.sql'
-```
-
-#### Referințe în notele existente
-
-Notele scrise înainte de referințe primesc referințele o singură dată, prin comanda `create-note-references` a aplicației, rulată din `Solution` în locul site-ului, după scriptul `002_CreateNoteReferences.sql`:
+`version_0.02\004_ReplaceNoteReferences.sql` înlocuiește modelul anterior (legătura păstrată în text ca `[[note:{id}|{număr}]]`, tabela cu nota sursă și numărul, sugestiile din editor și comanda `create-note-references`, eliminate): transformă legăturile vechi din text înapoi în numărul pe care îl afișau, fără să schimbe auditul; șterge tabela veche și creează tabela nouă; citește toate paragrafele care pot avea referințe, inclusiv jurnalul „CRs”, și face rândurile. Apoi afișează rezumatul, referințele fără destinație, pe cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele transformate. Cu `@Save = 0` nu salvează nimic. Rulat din nou, schimbă numai ce nu mai corespunde și listează starea curentă. `002_CreateNoteReferences.sql` și `003_InsertNoteReferences.sql` rămân nemodificate și nu se mai rulează după `004`.
 
 ```powershell
-# Previzualizare: arată ce s-ar schimba, fără să salveze nimic
-dotnet run --project WorkNotes.Web --launch-profile http -- create-note-references
-# Salvează referințele arătate
-dotnet run --project WorkNotes.Web --launch-profile http -- create-note-references --save
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\004_ReplaceNoteReferences.sql'
 ```
-
-Comanda (`NoteReferenceBackfillCommand` → `INoteReferenceBackfillService`) citește fiecare notă pe care proprietarul ei o poate edita (nearhivată, într-un context al cărui membru este) și caută în text numerele pentru care editorul ar oferi o referință: cuvinte numai din cifre (3–18), în afara referințelor și nelipite de una (`NoteReferenceRules.LinkNumbers`). Un număr devine referință numai dacă **exact o** altă notă a aceleiași table, pe care proprietarul o poate vedea, îl are întreg în titlu; atunci fiecare apariție a lui este legată. Dacă mai multe note au numărul în titlu, el rămâne cum este (alegerea este a proprietarului, în editor) și apare în raport cu notele posibile. Numerele din adrese web sau de e-mail și din căi de fișiere (text cu `://`, `www.`, `@` sau `\`) nu se modifică: un astfel de text se copiază ca atare, iar referința s-ar copia în forma ei păstrată.
-
-Textul se citește la fel după comandă, deci datele de creare și de modificare ale notelor și ale paragrafelor, ordinea de pe tablă și versiunea notei (`RowVersion`) nu se schimbă: se schimbă doar textul paragrafelor cu numere legate și rândurile notei din `dbo.NoteReferences`, refăcute ca la o salvare. Fiecare notă se salvează în tranzacția ei (serializabilă), numai dacă nu s-a modificat de la citire; altfel raportul o arată nesalvată, iar o nouă rulare o reia. O notă care ar depăși lungimea maximă a unei salvări (`NoteRules.MaxContentLength`) nu se modifică. Ctrl+C oprește comanda, iar fiecare notă este salvată întreagă sau deloc; rularea repetată continuă cu restul fără dubluri, pentru că numerele legate nu mai sunt găsite.
-
-Rulează comanda după o copie de siguranță a bazei și când aplicația nu este folosită: un editor deschis înainte de comandă și salvat după ea pune la loc, în paragrafele schimbate, textul fără referințe. Conexiunea este a aplicației (`ConnectionStrings:WorkNotes`, cu profilul `http`, deci mediul Development). Raportul este tehnic, ca un log, în engleză; nu face parte din interfață.
 
 ## Modulul de conturi — version_0.01
 
@@ -280,7 +265,9 @@ E:\GitRepository\Vali\WorkNotes\       # Rădăcina Git
     └── version_0.02\
         ├── 000_UpdateDatabaseVersion.sql
         ├── 001_AddNoteOrder.sql
-        └── 002_CreateNoteReferences.sql
+        ├── 002_CreateNoteReferences.sql
+        ├── 003_InsertNoteReferences.sql
+        └── 004_ReplaceNoteReferences.sql
 ```
 
 Folderele `Scripts` și `Solution` fac parte din același repository Git. Comenzile dotnet se rulează din `Solution`, iar scripturile se referă de acolo ca `..\Scripts\version_0.0x\...`.
@@ -321,8 +308,9 @@ Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scriptu
 8. `008_CreateNoteBlocks.sql`: creează `dbo.NoteBlocks` (paragrafele notelor, cu audit) și indexul pe `NoteId`, `Position`, dacă lipsesc.
 9. `version_0.02\000_UpdateDatabaseVersion.sql`: inserează `v.0.02` numai dacă lipsește; `v.0.01` rămâne în tabelă, iar footerul afișează versiunea cea mai mare, `v.0.02`.
 10. `version_0.02\001_AddNoteOrder.sql`: adaugă `dbo.Notes.[Order]`, numerotează notele existente în ordinea lor de pe tablă și creează indexul `IX_Notes_ContextId_Order`, dacă lipsesc.
-11. `version_0.02\002_CreateNoteReferences.sql`: creează `dbo.NoteReferences` (referințele interne dintre note), cheile externe către `Notes`, indexul unic pe sursă, destinație și număr și indexul pe destinație, dacă lipsesc.
-12. `version_0.02\003_InsertNoteReferences.sql` (opțional, date): completează `dbo.NoteReferences` din textul notelor existente, fără să schimbe textul: pentru fiecare număr de 3–18 cifre scris ca un cuvânt întreg într-un paragraf, care apare întreg în titlul altei note a contextului, vizibilă proprietarului, un rând către acea notă; între mai multe note, către singurul articol dintre ele. Inserează numai rândurile lipsă; cu `@Save = 0` doar arată ce ar insera. Rândurile unei note dispar la următoarea salvare a textului ei, pentru că aplicația reface rândurile din referințele din text.
+11. `version_0.02\002_CreateNoteReferences.sql`: modelul anterior al referințelor; creează tabela veche `dbo.NoteReferences` (nota sursă, nota destinație, numărul), dacă lipsește.
+12. `version_0.02\003_InsertNoteReferences.sql` (modelul anterior, date): completează tabela veche din textul notelor existente.
+13. `version_0.02\004_ReplaceNoteReferences.sql`: transformă legăturile vechi din text înapoi în număr, înlocuiește tabela cu `dbo.NoteReferences` pe paragraf (cheile externe către `NoteBlocks`, cu cascadă, și către `Notes`, indexul unic pe paragraf și referință, indexurile pe destinație și pe forma normalizată), reindexează toate paragrafele și listează referințele fără destinație, cele ambigue și jurnalul „CRs”. Pe o bază la care `002` și `003` au fost aplicate se rulează numai `004`; după `004`, `002` și `003` nu se mai rulează.
 
 Alternativ, dacă `sqlcmd` este instalat:
 
@@ -339,9 +327,10 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\001_AddNoteOrder.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\002_CreateNoteReferences.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\003_InsertNoteReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\004_ReplaceNoteReferences.sql'
 ```
 
-Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. După scripturile version_0.02, notele existente pot primi referințele cu comanda `create-note-references` (vezi „Referințe în notele existente”); nu este un script SQL, pentru că folosește regulile referințelor din aplicație. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
+Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate; excepție cerută explicit: `004_ReplaceNoteReferences.sql` șterge și recreează `dbo.NoteReferences`, ale cărei rânduri se refac din text și titluri. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
 
 ## Actualizarea modelului EF — Database First
 

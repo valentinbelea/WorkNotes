@@ -16,7 +16,7 @@ Baza existentă, livrată în version_0.01 și version_0.02:
 
 ## În lucru
 
-- PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; referințele interne între note (`NoteReferences`, `version_0.02/002_CreateNoteReferences.sql`) și comanda `create-note-references`, care le creează în notele existente.
+- PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; deschiderea notelor fără reîncărcarea tablei; referințele interne CR/bug între note, cu destinația aflată din titluri, relații pe paragraf în `NoteReferences` și reindexarea conținutului existent prin `version_0.02/004_ReplaceNoteReferences.sql` ([ADR-003](decisions/ADR-003-internal-references.md)).
 
 ## Etapele următoare
 
@@ -28,7 +28,8 @@ Pașii rămași din planul inițial, în ordinea lui:
 4. **Platforme** și `NotePlatforms`, dacă intră în prima interfață.
 5. **Editor** — evidențierea referințelor în text (ancore actualizate la editare), autocomplete și popup-uri pentru referințe.
 6. **Ulterior**, când există modulele: clienți, proiecte, branch-uri, evenimente, release-uri și publish-uri.
-7. Lista „Referințe către această notă” în editor, din `NoteReferences`, cu sursele pe care cititorul le poate vedea (propusă în PR #4; depinde de integrarea lui).
+7. Lista „Referințe către această notă” în editor, din `NoteReferences` (indexul pe `TargetNoteId`), cu paragrafele sursă pe care cititorul le poate vedea (propusă în PR #4; depinde de integrarea lui).
+8. Semnalarea în editor a referințelor fără destinație și a celor ambigue (propusă după PR #4; acum le listează doar `004_ReplaceNoteReferences.sql`).
 
 ## Îmbunătățiri
 

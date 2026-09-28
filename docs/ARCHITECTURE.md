@@ -33,12 +33,14 @@ Business nu are nicio referință de proiect sau pachet. Interfețele de acces l
 | `IWorkContextService` | `WorkNotes.Business/Services/WorkContextService.cs` | `Pages/Contexts/Index.cshtml`, `Pages/Index.cshtml` |
 | `IContextMemberService` | `WorkNotes.Business/Services/ContextMemberService.cs` | `Pages/Contexts/Index.cshtml` |
 | `INoteService` | `WorkNotes.Business/Services/NoteService.cs` | `Pages/Index.cshtml` |
+| `INoteReferenceService` (PR #4) | `WorkNotes.Business/Services/NoteReferenceService.cs` | `NoteService` |
 | `IAccountService` | `WorkNotes.DataAccess/Identity/IdentityAccountService.cs` | `Pages/Account` (Register, Index, ChangePassword) |
 | `IAuthenticationService` | `WorkNotes.DataAccess/Identity/IdentityAccountService.cs` | `Pages/Account` (Login, Logout) |
 | `IApplicationVersionRepository` | `WorkNotes.DataAccess/Repositories/ApplicationVersionRepository.cs` | `ApplicationVersionService` |
 | `IWorkContextRepository` | `WorkNotes.DataAccess/Repositories/WorkContextRepository.cs` | `WorkContextService`, `ContextMemberService`, `NoteService` |
 | `IContextMemberRepository` | `WorkNotes.DataAccess/Repositories/ContextMemberRepository.cs` | `ContextMemberService` |
 | `INoteRepository` | `WorkNotes.DataAccess/Repositories/NoteRepository.cs` | `NoteService` |
+| `INoteReferenceRepository` (PR #4) | `WorkNotes.DataAccess/Repositories/NoteRepository.cs` | `NoteReferenceService` |
 
 Contractele de cont sunt implementate direct în DataAccess, peste `UserManager` / `SignInManager`; regulile independente de infrastructură sunt în `WorkNotes.Business/Models/AccountRules.cs`. Serviciile Business verifică apartenența la context și proprietatea prin `IWorkContextRepository` și `INoteRepository` înainte de orice modificare.
 
@@ -48,28 +50,29 @@ Contractele de cont sunt implementate direct în DataAccess, peste `UserManager`
 
 - localizarea: `AddLocalization`, `RequestLocalizationOptions` din `LocalizationConfiguration`, `IStringLocalizer` fără parametru generic legat (singleton) la `IStringLocalizer<SharedResources>`, `LocalizedMvcOptions` pentru mesajele de model binding, `AddRazorPages().AddDataAnnotationsLocalization` cu catalogul `SharedResources`;
 - `AddProblemDetails`, autentificarea cu cookie-urile Identity (`AddIdentityCookies`), `AddAuthorization` și `ConfigureApplicationCookie` (vezi [SECURITY.md](SECURITY.md));
-- serviciile Business, scoped: `IApplicationVersionService`, `IWorkContextService`, `IContextMemberService`, `INoteService`; `TimeProvider.System` ca singleton;
+- serviciile Business, scoped: `IApplicationVersionService`, `IWorkContextService`, `IContextMemberService`, `INoteService` și, cu PR #4, `INoteReferenceService`; `TimeProvider.System` ca singleton;
 - `AddDataAccess(connectionString)`, cu `ConnectionStrings:WorkNotes` obligatoriu (excepție la pornire dacă lipsește);
 - `IdentityErrorDescriber` → `LocalizedIdentityErrorDescriber`, scoped.
 
-`AddDataAccess` (DataAccess): `WorkNotesDbContext` și `AccountsDbContext` cu `UseSqlServer` pe același connection string; repository-urile, scoped; `AddIdentityCore<ApplicationUser>` cu politica de parolă și blocare, `AddEntityFrameworkStores<AccountsDbContext>`, `AddSignInManager`, `AccountClaimsPrincipalFactory` (adaugă prenumele și numele în claims); `IdentityAccountService` scoped, expus prin `IAccountService` și `IAuthenticationService`.
+`AddDataAccess` (DataAccess): `WorkNotesDbContext` și `AccountsDbContext` cu `UseSqlServer` pe același connection string; repository-urile, scoped (cu PR #4, `NoteRepository` și pentru `INoteReferenceRepository`); `AddIdentityCore<ApplicationUser>` cu politica de parolă și blocare, `AddEntityFrameworkStores<AccountsDbContext>`, `AddSignInManager`, `AccountClaimsPrincipalFactory` (adaugă prenumele și numele în claims); `IdentityAccountService` scoped, expus prin `IAccountService` și `IAuthenticationService`.
 
 Pipeline-ul HTTP, în ordine: `UseRequestLocalization` → în afara Development: `UseExceptionHandler`, `UseHsts`, `UseHttpsRedirection` → `UseAuthentication` → `UseAuthorization` → `MapStaticAssets` → `MapRazorPages().WithStaticAssets()`.
 
 ## DTO-uri și ViewModel-uri
 
-- Modelele Business (`WorkNotes.Business/Models`) sunt `sealed record`-uri imutabile: `WorkContext`, `ContextMemberDetails`, `AccountProfile`, `AccountResult`, `NewNote`, `NoteSummary`, `NoteDocument`, `NoteBlockDetails`, `NoteBlockInput`, `NoteBlockAudit`, `NoteChanges`, `NoteMonthGroup`, `NoteSaveResult`, `NoteRenameResult`, `NoteOrderResult`, `NoteVersionChange`. Ele circulă între Business, DataAccess și Web; paginile și partialele le afișează direct (de exemplu `_NoteCard.cshtml` primește un `NoteSummary`, editorul un `NoteDocument`).
+- Modelele Business (`WorkNotes.Business/Models`) sunt `sealed record`-uri imutabile: `WorkContext`, `ContextMemberDetails`, `AccountProfile`, `AccountResult`, `NewNote`, `NoteSummary`, `NoteDocument`, `NoteBlockDetails`, `NoteBlockInput`, `NoteBlockAudit`, `NoteChanges`, `NoteMonthGroup`, `NoteSaveResult`, `NoteRenameResult`, `NoteOrderResult`, `NoteVersionChange`; PR #4 adaugă `NoteReferenceMatch`, `NoteBlockReference`, `NoteReferenceLink`, `NoteReferenceTarget`, `NoteBlockTarget`, `NoteReferenceSource` și `NoteReferenceResolution`, iar `NoteBlockDetails` și `NoteBlockAudit` primesc pozițiile linkurilor (`Links`). Ele circulă între Business, DataAccess și Web; paginile și partialele le afișează direct (de exemplu `_NoteCard.cshtml` primește un `NoteSummary`, editorul un `NoteDocument`).
 - ViewModel-urile Web (`WorkNotes.Web/ViewModels`) sunt numai pentru intrări, cu DataAnnotations ale căror mesaje sunt chei .resx: `LoginInput`, `RegisterInput` (extinde `ProfileInput`), `ProfileInput`, `ChangePasswordInput`, `WorkContextInput`, `ContextMemberInput`, `NewNoteInput`; `NoteSaveRequest` / `NoteBlockRequest` sunt corpul JSON trimis de editor.
 - Entitățile EF (`WorkNotes.DataAccess/Entities`) nu ies din DataAccess: repository-urile le proiectează în modele Business și folosesc alias-uri (`using NoteEntity = WorkNotes.DataAccess.Entities.Note;`) acolo unde numele coincid.
-- Ajutoarele de prezentare din Web: `Notes/NoteDates.cs` (formatele datelor și textele de audit), `Notes/NoteCardStyle.cs` (clasele de culoare și înclinare), `Navigation/NavigationSections.cs` (subtitlul din header și grupul de meniu deschis), `Messages/StatusMessage*.cs` (mesajele de salvare prin TempData).
+- Ajutoarele de prezentare din Web: `Notes/NoteDates.cs` (formatele datelor și textele de audit), `Notes/NoteCardStyle.cs` (clasele de culoare și înclinare), `Notes/NoteReferences.cs` (PR #4: tooltipurile, datele linkurilor pentru editor și paragrafele cu linkuri fără JavaScript, din pozițiile date de serviciu), `Navigation/NavigationSections.cs` (subtitlul din header și grupul de meniu deschis), `Messages/StatusMessage*.cs` (mesajele de salvare prin TempData).
 
 ## Accesul la date
 
-- Două contexte pe aceeași bază: `WorkNotesDbContext` (generat prin scaffolding: `ContextMembers`, `DatabaseVersion`, `Notes`, `NoteBlocks`, `WorkContexts`) și `AccountsDbContext` (`IdentityUserContext<ApplicationUser>`, mapare manuală a `Users` și a tabelelor `AspNetUser*`). `ContextMemberRepository` citește membrii din primul și conturile din al doilea, prin interogări separate.
+- Două contexte pe aceeași bază: `WorkNotesDbContext` (generat prin scaffolding: `ContextMembers`, `DatabaseVersion`, `Notes`, `NoteBlocks`, `WorkContexts` și, cu PR #4, `NoteReferences`) și `AccountsDbContext` (`IdentityUserContext<ApplicationUser>`, mapare manuală a `Users` și a tabelelor `AspNetUser*`). `ContextMemberRepository` citește membrii din primul și conturile din al doilea, prin interogări separate.
 - Citirile folosesc `AsNoTracking` și proiecții în modele Business; previzualizarea cardurilor citește în SQL numai primele 3 paragrafe (câte 300 de caractere), iar `NoteRules.BuildPreview` construiește textul.
 - Scrierile folosesc entități urmărite și `SaveChangesAsync` (contexte, membri, note noi, salvarea editorului) sau instrucțiuni set-based `ExecuteUpdateAsync` / `ExecuteDeleteAsync` (redenumire, ștergere, eliminarea unui membru, schimbul ordinii).
 - Filtrele de acces sunt aplicate în fiecare interogare: `ForMember(userId)` pentru contexte și `VisibleTo(userId)` pentru note (nearhivate, în contexte în care utilizatorul este membru, proprii sau cu vizibilitatea `Context`); modificările filtrează și după proprietar.
-- Tranzacții explicite: crearea unei note (citirea `MIN([Order])` cu `UPDLOCK, HOLDLOCK`) și schimbul a două note (un singur `UPDATE` condiționat de `RowVersion`, apoi citirea noilor versiuni). Concurența, cheile și regulile de ștergere sunt în [DATABASE.md](DATABASE.md).
+- Tranzacții explicite: crearea unei note (citirea `MIN([Order])` cu `UPDLOCK, HOLDLOCK`) și schimbul a două note (un singur `UPDATE` condiționat de `RowVersion`, apoi citirea noilor versiuni). Cu PR #4 și ștergerea unei note (serializabilă: întâi rândurile `NoteReferences` care o deschid, apoi nota) și recalcularea referințelor după un titlu (numai paragrafele cu `RowVersion` nemodificat). Concurența, cheile și regulile de ștergere sunt în [DATABASE.md](DATABASE.md).
+- PR #4: referințele interne sunt citite din text numai de `NoteReferenceRules`, în Business. Salvarea unei note le primește rezolvate de `INoteReferenceService.ResolveAsync` și le scrie în același `SaveChangesAsync` cu paragrafele; `GetCandidatesAsync` (notele contextului vizibile unui utilizator, cu cifrele numerelor în titlu) și `GetSourcesAsync` (paragrafele contextului care conțin cifrele) sunt doar filtre, iar serviciul citește referințele din titluri și paragrafe. Recalcularea după un titlu schimbă și legăturile paragrafelor altor membri ai contextului, după ce poate vedea proprietarul fiecărui paragraf.
 - Erorile SQL așteptate sunt traduse în coduri de stare: 2601/2627 (unicitate) → nume duplicat, membru existent sau e-mail folosit; 547 (cheie externă) → context în uz, cont sau context dispărut; `DbUpdateConcurrencyException` → conflict.
 - Valorile `datetime2` citite primesc `DateTimeKind.Utc`; auditul este salvat la precizia de o secundă a coloanelor.
 
@@ -100,13 +103,16 @@ Salvarea din editor, `POST /?handler=SaveNote&note={id}` cu corp JSON:
 
 1. Razor Pages validează tokenul antiforgery din antetul `RequestVerificationToken`.
 2. `IndexModel.OnPostSaveNoteAsync` → `INoteService.SaveAsync`: validează titlul și paragrafele (`NoteRules`), verifică vizibilitatea, proprietarul și versiunea.
-3. `NoteRepository.SaveAsync` compară paragrafele cu cele salvate și scrie numai diferențele, cu verificarea `RowVersion`.
-4. Răspunsul JSON conține noua versiune, mesajul localizat, data ultimei modificări și textele de audit ale paragrafelor; o eroare conține numai mesajul.
+3. PR #4: `INoteReferenceService.ResolveAsync` citește referințele CR/bug din paragrafe și le caută destinația printre notele contextului vizibile proprietarului (`INoteReferenceRepository.GetCandidatesAsync`), nota salvată fiind citită cu titlul nou.
+4. `NoteRepository.SaveAsync` compară paragrafele cu cele salvate și scrie numai diferențele, cu verificarea `RowVersion`; cu PR #4, în același `SaveChangesAsync` și referințele paragrafelor (`NoteReferences`).
+5. PR #4: dacă titlul s-a schimbat, `INoteReferenceService.RefreshAsync` recalculează în context referințele pe care titlul le-a câștigat sau le-a pierdut (la fel după redenumirea de pe card, crearea și ștergerea unei note).
+6. Răspunsul JSON conține noua versiune, mesajul localizat, data ultimei modificări și textele de audit ale paragrafelor (cu PR #4 și pozițiile linkurilor fiecărui paragraf și notele lor); o eroare conține numai mesajul.
 
 Fluxurile principale:
 
 ```text
 Pages/Index    → INoteService → NoteService → INoteRepository → NoteRepository → WorkNotesDbContext
+NoteService    → INoteReferenceService → NoteReferenceService → INoteReferenceRepository → NoteRepository → WorkNotesDbContext (PR #4)
 Pages/Contexts → IWorkContextService → WorkContextService → IWorkContextRepository → WorkContextRepository → WorkNotesDbContext
 Pages/Contexts → IContextMemberService → ContextMemberService → IContextMemberRepository → ContextMemberRepository → WorkNotesDbContext (ContextMembers) + AccountsDbContext (Users)
 Pages/Account  → IAccountService / IAuthenticationService → IdentityAccountService → UserManager / SignInManager → AccountsDbContext
@@ -154,6 +160,7 @@ Numai comportament; aspectul vine din clase CSS ([CODING-STANDARDS.md](CODING-ST
 | --- | --- | --- |
 | `notes-board.js` | layout, modul ES | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există), schimbul a două carduri prin drag-and-drop |
 | `note-editor.js` | pagina principală, modul ES, numai cu editorul deschis | Câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; primește noile versiuni după un schimb (`note-board:versions`) |
+| `note-references.js` (PR #4) | importat de `note-editor.js` | Linkurile referințelor interne, desenate din pozițiile trimise de server; click și Ctrl+Enter deschid nota în taburile editorului; nu citește referințe din text |
 | `status-messages.js` | importat de cele două module | Afișarea mesajelor de salvare din template-urile randate de server |
 | `modal.js`, `navigation.js`, `language.js`, `validation.js` | layout, `defer` | Dialogurile modale, meniul, selectorul de limbă, validarea client |
 | `lib/codemirror/codemirror.js` | importat de `note-editor.js` | CodeMirror 6, construit din `Solution/tools/codemirror` |

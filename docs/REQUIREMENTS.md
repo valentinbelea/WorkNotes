@@ -76,12 +76,18 @@ Statusurile sunt stabilite după codul de pe `main` (commit `504c01e`, 2026-09-2
 
 ## Referințe interne între note
 
-- [~] Referințe dintr-o notă către altă notă a aceluiași context, create dintr-un număr prezent în titlul destinației, deschise în editor și în previzualizarea cardurilor — implementate în PR #4 (branch `main_task_02`), neintegrate în `main`.
-- [~] Crearea referințelor în notele existente, o singură dată, cu comanda `create-note-references`: numai numerele pe care exact o altă notă vizibilă a contextului le are în titlu; fără `--save` doar arată schimbările — implementată în PR #4, neintegrată în `main`.
+Implementate în PR #4 (branch `main_task_02`), neintegrate în `main`; regulile sunt în [DOMAIN-MODEL.md](DOMAIN-MODEL.md#în-dezvoltare) și [ADR-003](decisions/ADR-003-internal-references.md):
+
+- [~] Recunoașterea referințelor CR/bug scrise în paragrafe: `CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `bug 1234`, `bug-1234`, `bug_1234`, `bug1234`, cu tipul în orice combinație de litere mari și mici, ca termeni întregi (`XCR30080A` nu este referință), comparate după tip și număr (`CR:30080`).
+- [~] Destinația: singura notă a contextului, vizibilă proprietarului paragrafului, cu aceeași referință în titlu (`bug1234` → „Rezolvare Bug-1234”); fără destinație sau cu mai multe note, nicio legătură (cazurile sunt listate de `004_ReplaceNoteReferences.sql`).
+- [~] Legăturile stocate pe paragraf (`NoteReferences`), recalculate automat la salvarea paragrafelor (creare, modificare, ștergere), la schimbarea titlului unei note și la crearea sau ștergerea unei note; textul paragrafelor nu se modifică.
+- [~] Afișarea în editor: fiecare apariție a unei referințe cu destinație, oricare îi este forma, este link către nota ei; click sau Ctrl+Enter o deschide într-un tab nou sau îi selectează tabul existent, readuce editorul minimizat și păstrează celelalte taburi cu modificările lor; fără JavaScript, linkuri HTML.
+- [~] Reindexarea conținutului existent, inclusiv a jurnalului „CRs”, cu `Scripts/version_0.02/004_ReplaceNoteReferences.sql` (aplicat numai la cerere explicită).
+- [!] Previzualizarea cardurilor afișează textul fără linkuri; o referință nou scrisă devine link abia după salvare.
 - [ ] Lista „Referințe către această notă” (backlog-ul PR #4).
 - [ ] Catalogul de referințe de lucru CR/bug pe context (`WorkReferences`) și asocierile cu notele și paragrafele (`NoteWorkReferences`, `NoteBlockWorkReferences`), cu căutarea explicațiilor după codul CR-ului.
 - [ ] Legături externe pe notă sau pe paragraf (`NoteLinks`).
-- [ ] Evidențierea referințelor în text (ancore actualizate la editare), autocomplete și popup-uri pentru referințe.
+- [ ] Evidențierea referințelor de lucru din catalog în text (ancore actualizate la editare), autocomplete și popup-uri pentru referințe.
 
 ## Contexte și membri
 
@@ -124,6 +130,6 @@ Statusurile sunt stabilite după codul de pe `main` (commit `504c01e`, 2026-09-2
 
 **Implementate** (version_0.01 și version_0.02): conturile, localizarea ro/en/pl, designul, contextele și membrii, tabla pe contexte și luni, post-it-urile cu creare, redenumire și ștergere pe loc, editorul cu paragrafe auditate, taburi și minimizare, mesajele de salvare, ordonarea prin drag-and-drop, versiunea în footer.
 
-**În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare și referințele interne între note, inclusiv crearea lor în notele existente.
+**În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare, deschiderea notelor fără reîncărcarea tablei și referințele interne CR/bug între note, cu reindexarea conținutului existent.
 
 **Planificate**: referințele de lucru CR/bug și asocierile lor, legăturile externe, evidențierea referințelor, salvarea automată, vizibilitatea și arhivarea din interfață, paragraful important, editarea notelor partajate, platformele și modulele ulterioare. Ordinea și dependențele sunt în [ROADMAP.md](ROADMAP.md).

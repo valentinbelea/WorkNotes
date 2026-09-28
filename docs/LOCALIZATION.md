@@ -24,7 +24,7 @@ Solution/
 └── tools/Test-Resources.ps1
 ```
 
-`WorkNotes.Resources` nu are dependențe; îl referă numai Web. Catalogul are 168 de chei (2026-09-25), aceleași în toate cele patru fișiere.
+`WorkNotes.Resources` nu are dependențe; îl referă numai Web. Catalogul are 168 de chei (2026-09-25), aceleași în toate cele patru fișiere; PR #4 adaugă `Notes_ReferenceTarget` (tooltipul unui link către altă notă: titlul și tipul ei), deci 169 (verificat cu `Test-Resources.ps1` pe 2026-09-28), și schimbă `Editor_Help` (Ctrl+Enter deschide referința de la cursor).
 
 ## Limbile
 

@@ -30,14 +30,14 @@
 - După un schimb pe tablă, un editor deschis pe aceeași notă în alt tab sau în altă fereastră primește conflict la următoarea salvare (fără să suprascrie ceva); editorul din aceeași pagină primește noua versiune.
 - Ordonarea se face numai cu mouse-ul (drag-and-drop HTML5); nu există încă o alternativă de la tastatură, iar pe ecranele tactile depinde de suportul browserului.
 - Două note cu aceeași valoare `Order` (posibil numai prin inserări directe în SQL) nu își schimbă locurile prin drag-and-drop; tabla le ordonează după date.
-- Tooltipul unei referințe (titlul destinației) se actualizează la următoarea deschidere a notei, nu imediat după redenumirea destinației în altă fereastră.
-- Căutarea din editor (Ctrl+F) găsește și cifrele din forma păstrată a unei referințe; o înlocuire în interiorul ei o transformă în text simplu.
-- Textul copiat în afara aplicației păstrează forma `[[note:{id}|{număr}]]`; lipit în altă notă, redevine referință.
-- Referința se creează numai dintr-un număr tastat: un număr lipit nu aduce sugestii, iar numerele de 1–2 cifre nu sunt propuse.
-- Într-o notă read-only (a unui coleg), referințele se deschid cu mouse-ul; de la tastatură nu, pentru că editorul read-only nu primește focus.
+- Tooltipul unui link (titlul destinației) și linkurile unei note deschise se actualizează la următoarea deschidere sau salvare a notei, nu imediat după redenumirea destinației în alt tab sau în altă fereastră.
+- O referință nou scrisă sau lipită devine link abia după salvare; textul scris într-un link sau lângă el îl ascunde până la salvare; Ctrl+Z nu readuce un link înainte de salvare.
+- Referințele fără destinație și cele ambigue nu au niciun semn în editor; le listează `004_ReplaceNoteReferences.sql`, rulat din nou.
+- Recalcularea după schimbarea unui titlu, crearea sau ștergerea unei note este o tranzacție separată de operație: două operații simultane pe aceeași referință sau o cerere întreruptă între ele pot lăsa o legătură învechită până la următoarea salvare.
+- Schimbarea vizibilității, arhivarea și ieșirea unui membru din context nu recalculează legăturile (nu au încă interfață).
+- Previzualizarea cardurilor este text simplu, fără linkuri.
+- Într-o notă read-only (a unui coleg), linkurile se deschid cu mouse-ul; de la tastatură nu, pentru că editorul read-only nu primește focus.
 - Închiderea editorului reîncarcă tabla, ca să arate cardurile după salvări; numai deschiderea nu o mai reîncarcă.
-- `create-note-references` nu știe ce sugestii a refuzat proprietarul: leagă orice număr cu o singură notă posibilă, inclusiv unul lăsat intenționat simplu.
-- Un editor deschis înainte de `create-note-references` și salvat după ea readuce, în paragrafele schimbate de comandă, textul fără referințe (și le actualizează data modificării); comanda se rulează când aplicația nu este folosită.
 
 ## Întrebări deschise
 
