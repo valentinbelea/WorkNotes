@@ -18,13 +18,15 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 - **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main` (care a fost adus în branch prin merge), cu commit-urile:
   - „Board: the next drag is no longer refused while a swap is being saved” — schimburile se aplică la `dragend` și se salvează pe rând;
   - „Editor and board: internal references between notes” — referințe interne între note, tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`;
-  - „Notes: create-note-references command for the existing notes” — comanda de mentenanță `create-note-references`, care creează o dată, în notele existente, referințele pe care editorul le-ar fi oferit (numai numerele cu o singură notă posibilă; fără `--save` doar le arată), deciziile 42–47; descrisă în `Solution/README.md`.
+  - „Notes: create-note-references command for the existing notes” — comanda de mentenanță `create-note-references`, care creează o dată, în notele existente, referințele pe care editorul le-ar fi oferit (numai numerele cu o singură notă posibilă; fără `--save` doar le arată), deciziile 42–47; descrisă în `Solution/README.md`;
+  - „Data access: card previews number only the paragraphs of the notes read” și „Board: a note opens over the board without reloading the page” — previzualizarea cardurilor nu mai numerotează toate paragrafele din bază, iar o notă deschisă de pe tablă apare peste tabla din pagină (`?handler=NoteEditor`), fără reîncărcare; deciziile 48–49.
 - **Branch-ul de documentare** `claude/worknotes-markdown-docs-6xyqw4` — această structură de documentație; nu modifică codul, schema sau funcționalitățile.
 
 ## Probleme cunoscute
 
 Limitări documentate în version_0.01–0.02:
 
+- [!] În Firefox, Escape nu închide fereastra editorului: Firefox anulează navigarea pornită de `modal.js` din Escape (verificat pe 2026-09-28 în Firefox 136, pe `main_task_02`, cu editorul deschis peste tablă sau ca pagină); butonul Închide funcționează. Celelalte overlay-uri folosesc același `modal.js`.
 - [!] Pe `main`, după primul schimb prin drag-and-drop, un al doilea drag început cât timp prima salvare este în curs este anulat fără niciun semn vizibil (`dragstart` refuzat cât timp `saving` este activ); corecția este în PR #4.
 - La reîncărcarea paginii editorului se redeschide doar tabul activ (adresa `/?note={id}`), nu toate taburile.
 - Mutarea unui paragraf prin tăiere și lipire creează un paragraf nou (ID nou).
@@ -72,6 +74,7 @@ PR #4 modifică `Solution/AGENTS.md`, `Solution/README.md`, `Solution/docs/desig
 - [DATABASE.md](DATABASE.md) și [Scripts/README.md](../Scripts/README.md): tabela `NoteReferences`, scriptul `version_0.02/002_CreateNoteReferences.sql` (structura, ordinea, comanda `sqlcmd`), `--table dbo.NoteReferences` și `NoteReference.cs` în comanda de scaffolding;
 - [decisions/README.md](decisions/README.md): deciziile 32–47 (sunt deja în jurnal) și, eventual, un ADR pentru formatul referințelor;
 - comanda `create-note-references`: [README.md](../README.md) și [ARCHITECTURE.md](ARCHITECTURE.md) (comanda, pornită din `Program.cs`, și fluxul `NoteReferenceBackfillCommand → INoteReferenceBackfillService → INoteReferenceBackfillRepository`), [SECURITY.md](SECURITY.md) (modifică textul notelor tuturor utilizatorilor, numai cu referințe vizibile proprietarului), [TESTING.md](TESTING.md) (`NoteReferenceBackfillServiceTests` și rularea cu previzualizare înainte de `--save`), fișierele `CLAUDE.md` din Web, Business și DataAccess (noile tipuri; `SaveReferencesAsync` nu actualizează rândul notei, decizia 45);
+- deschiderea fără reîncărcare: [ARCHITECTURE.md](ARCHITECTURE.md) (handlerul `NoteEditor`, evenimentul `modal:open`, subinterogarea previzualizării limitată la paragrafele notelor citite), [TESTING.md](TESTING.md) (deschiderea de pe tablă, Back și căderea pe pagina notei), decizia 49 și în [DATABASE.md](DATABASE.md);
 - [UI-UX.md](UI-UX.md), [REQUIREMENTS.md](REQUIREMENTS.md), [DOMAIN-MODEL.md](DOMAIN-MODEL.md), [SECURITY.md](SECURITY.md): referințele interne și noul comportament drag-and-drop, cu statusurile trecute din [~] în [x];
 - [ARCHITECTURE.md](ARCHITECTURE.md): `note-references.js`, `WorkNotes.Web/Notes/NoteReferences.cs`, handlerele `ReferenceSuggestions` și `ReferenceTargets`;
 - [ROADMAP.md](ROADMAP.md) și această pagină: lista „Referințe către această notă” și cele cinci limitări noi din backlog-ul PR-ului;

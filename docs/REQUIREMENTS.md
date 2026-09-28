@@ -46,6 +46,7 @@ Statusurile sunt stabilite după codul de pe `main` (commit `504c01e`, 2026-09-2
 ## Editor
 
 - [x] Editor CodeMirror 6 peste tablă, într-un dialog de 90% din fereastră, deschis cu Open sau dublu-click (`/?note={id}`).
+- [~] Deschiderea unei note de pe tablă fără reîncărcarea paginii — implementată în PR #4, neintegrată în `main`.
 - [x] Paragrafe cu identitate stabilă și audit propriu; bara de informații arată data creării și a modificării paragrafului de sub mouse sau de la cursor.
 - [x] Căutare/înlocuire, undo/redo, rândul activ, Ctrl+S, avertizare la părăsirea paginii cu modificări nesalvate.
 - [x] Detectarea salvărilor concurente (`RowVersion`): o salvare dintr-un editor învechit este refuzată, fără să suprascrie.

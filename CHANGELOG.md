@@ -12,7 +12,7 @@ Categorii: **Added** (funcționalități noi), **Changed** (comportament modific
 - Conținutul din `Solution/docs/design-system.md` și `Solution/docs/planning/` a fost integrat în noile documente; corespondența este în [docs/CURRENT-STATUS.md](docs/CURRENT-STATUS.md#informații-mutate-sau-consolidate).
 - Reguli noi, cerute explicit: feature branch din `main` pentru fiecare sarcină, fără dezvoltare directă pe `main`; scripturile SQL și migrările nu se aplică fără cerere explicită; scripturile livrate nu se modifică retroactiv.
 
-PR #4 (branch `main_task_02`: ordonare fără blocare, referințe interne între note și comanda `create-note-references`, care le creează în notele existente) este deschis și nu este inclus.
+PR #4 (branch `main_task_02`: ordonare fără blocare, referințe interne între note, comanda `create-note-references`, care le creează în notele existente, și deschiderea notelor fără reîncărcarea tablei) este deschis și nu este inclus.
 
 ## [0.02] — integrată în `main` pe 2026-09-25 (PR #3)
 

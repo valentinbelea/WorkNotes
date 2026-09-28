@@ -114,7 +114,7 @@ Notele primite de la INoteService sunt grupate pe luni (notes-month, cu titlul l
 
 ### Deschiderea unei note
 
-Iconul Open al cardului este un link către /?note={id}, deci funcționează și fără JavaScript. Click pe Open și dublu-click pe card apelează openNoteEditor(card) din notes-board.js: dacă editorul este deja în pagină (de exemplu minimizat), nota se deschide într-un tab al lui (evenimentul note-editor:open, tratat de note-editor.js, care readuce editorul minimizat și selectează tabul notei deja deschise); altfel se urmează linkul, generat de server. O referință din previzualizarea cardului (link către /?note={id} al notei destinație) trece prin același openNote(id, href).
+Iconul Open al cardului este un link către /?note={id}, deci funcționează și fără JavaScript. Click pe Open și dublu-click pe card apelează openNoteEditor(card) din notes-board.js: dacă editorul este deja în pagină (de exemplu minimizat), nota se deschide într-un tab al lui (evenimentul note-editor:open, tratat de note-editor.js, care readuce editorul minimizat și selectează tabul notei deja deschise); altfel fereastra editorului cu nota este adusă de la server (?handler=NoteEditor, același _NoteEditorDialog) și pusă peste tabla din pagină, care nu se mai reîncarcă: modal.js o face modală (evenimentul modal:open), iar note-editor.js o pregătește. Adresa devine /?note={id}, ca o intrare nouă în istoric; Back revine la tablă (pagina se reîncarcă, cu confirmare pentru modificările nesalvate). Dacă fereastra nu poate fi adusă, se urmează linkul, generat de server. O referință din previzualizarea cardului (link către /?note={id} al notei destinație) trece prin același openNote(id, href).
 
 ## Editorul notei
 

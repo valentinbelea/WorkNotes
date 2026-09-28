@@ -36,6 +36,7 @@ Business întoarce coduri de stare (`NoteSaveStatus`, `WorkContextSaveStatus` et
 | `/?new=true` | Cardul „Notă nouă” deschis fără JavaScript |
 | `/?note={id}` | Editorul peste tablă, cu nota într-un tab |
 | `/?delete={id}` | Confirmarea ștergerii unei note |
+| `/?handler=NoteEditor&note={id}` (GET) | Fereastra editorului cu o notă (HTML), pusă de `notes-board.js` peste tabla din pagină, fără reîncărcare |
 | `/?handler=NoteTab&note={id}` (GET) | Un tab nou pentru editorul deja deschis (HTML) |
 | `/?handler=SaveNote&note={id}` (POST JSON) | Salvarea unei note din editor |
 | `/?handler=CreateNote`, `RenameNote`, `DeleteNote` (POST) | Crearea, redenumirea pe loc, ștergerea |
@@ -65,11 +66,11 @@ Starea overlay-urilor este în URL: fiecare dialog se poate deschide și fără 
 
 | Fișier | Rol |
 | --- | --- |
-| `notes-board.js` | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există; și din referințele previzualizării), schimbul a două carduri prin drag-and-drop, prinse de bandă |
+| `notes-board.js` | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există, altfel aducând fereastra editorului peste tablă; și din referințele previzualizării), schimbul a două carduri prin drag-and-drop, prinse de bandă |
 | `note-editor.js` | Editorul: câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; după un schimb pe tablă, taburile notelor mutate primesc versiunile noi (`note-board:versions`) |
 | `note-references.js` | Referințele dintre note în editor: detectarea numărului terminat, sugestia, transformarea în referință, afișarea (link sau marcaj), deschiderea în tab, verificarea referințelor lipite |
 | `status-messages.js` | Afișarea mesajelor de salvare din scripturi, din template-uri randate de server |
-| `modal.js` | Dialogurile modale (Escape și click în afară revin la adresa de închidere) |
+| `modal.js` | Dialogurile modale (Escape și click în afară revin la adresa de închidere), inclusiv cele adăugate ulterior în pagină (evenimentul `modal:open`) |
 | `navigation.js`, `language.js`, `validation.js` | Meniul, selectorul de limbă, validarea client |
 | `lib/codemirror/codemirror.js` | CodeMirror 6, construit local din `tools/codemirror` (licență MIT) |
 

@@ -37,7 +37,7 @@ Deciziile punctuale (un detaliu de interfață, o regulă de ordonare) se adaug�
 
 ## Jurnalul deciziilor
 
-Deciziile înregistrate în version_0.01 și version_0.02, cu motivele lor. Coloana ADR arată decizia de ansamblu care le cuprinde. Deciziile 32–47 vin din PR #4 (ordonarea fără blocare, referințele interne și crearea lor în notele existente); formatul referințelor va primi un ADR propriu la integrare ([ADR-002](ADR-002-note-editor.md)).
+Deciziile înregistrate în version_0.01 și version_0.02, cu motivele lor. Coloana ADR arată decizia de ansamblu care le cuprinde. Deciziile 32–49 vin din PR #4 (ordonarea fără blocare, referințele interne și crearea lor în notele existente, deschiderea mai rapidă a notelor); formatul referințelor va primi un ADR propriu la integrare ([ADR-002](ADR-002-note-editor.md)).
 
 | # | Decizie | Motiv | ADR |
 | --- | --- | --- | --- |
@@ -88,3 +88,5 @@ Deciziile înregistrate în version_0.01 și version_0.02, cu motivele lor. Colo
 | 45 | Comanda nu schimbă auditul, ordinea și `RowVersion` notei, nici auditul paragrafelor | Textul se citește la fel; notele nu trec în luna curentă; un editor deschis poate salva în continuare | — |
 | 46 | Comanda doar arată schimbările, fără `--save`; fiecare notă se salvează în tranzacția ei, serializabilă, dacă nu s-a schimbat de la citire | Modificare în masă a textului utilizatorilor; oprirea sau o modificare simultană nu lasă o notă salvată pe jumătate, iar o nouă rulare continuă | — |
 | 47 | Raportul comenzii este în engleză, nelocalizat | Este ieșire tehnică pentru cine întreține aplicația, ca logurile (AGENTS.md) | — |
+| 48 | Fără editor în pagină, o notă deschisă de pe tablă aduce fereastra editorului (`?handler=NoteEditor`, același `_NoteEditorDialog`) peste tabla din pagină, cu adresa `/?note={id}` ca intrare nouă în istoric; închiderea reîncarcă tabla, ca înainte | Deschiderea nu mai recitește și nu mai redesenează toată tabla; adresa, reîncărcarea și Back se comportă ca pentru pagina notei; tabla reîncărcată la închidere arată ce s-a salvat | — |
+| 49 | Previzualizarea cardurilor numerotează (`ROW_NUMBER`) numai paragrafele notelor citite | Fără filtru în subinterogare, SQL Server numerota toate paragrafele din bază la fiecare tablă și la fiecare card citit (schimb, redenumire, ștergere, sugestii de referință) | — |

@@ -188,6 +188,7 @@ Scripturile sunt descrise în [ARCHITECTURE.md](ARCHITECTURE.md#javascript). Nu 
 ## Deschiderea unei note
 
 - [x] Iconul Open este un link către `/?note={id}`, deci funcționează și fără JavaScript. Click pe Open și dublu-click pe card apelează `openNoteEditor(card)` din `notes-board.js`: dacă editorul este deja în pagină (de exemplu minimizat), nota se deschide într-un tab al lui (evenimentul `note-editor:open`); altfel se urmează linkul.
+- [~] PR #4: fără editor în pagină, nota se deschide peste tabla din pagină, fără reîncărcare: fereastra vine de la `?handler=NoteEditor`, `modal.js` o face modală (evenimentul `modal:open`), iar adresa devine `/?note={id}`, ca o intrare nouă în istoric (Back revine la tablă). Dacă fereastra nu poate fi adusă, se urmează linkul.
 
 ## Editorul
 

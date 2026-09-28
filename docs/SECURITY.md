@@ -53,7 +53,7 @@ Notele noi sunt private (`Private`). O notă `Context` este citită de membri nu
 
 - Razor codifică implicit ieșirea HTML; aplicația nu folosește `Html.Raw`.
 - Datele pentru scripturi sunt serializate cu `Json.Serialize` în `<script type="application/json">`; encoderul implicit System.Text.Json codifică `<`, `>`, `&`, `'` și `"` (verificat pe 2026-09-25), deci textul utilizatorului nu poate închide elementul `script`.
-- Scripturile scriu textul cu `textContent`. Singura inserare de HTML (`innerHTML` în `note-editor.js`) primește fragmentul unui tab randat și codificat de server (`?handler=NoteTab`).
+- Scripturile scriu textul cu `textContent`. Singura inserare de HTML (`innerHTML` în `note-editor.js`) primește fragmentul unui tab randat și codificat de server (`?handler=NoteTab`); PR #4 adaugă una de același fel în `notes-board.js`, pentru fereastra editorului (`?handler=NoteEditor`).
 - Nu este configurat un antet Content-Security-Policy. TODO: Necesită clarificare — dacă se adaugă CSP și alte antete de securitate pentru mediile găzduite.
 
 ## Siguranța conținutului editorului
