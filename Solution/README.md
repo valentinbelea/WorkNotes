@@ -17,7 +17,7 @@ Rezumatul funcționalităților lucrate până acum; detaliile sunt în secțiun
 - **Dashboard**: o tablă pentru fiecare context, aleasă din lista cu bordură întreruptă (la focus bordura devine verde plin); subtitlul „Spațiul meu” din header.
 - **Note pe tablă**: post-it-uri galbene (jurnal) și salvie (articol), cu bandă adezivă în culoarea hârtiei și înclinări deterministe; grupate pe luni după ultima modificare (`ISNULL(modificare, creare)`); în fiecare lună, ordinea aleasă de proprietar (`Order`), schimbată prin drag-and-drop, cu cardul prins de bandă (version_0.02); în header data creării (stânga) și a ultimei modificări (dreapta), pe același rând; previzualizarea primelor paragrafe; titlul redenumit pe loc; ștergere cu confirmare; „Notă nouă” direct pe tablă, cu switch jurnal/articol; mai multe jurnale pe zi.
 - **Editorul de note** (CodeMirror 6): se deschide peste tablă; paragrafe cu identitate și audit propriu (bara de informații); căutare/înlocuire, undo/redo, Ctrl+S; detectarea salvărilor concurente; header cu sigla WN, taburile notelor deschise, Minimizează și Închide; acțiunile în footerul fiecărei note; minimizare în stânga-jos fără pierderea modificărilor; mai multe note deschise simultan, în taburi independente.
-- **Referințe interne între note** (version_0.02): după un număr tastat în editor (urmat de spațiu, punctuație, rând nou sau Tab) care apare ca număr întreg în titlul altor note ale tablei, o sugestie discretă oferă transformarea lui în referință (click sau tastatură); referința ține ID-ul notei, se deschide într-un tab al editorului și apare ca link și în previzualizarea cardurilor; relațiile sunt păstrate în `dbo.NoteReferences`.
+- **Referințe interne între note** (version_0.02): după un număr tastat în editor (urmat de spațiu, punctuație, rând nou sau Tab) care apare ca număr întreg în titlul altor note ale tablei, o sugestie discretă oferă transformarea lui în referință (click sau tastatură); referința ține ID-ul notei, se deschide într-un tab al editorului și apare ca link și în previzualizarea cardurilor; relațiile sunt păstrate în `dbo.NoteReferences`. Notele existente primesc referințele cu comanda `create-note-references`, numai pentru numerele cu o singură notă posibilă.
 - **Mesaje de salvare**: succes, avertisment și eroare, fixe sus pe centru, cu buton de închidere, până le închide utilizatorul (și în dialoguri, deasupra overlay-ului).
 - **Sigla WN**: în fereastra editorului (maximizat și minimizat) și ca favicon (`logo-wn.svg`, `favicon.ico`).
 - **Localizare** ro/en/pl pentru toate textele; design „Hârtie & salvie”; funcționare de bază și fără JavaScript.
@@ -160,6 +160,23 @@ Adrese: `GET /?handler=ReferenceSuggestions&note={id}&number={număr}` (notele p
 ```powershell
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\002_CreateNoteReferences.sql'
 ```
+
+#### Referințe în notele existente
+
+Notele scrise înainte de referințe primesc referințele o singură dată, prin comanda `create-note-references` a aplicației, rulată din `Solution` în locul site-ului, după scriptul `002_CreateNoteReferences.sql`:
+
+```powershell
+# Previzualizare: arată ce s-ar schimba, fără să salveze nimic
+dotnet run --project WorkNotes.Web --launch-profile http -- create-note-references
+# Salvează referințele arătate
+dotnet run --project WorkNotes.Web --launch-profile http -- create-note-references --save
+```
+
+Comanda (`NoteReferenceBackfillCommand` → `INoteReferenceBackfillService`) citește fiecare notă pe care proprietarul ei o poate edita (nearhivată, într-un context al cărui membru este) și caută în text numerele pentru care editorul ar oferi o referință: cuvinte numai din cifre (3–18), în afara referințelor și nelipite de una (`NoteReferenceRules.LinkNumbers`). Un număr devine referință numai dacă **exact o** altă notă a aceleiași table, pe care proprietarul o poate vedea, îl are întreg în titlu; atunci fiecare apariție a lui este legată. Dacă mai multe note au numărul în titlu, el rămâne cum este (alegerea este a proprietarului, în editor) și apare în raport cu notele posibile. Numerele din adrese web sau de e-mail și din căi de fișiere (text cu `://`, `www.`, `@` sau `\`) nu se modifică: un astfel de text se copiază ca atare, iar referința s-ar copia în forma ei păstrată.
+
+Textul se citește la fel după comandă, deci datele de creare și de modificare ale notelor și ale paragrafelor, ordinea de pe tablă și versiunea notei (`RowVersion`) nu se schimbă: se schimbă doar textul paragrafelor cu numere legate și rândurile notei din `dbo.NoteReferences`, refăcute ca la o salvare. Fiecare notă se salvează în tranzacția ei (serializabilă), numai dacă nu s-a modificat de la citire; altfel raportul o arată nesalvată, iar o nouă rulare o reia. O notă care ar depăși lungimea maximă a unei salvări (`NoteRules.MaxContentLength`) nu se modifică. Ctrl+C oprește comanda, iar fiecare notă este salvată întreagă sau deloc; rularea repetată continuă cu restul fără dubluri, pentru că numerele legate nu mai sunt găsite.
+
+Rulează comanda după o copie de siguranță a bazei și când aplicația nu este folosită: un editor deschis înainte de comandă și salvat după ea pune la loc, în paragrafele schimbate, textul fără referințe. Conexiunea este a aplicației (`ConnectionStrings:WorkNotes`, cu profilul `http`, deci mediul Development). Raportul este tehnic, ca un log, în engleză; nu face parte din interfață.
 
 ## Modulul de conturi — version_0.01
 
@@ -322,7 +339,7 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\002_CreateNoteReferences.sql'
 ```
 
-Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
+Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate. După scripturile version_0.02, notele existente pot primi referințele cu comanda `create-note-references` (vezi „Referințe în notele existente”); nu este un script SQL, pentru că folosește regulile referințelor din aplicație. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
 
 ## Actualizarea modelului EF — Database First
 

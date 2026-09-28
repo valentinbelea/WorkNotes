@@ -71,7 +71,7 @@ Textul notei există numai în `NoteBlocks` (nicio copie în `Notes`). Limite: m
 | `DisplayText` | numărul afișat, nvarchar(20), numai cifre (`CK_NoteReferences_DisplayText`) |
 | `CreatedAtUtc` | prima salvare a referinței |
 
-Tabela este evidența referințelor din textul fiecărei note, de la ultima salvare a textului: câte un rând pentru fiecare sursă, destinație și număr (`UX_NoteReferences_SourceNoteId_TargetNoteId_DisplayText`), oricâte apariții ar avea în text. Conține numai referințele către alte note ale aceluiași context pe care proprietarul le poate vedea (`CK_NoteReferences_OtherNote` exclude nota însăși); celelalte rămân în text, marcate ca referințe care nu se mai pot deschide. `IX_NoteReferences_TargetNoteId` servește ștergerea destinației și lista viitoare „Referințe către această notă”.
+Tabela este evidența referințelor din textul fiecărei note, de la ultima salvare a textului (sau de la comanda `create-note-references`, care le creează în notele existente): câte un rând pentru fiecare sursă, destinație și număr (`UX_NoteReferences_SourceNoteId_TargetNoteId_DisplayText`), oricâte apariții ar avea în text. Conține numai referințele către alte note ale aceluiași context pe care proprietarul le poate vedea (`CK_NoteReferences_OtherNote` exclude nota însăși); celelalte rămân în text, marcate ca referințe care nu se mai pot deschide. `IX_NoteReferences_TargetNoteId` servește ștergerea destinației și lista viitoare „Referințe către această notă”.
 
 ## Regulile paragrafelor (confirmate și implementate în editor)
 

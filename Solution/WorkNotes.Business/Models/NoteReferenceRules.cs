@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace WorkNotes.Business.Models;
@@ -19,6 +20,14 @@ public static partial class NoteReferenceRules
     private static partial Regex Markup();
 
     private const string MarkupStart = "[[note:";
+
+    // A word as the editor reads it (note-references.js): a run of letters, digits and combining marks.
+    [GeneratedRegex(@"[\p{L}\p{N}\p{M}]+", RegexOptions.CultureInvariant)]
+    private static partial Regex Word();
+
+    // A run of characters without spaces: the extent of an address or a path.
+    [GeneratedRegex(@"\S+", RegexOptions.CultureInvariant)]
+    private static partial Regex Token();
 
     // A number a reference can be made from: ASCII digits only, MinNumberLength to MaxNumberLength of them.
     public static bool IsReferenceNumber(string? value) =>
@@ -67,6 +76,49 @@ public static partial class NoteReferenceRules
             .Select(part => new NoteReferenceInput(part.TargetNoteId!.Value, part.Text))
             .Distinct()
             .ToList();
+
+    // The text with each number that targetOf gives a note for turned into a reference to it (targetOf is asked once per
+    // occurrence). The numbers are those the editor offers a reference for: whole words of reference-number digits,
+    // outside references and not touching one (the editor would show both as one run of digits). Numbers in a web or
+    // e-mail address or a file path are left alone: such text is copied out as it is, and a reference inside it would
+    // be copied in its stored form.
+    public static string LinkNumbers(string text, Func<string, int?> targetOf)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(targetOf);
+        var references = Markup().Matches(text)
+            .Where(match => TryReadId(match.Groups[1].Value, out _))
+            .Select(match => (Start: match.Index, End: match.Index + match.Length))
+            .ToList();
+        var addresses = Token().Matches(text)
+            .Where(token => IsAddress(token.ValueSpan))
+            .Select(token => (Start: token.Index, End: token.Index + token.Length))
+            .ToList();
+        StringBuilder? linked = null;
+        var copied = 0;
+        // Words, references and addresses all come in text order, so each list is walked once.
+        int reference = 0, address = 0;
+        foreach (Match word in Word().Matches(text))
+        {
+            if (!IsReferenceNumber(word.Value)) continue;
+            var start = word.Index;
+            var end = start + word.Length;
+            while (reference < references.Count && references[reference].End < start) reference++;
+            if (reference < references.Count && references[reference].Start <= end) continue;
+            // A word has no spaces, so it is either wholly inside an address or outside all of them.
+            while (address < addresses.Count && addresses[address].End <= start) address++;
+            if (address < addresses.Count && addresses[address].Start <= start) continue;
+            if (targetOf(word.Value) is not { } targetNoteId) continue;
+            linked ??= new StringBuilder(text.Length + 32);
+            linked.Append(text, copied, start - copied).Append(Format(targetNoteId, word.Value));
+            copied = end;
+        }
+        return linked is null ? text : linked.Append(text, copied, text.Length - copied).ToString();
+    }
+
+    private static bool IsAddress(ReadOnlySpan<char> token) =>
+        token.Contains("://", StringComparison.Ordinal) || token.Contains("www.", StringComparison.OrdinalIgnoreCase)
+        || token.Contains('@') || token.Contains('\\');
 
     // Text read only up to a length limit (the start of a paragraph for a card) can stop inside a reference; the
     // unfinished reference and what follows it are dropped, so no part of its form is shown.

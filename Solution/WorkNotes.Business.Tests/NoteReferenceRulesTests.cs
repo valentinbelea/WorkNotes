@@ -82,6 +82,59 @@ public sealed class NoteReferenceRulesTests
     }
 
     [Theory]
+    [InlineData("Vezi 30080.", "Vezi [[note:45|30080]].")]
+    [InlineData("30080", "[[note:45|30080]]")]
+    [InlineData("CR_30080, CR-30080 și (30080)", "CR_[[note:45|30080]], CR-[[note:45|30080]] și ([[note:45|30080]])")]
+    [InlineData("Ieri:\n30080\tanaliză", "Ieri:\n[[note:45|30080]]\tanaliză")]
+    public void EveryWholeNumberWithATargetBecomesAReference(string text, string expected) =>
+        Assert.Equal(expected, NoteReferenceRules.LinkNumbers(text, number => number == "30080" ? 45 : null));
+
+    [Fact]
+    public void OnlyWordsOfReferenceNumberDigitsAreAskedFor()
+    {
+        var asked = new List<string>();
+
+        var text = "CR30080 30080a 30080ă 30080\u0301 12 1234567890123456789 ٣٠٠٨٠ 130080 [[note:7|30080]] 512, 30080";
+        var linked = NoteReferenceRules.LinkNumbers(text, number => { asked.Add(number); return null; });
+
+        // Letters, marks or other digits make the number part of a longer word, as in the editor.
+        Assert.Equal(["130080", "512", "30080"], asked);
+        Assert.Same(text, linked);
+    }
+
+    [Theory]
+    [InlineData("[[note:7|512]]30080")]
+    [InlineData("30080[[note:7|512]]")]
+    [InlineData("[[note:30080|512]]")]
+    public void NumbersInOrNextToAReferenceAreLeftAlone(string text) =>
+        Assert.Equal(text, NoteReferenceRules.LinkNumbers(text, _ => throw new InvalidOperationException("Not a number to link.")));
+
+    [Theory]
+    [InlineData("https://dev.azure.com/topdev/_workitems/edit/30080")]
+    [InlineData("(www.exemplu.ro/cr/30080)")]
+    [InlineData("ion.30080@exemplu.ro")]
+    [InlineData(@"\\server\cr\30080\analiza.docx")]
+    [InlineData(@"C:\cr\30080")]
+    public void AddressesAndPathsAreLeftAlone(string text) =>
+        Assert.Equal(text, NoteReferenceRules.LinkNumbers(text, _ => 45));
+
+    [Fact]
+    public void TheSameNumberOutsideAnAddressIsLinked() =>
+        Assert.Equal("Vezi https://exemplu.ro/cr/30080 și [[note:45|30080]]",
+            NoteReferenceRules.LinkNumbers("Vezi https://exemplu.ro/cr/30080 și 30080", _ => 45));
+
+    [Fact]
+    public void ALinkedTextReadsTheSameAndIsFoundAgain()
+    {
+        var linked = NoteReferenceRules.LinkNumbers("CR 30080 după 512", number => number == "30080" ? 45 : 7);
+
+        Assert.Equal("CR 30080 după 512", string.Concat(NoteReferenceRules.Split(linked).Select(part => part.Text)));
+        Assert.Equal([new NoteReferenceInput(45, "30080"), new NoteReferenceInput(7, "512")], NoteReferenceRules.Find([linked]));
+        // Once linked, nothing is left to link.
+        Assert.Same(linked, NoteReferenceRules.LinkNumbers(linked, _ => 99));
+    }
+
+    [Theory]
     [InlineData("Vezi [[note:12|300", "Vezi ")]
     [InlineData("Vezi [[note:", "Vezi ")]
     [InlineData("[[note:12|30080]] și [[note:1", "[[note:12|30080]] și ")]

@@ -10,7 +10,7 @@ using NoteReferenceEntity = WorkNotes.DataAccess.Entities.NoteReference;
 
 namespace WorkNotes.DataAccess.Repositories;
 
-public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteRepository
+public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteRepository, INoteReferenceBackfillRepository
 {
     public async Task<IReadOnlyList<NoteSummary>> GetBoardAsync(string userId, int contextId, CancellationToken cancellationToken)
     {
@@ -240,6 +240,69 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             .Where(note => note.ContextId == contextId && noteIds.Contains(note.Id) && (sourceNoteId == null || note.Id != sourceNoteId))
             .Select(note => new NoteReferenceTarget(note.Id, note.Title, note.NoteType))
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<NoteReferenceSource>> GetReferenceSourcesAsync(CancellationToken cancellationToken) =>
+        // The notes their owner sees on the board and saves: not archived, in a context the owner belongs to.
+        await dbContext.Notes
+            .AsNoTracking()
+            .Where(note => note.ArchivedAtUtc == null && note.Context.ContextMembers.Any(member => member.UserId == note.OwnerUserId))
+            .OrderBy(note => note.ContextId)
+            .ThenBy(note => note.OwnerUserId)
+            .ThenBy(note => note.Id)
+            .Select(note => new NoteReferenceSource(note.Id, note.ContextId, note.OwnerUserId))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<NoteReferenceTarget>> GetAllReferenceTargetsAsync(string userId, int contextId,
+        CancellationToken cancellationToken) =>
+        await VisibleTo(userId)
+            .AsNoTracking()
+            .Where(note => note.ContextId == contextId)
+            .Select(note => new NoteReferenceTarget(note.Id, note.Title, note.NoteType))
+            .ToListAsync(cancellationToken);
+
+    public async Task<bool> SaveReferencesAsync(int noteId, string expectedVersion, IReadOnlyList<NoteBlockInput> paragraphs,
+        IReadOnlyList<NoteReferenceInput> references, DateTime savedAtUtc, CancellationToken cancellationToken)
+    {
+        if (!TryReadVersion(expectedVersion, out var version)) return false;
+        // Serializable: the version read here holds until the commit, so no save of the note comes in between. The note
+        // row itself is not updated: an editor open on the note keeps a valid version.
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        try
+        {
+            var current = await dbContext.Notes
+                .Where(note => note.Id == noteId && note.ArchivedAtUtc == null)
+                .Select(note => note.RowVersion)
+                .SingleOrDefaultAsync(cancellationToken);
+            if (current is null || !current.AsSpan().SequenceEqual(version)) return false;
+            var contents = paragraphs.ToDictionary(paragraph => paragraph.Id, paragraph => paragraph.Content);
+            var ids = contents.Keys.ToList();
+            var blocks = await dbContext.NoteBlocks
+                .Where(block => block.NoteId == noteId && ids.Contains(block.Id))
+                .ToListAsync(cancellationToken);
+            if (blocks.Count != ids.Count) return false;
+            // Only the text changes and it reads the same: the paragraphs keep their audit, and the note row (version,
+            // audit, order) is not updated.
+            foreach (var block in blocks) block.Content = contents[block.Id];
+            await ReplaceReferencesAsync(noteId, references, savedAtUtc, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return false;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
+        {
+            // A referenced note was deleted after the references were checked: nothing is saved, as for a conflict.
+            return false;
+        }
+        finally
+        {
+            // Many notes are saved with the same context: none stays tracked.
+            dbContext.ChangeTracker.Clear();
+        }
+    }
 
     // The note's stored references follow its text: those no longer in it go, new ones get the save time, the others
     // keep theirs. Saved together with the note, under the same version check.

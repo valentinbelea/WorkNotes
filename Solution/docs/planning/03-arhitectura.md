@@ -19,6 +19,8 @@ Dependențe: Web → Business; Web → DataAccess numai în `Program.cs`; DataAc
 ```text
 Pages/Contexts → IWorkContextService / IContextMemberService → servicii → repository-uri → WorkNotesDbContext
 Pages/Index    → INoteService → NoteService → INoteRepository → NoteRepository → WorkNotesDbContext
+Comandă create-note-references → NoteReferenceBackfillCommand → INoteReferenceBackfillService → NoteReferenceBackfillService
+               → INoteReferenceBackfillRepository → NoteRepository → WorkNotesDbContext
 Footer         → ApplicationVersionViewComponent → IApplicationVersionService → … → DatabaseVersion
 Conturi        → IAccountService / IAuthenticationService → DataAccess/Identity (UserManager, SignInManager)
 ```
@@ -56,6 +58,7 @@ Starea overlay-urilor este în URL: fiecare dialog se poate deschide și fără 
 | `_StatusMessage.cshtml` + `Web/Messages` | Mesajele de salvare (succes / avertisment / eroare) și transportul lor prin TempData |
 | `Web/Notes/NoteDates`, `NoteCardStyle` | Formatele datelor, clasele de înclinare ale cardurilor |
 | `Web/Notes/NoteReferences` | Textele referințelor (tooltip, tip) și textul unei note cu referințele ca linkuri (card, editor fără JavaScript) |
+| `Web/Notes/NoteReferenceBackfillCommand` | Comanda `create-note-references`, pornită din `Program.cs` în locul site-ului: referințele notelor existente și raportul lor |
 | `Web/Navigation/NavigationSections` | Subtitlul din header și grupul deschis din meniu |
 
 ## JavaScript (numai comportament; aspectul vine din clase CSS)
