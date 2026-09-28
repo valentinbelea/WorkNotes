@@ -116,7 +116,7 @@ Jurnalul păstrează cronologia, iar articolul adună explicațiile; codul CR-ul
 
 ## În dezvoltare
 
-**Referința internă între note** (PR #4, branch `main_task_02`, neintegrat în `main`): textul paragrafului păstrează referința ca `[[note:{id}|{număr}]]`, legată prin ID-ul notei destinație, nu prin titlu; tabela `NoteReferences` (sursă, destinație, numărul afișat, data creării) este refăcută la fiecare salvare a textului, numai cu referințele valide; se propun numai celelalte note ale aceluiași context vizibile utilizatorului, numai proprietarului notei. Regulile se mută în secțiunea entităților implementate la integrarea PR-ului.
+**Referința internă între note** (PR #4, branch `main_task_02`, neintegrat în `main`): textul paragrafului păstrează referința ca `[[note:{id}|{număr}]]`, legată prin ID-ul notei destinație, nu prin titlu; tabela `NoteReferences` (sursă, destinație, numărul afișat, data creării) este refăcută la fiecare salvare a textului (și de comanda `create-note-references`, care creează referințele în notele existente), numai cu referințele valide; se propun numai celelalte note ale aceluiași context vizibile utilizatorului, numai proprietarului notei. Regulile se mută în secțiunea entităților implementate la integrarea PR-ului.
 
 ## Entități planificate
 

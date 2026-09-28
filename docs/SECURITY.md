@@ -65,7 +65,7 @@ Notele noi sunt private (`Private`). O notă `Context` este citită de membri nu
 ## Referințele interne
 
 - Pe `main` nu există referințe între note.
-- PR #4 (neintegrat) adaugă referințe interne; proiectul PR-ului prevede: sugestii numai din celelalte note ale aceluiași context pe care utilizatorul le poate vedea, numai pentru proprietarul notei; verificarea destinațiilor pe server; o referință care nu se mai poate deschide nu afișează titlul destinației; un număr limitat de ID-uri pe cerere de verificare. Aceste reguli se documentează aici la integrarea PR-ului.
+- PR #4 (neintegrat) adaugă referințe interne; proiectul PR-ului prevede: sugestii numai din celelalte note ale aceluiași context pe care utilizatorul le poate vedea, numai pentru proprietarul notei; verificarea destinațiilor pe server; o referință care nu se mai poate deschide nu afișează titlul destinației; un număr limitat de ID-uri pe cerere de verificare. Comanda `create-note-references` din același PR modifică textul notelor tuturor utilizatorilor și se rulează de cine are acces la configurația aplicației: leagă numai note din același context vizibile proprietarului notei sursă și nu schimbă auditul. Aceste reguli se documentează aici la integrarea PR-ului.
 - Pentru referințele de lucru planificate (CR/bug, `WorkReferences`), toate asocierile trebuie să respecte contextul notei ([DOMAIN-MODEL.md](DOMAIN-MODEL.md#entități-planificate)).
 
 ## Secretele

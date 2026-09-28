@@ -16,7 +16,7 @@ Baza existentă, livrată în version_0.01 și version_0.02:
 
 ## În lucru
 
-- PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; referințele interne între note (`NoteReferences`, `version_0.02/002_CreateNoteReferences.sql`).
+- PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; referințele interne între note (`NoteReferences`, `version_0.02/002_CreateNoteReferences.sql`) și comanda `create-note-references`, care le creează în notele existente.
 
 ## Etapele următoare
 

@@ -76,6 +76,7 @@ Statusurile sunt stabilite după codul de pe `main` (commit `504c01e`, 2026-09-2
 ## Referințe interne între note
 
 - [~] Referințe dintr-o notă către altă notă a aceluiași context, create dintr-un număr prezent în titlul destinației, deschise în editor și în previzualizarea cardurilor — implementate în PR #4 (branch `main_task_02`), neintegrate în `main`.
+- [~] Crearea referințelor în notele existente, o singură dată, cu comanda `create-note-references`: numai numerele pe care exact o altă notă vizibilă a contextului le are în titlu; fără `--save` doar arată schimbările — implementată în PR #4, neintegrată în `main`.
 - [ ] Lista „Referințe către această notă” (backlog-ul PR #4).
 - [ ] Catalogul de referințe de lucru CR/bug pe context (`WorkReferences`) și asocierile cu notele și paragrafele (`NoteWorkReferences`, `NoteBlockWorkReferences`), cu căutarea explicațiilor după codul CR-ului.
 - [ ] Legături externe pe notă sau pe paragraf (`NoteLinks`).
@@ -122,6 +123,6 @@ Statusurile sunt stabilite după codul de pe `main` (commit `504c01e`, 2026-09-2
 
 **Implementate** (version_0.01 și version_0.02): conturile, localizarea ro/en/pl, designul, contextele și membrii, tabla pe contexte și luni, post-it-urile cu creare, redenumire și ștergere pe loc, editorul cu paragrafe auditate, taburi și minimizare, mesajele de salvare, ordonarea prin drag-and-drop, versiunea în footer.
 
-**În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare și referințele interne între note.
+**În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare și referințele interne între note, inclusiv crearea lor în notele existente.
 
 **Planificate**: referințele de lucru CR/bug și asocierile lor, legăturile externe, evidențierea referințelor, salvarea automată, vizibilitatea și arhivarea din interfață, paragraful important, editarea notelor partajate, platformele și modulele ulterioare. Ordinea și dependențele sunt în [ROADMAP.md](ROADMAP.md).

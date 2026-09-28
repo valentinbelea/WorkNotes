@@ -1,6 +1,6 @@
 # Starea curentă
 
-**Data ultimei actualizări:** 2026-09-25 · **Versiunea:** 0.02 (`v.0.02`) · **Baza analizei:** `main` la commit-ul `504c01e` (merge-ul PR #3)
+**Data ultimei actualizări:** 2026-09-28 · **Versiunea:** 0.02 (`v.0.02`) · **Baza analizei:** `main` la commit-ul `504c01e` (merge-ul PR #3)
 
 Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.md); planul, în [ROADMAP.md](ROADMAP.md).
 
@@ -15,9 +15,10 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 
 ## În dezvoltare
 
-- **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main`, două commit-uri:
+- **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main` (care a fost adus în branch prin merge), cu commit-urile:
   - „Board: the next drag is no longer refused while a swap is being saved” — schimburile se aplică la `dragend` și se salvează pe rând;
-  - „Editor and board: internal references between notes” — referințe interne între note, tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`.
+  - „Editor and board: internal references between notes” — referințe interne între note, tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`;
+  - „Notes: create-note-references command for the existing notes” — comanda de mentenanță `create-note-references`, care creează o dată, în notele existente, referințele pe care editorul le-ar fi oferit (numai numerele cu o singură notă posibilă; fără `--save` doar le arată), deciziile 42–47; descrisă în `Solution/README.md`.
 - **Branch-ul de documentare** `claude/worknotes-markdown-docs-6xyqw4` — această structură de documentație; nu modifică codul, schema sau funcționalitățile.
 
 ## Probleme cunoscute
@@ -69,7 +70,8 @@ PR #4 modifică `Solution/AGENTS.md`, `Solution/README.md`, `Solution/docs/desig
 
 - [AGENTS.md](../AGENTS.md): regula drag-and-drop cu salvări pe rând, regulile referințelor interne și regula Git (armonizată cu contradicția 2);
 - [DATABASE.md](DATABASE.md) și [Scripts/README.md](../Scripts/README.md): tabela `NoteReferences`, scriptul `version_0.02/002_CreateNoteReferences.sql` (structura, ordinea, comanda `sqlcmd`), `--table dbo.NoteReferences` și `NoteReference.cs` în comanda de scaffolding;
-- [decisions/README.md](decisions/README.md): deciziile 32–41 și, eventual, un ADR pentru formatul referințelor;
+- [decisions/README.md](decisions/README.md): deciziile 32–47 (sunt deja în jurnal) și, eventual, un ADR pentru formatul referințelor;
+- comanda `create-note-references`: [README.md](../README.md) și [ARCHITECTURE.md](ARCHITECTURE.md) (comanda, pornită din `Program.cs`, și fluxul `NoteReferenceBackfillCommand → INoteReferenceBackfillService → INoteReferenceBackfillRepository`), [SECURITY.md](SECURITY.md) (modifică textul notelor tuturor utilizatorilor, numai cu referințe vizibile proprietarului), [TESTING.md](TESTING.md) (`NoteReferenceBackfillServiceTests` și rularea cu previzualizare înainte de `--save`), fișierele `CLAUDE.md` din Web, Business și DataAccess (noile tipuri; `SaveReferencesAsync` nu actualizează rândul notei, decizia 45);
 - [UI-UX.md](UI-UX.md), [REQUIREMENTS.md](REQUIREMENTS.md), [DOMAIN-MODEL.md](DOMAIN-MODEL.md), [SECURITY.md](SECURITY.md): referințele interne și noul comportament drag-and-drop, cu statusurile trecute din [~] în [x];
 - [ARCHITECTURE.md](ARCHITECTURE.md): `note-references.js`, `WorkNotes.Web/Notes/NoteReferences.cs`, handlerele `ReferenceSuggestions` și `ReferenceTargets`;
 - [ROADMAP.md](ROADMAP.md) și această pagină: lista „Referințe către această notă” și cele cinci limitări noi din backlog-ul PR-ului;
