@@ -1,135 +1,71 @@
-using System.Text;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace WorkNotes.Business.Models;
 
-// Internal references between the notes of a board. In the text of a paragraph a reference is stored as
-// [[note:{id}|{number}]]: the id of the target note, which stays the same when its title changes, and the number shown
-// in its place (note-references.js reads the same form). The editor offers a reference when a typed number appears as
-// a whole number in the title of another note; the text keeps the reference even when its target can no longer be
-// opened, so it is shown as such instead of disappearing.
+// Internal references between notes: a CR or a bug written with its number, as CR 30080, CR-30080, CR_30080, CR30080,
+// bug 1234, bug-1234, bug_1234 or bug1234. The type is read in any case; between the type and the number there are
+// spaces, one - or _, or nothing. The type and the number are whole words: a letter, digit or combining mark right
+// before the type or right after the number makes them part of a longer word (XCR30080A is no reference). A reference
+// is compared by its type and number only (CR:30080), so CR-30080 and cr 30080 name the same CR, and CR 1234 is not
+// bug 1234. A note's title is read with the same rules to know which references name it.
+// The text itself never changes: the links are stored apart (NoteReferences) and drawn over the text.
+// Scripts/version_0.02/004_ReplaceNoteReferences.sql reads the stored text with the same rules.
 public static partial class NoteReferenceRules
 {
-    // Shorter numbers (days, months, counts) are too common in ordinary text to offer a reference for each of them.
-    public const int MinNumberLength = 3;
+    // At most this many spaces between the type and the number, and this many digits (the number is a bigint).
+    public const int MaxSeparatorLength = 50;
     public const int MaxNumberLength = 18;
-    // Ids a single request may ask about.
-    public const int MaxTargetsPerRequest = 100;
+    // The longest text read as one reference: BUG, the spaces and the digits (NoteReferences.ReferenceText).
+    public const int MaxTextLength = 3 + MaxSeparatorLength + MaxNumberLength;
 
-    [GeneratedRegex(@"\[\[note:([0-9]{1,10})\|([0-9]{1,18})\]\]", RegexOptions.CultureInvariant)]
-    private static partial Regex Markup();
+    // The limits above, written out: a generated expression takes only a constant string. The spaces are the usual one
+    // and the no-break space, which text copied from documents and pages often has.
+    [GeneratedRegex(@"(?<![\p{L}\p{N}\p{M}])(?<type>[Cc][Rr]|[Bb][Uu][Gg])(?:[  ]{1,50}|[-_])?(?<number>[0-9]{1,18})(?![\p{L}\p{N}\p{M}])",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex Reference();
 
-    private const string MarkupStart = "[[note:";
-
-    // A word as the editor reads it (note-references.js): a run of letters, digits and combining marks.
-    [GeneratedRegex(@"[\p{L}\p{N}\p{M}]+", RegexOptions.CultureInvariant)]
-    private static partial Regex Word();
-
-    // A run of characters without spaces: the extent of an address or a path.
-    [GeneratedRegex(@"\S+", RegexOptions.CultureInvariant)]
-    private static partial Regex Token();
-
-    // A number a reference can be made from: ASCII digits only, MinNumberLength to MaxNumberLength of them.
-    public static bool IsReferenceNumber(string? value) =>
-        value is { Length: >= MinNumberLength and <= MaxNumberLength } && value.All(char.IsAsciiDigit);
-
-    // The title has the number as a whole number, not next to other digits: 30080 is in "CR 30080", "CR-30080" and
-    // "CR30080", not in "130080" or "300801".
-    public static bool TitleContainsNumber(string? title, string number)
+    // The references in a text, in text order, each as it is written there.
+    public static IReadOnlyList<NoteReferenceMatch> Find(string? text)
     {
-        if (title is null || !IsReferenceNumber(number)) return false;
-        for (var start = title.IndexOf(number, StringComparison.Ordinal); start >= 0;
-             start = title.IndexOf(number, start + 1, StringComparison.Ordinal))
+        if (string.IsNullOrEmpty(text)) return [];
+        var found = new List<NoteReferenceMatch>();
+        foreach (Match match in Reference().Matches(text))
         {
-            var end = start + number.Length;
-            if ((start == 0 || !char.IsAsciiDigit(title[start - 1])) && (end == title.Length || !char.IsAsciiDigit(title[end])))
-                return true;
+            var type = match.Groups["type"].Value.ToUpperInvariant();
+            var number = long.Parse(match.Groups["number"].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture);
+            found.Add(new NoteReferenceMatch(match.Index, match.Value, type, number));
         }
-        return false;
+        return found;
     }
 
-    public static string Format(int targetNoteId, string number) => $"[[note:{targetNoteId}|{number}]]";
+    // The form references are compared and stored by: CR:30080, BUG:1234 (the number without leading zeros).
+    public static string Normalize(string referenceType, long referenceNumber) =>
+        $"{referenceType}:{referenceNumber.ToString(CultureInfo.InvariantCulture)}";
 
-    // The text in order: plain parts and references (TargetNoteId set, Text the number shown). Anything that does not
-    // have the exact form, or names an impossible id, stays plain text.
-    public static IReadOnlyList<NoteTextPart> Split(string? text)
-    {
-        var parts = new List<NoteTextPart>();
-        if (string.IsNullOrEmpty(text)) return parts;
-        var position = 0;
-        foreach (Match match in Markup().Matches(text))
-        {
-            if (!TryReadId(match.Groups[1].Value, out var targetNoteId)) continue;
-            if (match.Index > position) parts.Add(new NoteTextPart(text[position..match.Index], null));
-            parts.Add(new NoteTextPart(match.Groups[2].Value, targetNoteId));
-            position = match.Index + match.Length;
-        }
-        if (position < text.Length) parts.Add(new NoteTextPart(text[position..], null));
-        return parts;
-    }
-
-    // The references in the paragraphs, each target and number once, in the order they first appear.
-    public static IReadOnlyList<NoteReferenceInput> Find(IEnumerable<string> paragraphs) =>
-        paragraphs
-            .SelectMany(Split)
-            .Where(part => part.TargetNoteId is not null)
-            .Select(part => new NoteReferenceInput(part.TargetNoteId!.Value, part.Text))
+    // For each reference, the notes whose title has it, each note once.
+    public static IReadOnlyDictionary<string, IReadOnlyList<int>> NotesByTitleReference(IEnumerable<(int NoteId, string? Title)> notes) =>
+        notes
+            .SelectMany(note => Find(note.Title).Select(match => (match.NormalizedReference, note.NoteId)))
             .Distinct()
-            .ToList();
+            .GroupBy(item => item.NormalizedReference, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<int>)group.Select(item => item.NoteId).ToList(), StringComparer.Ordinal);
 
-    // The text with each number that targetOf gives a note for turned into a reference to it (targetOf is asked once per
-    // occurrence). The numbers are those the editor offers a reference for: whole words of reference-number digits,
-    // outside references and not touching one (the editor would show both as one run of digits). Numbers in a web or
-    // e-mail address or a file path are left alone: such text is copied out as it is, and a reference inside it would
-    // be copied in its stored form.
-    public static string LinkNumbers(string text, Func<string, int?> targetOf)
+    // The note a reference written in noteId opens: the only note whose title has the reference, when it is another
+    // note. None when no note has it, when several have it (the choice would be a guess) or when only noteId has it.
+    public static int? TargetOf(IReadOnlyDictionary<string, IReadOnlyList<int>> notesByTitleReference, string normalizedReference, int noteId) =>
+        notesByTitleReference.TryGetValue(normalizedReference, out var notes) && notes.Count == 1 && notes[0] != noteId ? notes[0] : null;
+
+    // Where a paragraph shows links: every reference of its text that targetOf gives a note for, whatever its separator or
+    // case, so all the times a paragraph writes a reference open the same note.
+    public static IReadOnlyList<NoteReferenceLink> LinksIn(string? text, Func<string, int?> targetOf)
     {
-        ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(targetOf);
-        var references = Markup().Matches(text)
-            .Where(match => TryReadId(match.Groups[1].Value, out _))
-            .Select(match => (Start: match.Index, End: match.Index + match.Length))
-            .ToList();
-        var addresses = Token().Matches(text)
-            .Where(token => IsAddress(token.ValueSpan))
-            .Select(token => (Start: token.Index, End: token.Index + token.Length))
-            .ToList();
-        StringBuilder? linked = null;
-        var copied = 0;
-        // Words, references and addresses all come in text order, so each list is walked once.
-        int reference = 0, address = 0;
-        foreach (Match word in Word().Matches(text))
+        var links = new List<NoteReferenceLink>();
+        foreach (var match in Find(text))
         {
-            if (!IsReferenceNumber(word.Value)) continue;
-            var start = word.Index;
-            var end = start + word.Length;
-            while (reference < references.Count && references[reference].End < start) reference++;
-            if (reference < references.Count && references[reference].Start <= end) continue;
-            // A word has no spaces, so it is either wholly inside an address or outside all of them.
-            while (address < addresses.Count && addresses[address].End <= start) address++;
-            if (address < addresses.Count && addresses[address].Start <= start) continue;
-            if (targetOf(word.Value) is not { } targetNoteId) continue;
-            linked ??= new StringBuilder(text.Length + 32);
-            linked.Append(text, copied, start - copied).Append(Format(targetNoteId, word.Value));
-            copied = end;
+            if (targetOf(match.NormalizedReference) is { } targetNoteId) links.Add(new NoteReferenceLink(match.Start, match.Length, targetNoteId));
         }
-        return linked is null ? text : linked.Append(text, copied, text.Length - copied).ToString();
+        return links;
     }
-
-    private static bool IsAddress(ReadOnlySpan<char> token) =>
-        token.Contains("://", StringComparison.Ordinal) || token.Contains("www.", StringComparison.OrdinalIgnoreCase)
-        || token.Contains('@') || token.Contains('\\');
-
-    // Text read only up to a length limit (the start of a paragraph for a card) can stop inside a reference; the
-    // unfinished reference and what follows it are dropped, so no part of its form is shown.
-    public static string WithoutUnfinishedReference(string text)
-    {
-        var start = text.LastIndexOf(MarkupStart, StringComparison.Ordinal);
-        if (start < 0) return text;
-        var match = Markup().Match(text, start);
-        return match.Success && match.Index == start ? text : text[..start];
-    }
-
-    private static bool TryReadId(string digits, out int id) =>
-        int.TryParse(digits, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out id) && id > 0;
 }

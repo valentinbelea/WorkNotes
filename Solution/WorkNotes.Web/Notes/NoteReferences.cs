@@ -6,7 +6,8 @@ using WorkNotes.Business.Models;
 
 namespace WorkNotes.Web.Notes;
 
-// References between notes as the board and the editor show them (NoteReferenceRules holds their stored form).
+// Internal references as the editor shows them: where a paragraph shows links and the notes they open. Where the links
+// are comes from the service (INoteReferenceService); nothing here reads references in the text.
 public static class NoteReferences
 {
     public static string TypeName(IStringLocalizer localizer, string noteType) =>
@@ -15,43 +16,42 @@ public static class NoteReferences
     public static string Title(IStringLocalizer localizer, NoteReferenceTarget target) =>
         target.Title ?? localizer["Notes_Untitled"].Value;
 
-    // The tooltip of a reference: the title and type of the note it opens, as they are now.
+    // The tooltip of a link: the title and type of the note it opens, as they are now.
     public static string Label(IStringLocalizer localizer, NoteReferenceTarget target) =>
         localizer["Notes_ReferenceTarget", Title(localizer, target), TypeName(localizer, target.NoteType)].Value;
 
-    // A note's text as HTML: the text is encoded; a reference whose note the reader may open is a link to it
-    // (/?note={id}, which notes-board.js opens in the editor when the editor is on the page), any other one keeps its
-    // number, marked as a reference that can no longer be opened. Nothing else is added, so the text keeps its own
-    // spacing and line breaks.
-    public static IHtmlContent Html(string? text, IReadOnlyList<NoteReferenceTarget>? targets, IStringLocalizer localizer, IUrlHelper url)
+    // A paragraph's links for note-editor.js: from and to count characters of the paragraph's text.
+    public static IEnumerable<object> Links(IReadOnlyList<NoteReferenceLink>? links) =>
+        (links ?? []).Select(link => new { from = link.Start, to = link.Start + link.Length, note = link.TargetNoteId });
+
+    // The notes the links open, each with its tooltip.
+    public static IEnumerable<object> Targets(IStringLocalizer localizer, IReadOnlyList<NoteReferenceTarget>? targets) =>
+        (targets ?? []).Select(target => new { id = target.Id, label = Label(localizer, target) });
+
+    // A paragraph as HTML for reading without JavaScript: the text is encoded; each link is a link to its note
+    // (/?note={id}). Nothing else is added, so the text keeps its own spacing and line breaks.
+    public static IHtmlContent Html(NoteBlockDetails block, IReadOnlyList<NoteReferenceTarget>? targets, IStringLocalizer localizer, IUrlHelper url)
     {
         var content = new HtmlContentBuilder();
         var known = (targets ?? []).ToDictionary(target => target.Id);
-        foreach (var part in NoteReferenceRules.Split(text))
+        var text = block.Content;
+        var position = 0;
+        foreach (var link in (block.Links ?? []).OrderBy(link => link.Start))
         {
-            if (part.TargetNoteId is not { } targetNoteId)
-            {
-                content.Append(part.Text);
-                continue;
-            }
-            TagBuilder reference;
-            if (known.TryGetValue(targetNoteId, out var target))
-            {
-                reference = new TagBuilder("a");
-                reference.Attributes["href"] = url.Page("/Index", new { note = targetNoteId });
-                reference.Attributes["data-note-reference"] = targetNoteId.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                reference.Attributes["title"] = Label(localizer, target);
-                reference.AddCssClass("note-reference");
-            }
-            else
-            {
-                reference = new TagBuilder("span");
-                reference.Attributes["title"] = localizer["Notes_ReferenceBroken"].Value;
-                reference.AddCssClass("note-reference note-reference--broken");
-            }
-            reference.InnerHtml.Append(part.Text);
-            content.AppendHtml(reference);
+            // Links come in text order and never overlap; one that does not fit the text is left out.
+            if (link.Start < position || link.Length <= 0 || link.Start + link.Length > text.Length
+                || !known.TryGetValue(link.TargetNoteId, out var target)) continue;
+            content.Append(text[position..link.Start]);
+            var anchor = new TagBuilder("a");
+            anchor.Attributes["href"] = url.Page("/Index", new { note = link.TargetNoteId });
+            anchor.Attributes["data-note-reference"] = link.TargetNoteId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            anchor.Attributes["title"] = Label(localizer, target);
+            anchor.AddCssClass("note-reference");
+            anchor.InnerHtml.Append(text.Substring(link.Start, link.Length));
+            content.AppendHtml(anchor);
+            position = link.Start + link.Length;
         }
+        content.Append(text[position..]);
         return content;
     }
 }

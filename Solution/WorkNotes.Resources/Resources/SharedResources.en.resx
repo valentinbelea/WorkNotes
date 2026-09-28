@@ -171,9 +171,4 @@
 <data name="Notes_ReorderInvalidTarget" xml:space="preserve"><value>A note can only swap places with another note of the same month.</value></data>
 <data name="Notes_ReorderConflict" xml:space="preserve"><value>The notes changed in the meantime and the order was not saved. Reload the page.</value></data>
 <data name="Notes_ReferenceTarget" xml:space="preserve"><value>“{0}” ({1})</value></data>
-<data name="Notes_ReferenceBroken" xml:space="preserve"><value>The note of this reference no longer exists or you cannot open it.</value></data>
-<data name="Editor_ReferenceSuggestion" xml:space="preserve"><value>Create a reference to</value></data>
-<data name="Editor_ReferenceOption" xml:space="preserve"><value>Create a reference to “{0}” ({1})</value></data>
-<data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab chooses · Esc closes</value></data>
-<data name="Editor_ReferenceAvailable" xml:space="preserve"><value>You can create a reference to a note with this number: Tab to choose, Esc to close.</value></data>
 </root>

@@ -1,7 +1,7 @@
 // Note editor: CodeMirror 6 plus paragraph identity. A paragraph is the text between blank lines; it keeps a stable
 // id while it is edited, so the server can keep each paragraph's creation audit and change only what was modified.
-// The info bar shows that audit for the paragraph under the mouse, or at the cursor. References to other notes are
-// note-references.js; opening one uses the editor's tabs.
+// The info bar shows that audit for the paragraph under the mouse, or at the cursor. The links of internal references
+// are note-references.js (the server says where they are); opening one uses the editor's tabs.
 // Appearance comes from note-editor.css; texts come from the page (resources), never from this file.
 import {
     EditorState, StateField, StateEffect, Transaction, EditorView, Decoration, keymap, placeholder, highlightActiveLine,
@@ -9,7 +9,7 @@ import {
     search, searchKeymap, highlightSelectionMatches
 } from "../lib/codemirror/codemirror.js";
 import { showStatusMessage } from "./status-messages.js";
-import { noteReferences } from "./note-references.js";
+import { noteReferences, setLinks } from "./note-references.js";
 
 // ---- Paragraphs of a document ------------------------------------------------------------------------------
 
@@ -102,6 +102,12 @@ function matchParagraphs(state) {
 // Paragraphs without a known id are new and get one now.
 export const identifyParagraphs = state => matchParagraphs(state).map(item => ({ ...item, id: item.id ?? newId() }));
 
+// A paragraph's links (from and to within its text, as the server sends them) in document positions, for a paragraph
+// that starts at from; a link that does not fit the paragraph is left out.
+const linksAt = (from, links, length) => (links ?? [])
+    .filter(link => link.from >= 0 && link.to > link.from && link.to <= length)
+    .map(link => ({ from: from + link.from, to: from + link.to, note: link.note }));
+
 // ---- Paragraph under the mouse -----------------------------------------------------------------------------
 
 const setHovered = StateEffect.define();
@@ -152,20 +158,20 @@ function createNoteEditor(panel, data, shared) {
     const infoElement = panel.querySelector("[data-editor-info]");
     const saveButton = panel.querySelector("[data-editor-save]");
     const titleInput = panel.querySelector("[data-editor-title]");
-    const announcer = panel.querySelector("[data-editor-announce]");
     const messages = shared.messages;
-    const noteId = panel.dataset.editorPanel;
 
     // Audit texts (as stored, and with unsaved changes) and last saved content of each stored paragraph, by id.
     const auditById = new Map(data.blocks.map(block => [block.id, block]));
     const savedContentById = new Map(data.blocks.map(block => [block.id, block.content]));
 
-    // The stored paragraphs, separated by one blank line, with their ids at their positions.
+    // The stored paragraphs, separated by one blank line, with their ids and their links at their positions.
     let doc = "";
+    const initialLinks = [];
     const initialTracked = data.blocks.map((block, index) => {
         if (index > 0) doc += "\n\n";
         const from = doc.length;
         doc += block.content;
+        initialLinks.push(...linksAt(from, block.links, block.content.length));
         return { id: block.id, from, to: doc.length };
     });
 
@@ -244,6 +250,7 @@ function createNoteEditor(panel, data, shared) {
             savedContentById.clear();
             for (const block of body.blocks ?? []) auditById.set(block.id, block);
             for (const block of blocks) savedContentById.set(block.id, block.content);
+            showSavedLinks(body);
         } catch {
             problem = texts.failed;
             showStatusMessage(messages, "error", problem);
@@ -252,6 +259,21 @@ function createNoteEditor(panel, data, shared) {
             updateStatus();
             updateInfo(view.state);
         }
+    }
+
+    // The links of the saved text, drawn where its paragraphs are now. A paragraph edited while the save was on its way
+    // gets its links at the next save.
+    function showSavedLinks(body) {
+        const labels = new Map((body.references ?? []).map(target => [String(target.id), target.label]));
+        const places = new Map(view.state.field(trackedParagraphs).map(item => [item.id, item]));
+        const links = [];
+        for (const block of body.blocks ?? []) {
+            const place = places.get(block.id);
+            const content = savedContentById.get(block.id);
+            if (!place || content === undefined || view.state.sliceDoc(place.from, place.to) !== content) continue;
+            links.push(...linksAt(place.from, block.links, content.length));
+        }
+        view.dispatch({ effects: setLinks.of({ links, labels }), annotations: Transaction.addToHistory.of(false) });
     }
 
     const extensions = [
@@ -269,15 +291,8 @@ function createNoteEditor(panel, data, shared) {
         placeholder(texts.placeholder),
         EditorState.phrases.of(shared.phrases),
         EditorView.contentAttributes.of({ "aria-label": texts.content }),
-        // Before the default keys: Tab, Escape and Ctrl+Enter have a meaning around references.
-        noteReferences({
-            texts, readOnly: data.readOnly, targets: data.references ?? [], lengths: shared.referenceNumber,
-            findTargets: number => shared.references(`${shared.urls.suggestions}&note=${noteId}&number=${encodeURIComponent(number)}`),
-            resolveTargets: ids => shared.references(`${shared.urls.targets}&note=${noteId}&${ids.map(id => `ids=${encodeURIComponent(id)}`).join("&")}`),
-            open: id => shared.openNote(id),
-            // A live region is read only when its text changes.
-            announce: text => { if (announcer) { announcer.textContent = ""; announcer.textContent = text; } }
-        }),
+        // Before the default keys: Ctrl+Enter on a link opens its note.
+        noteReferences({ links: initialLinks, targets: data.references ?? [], open: id => shared.openNote(id) }),
         keymap.of([...searchKeymap, ...historyKeymap, ...defaultKeymap]),
         EditorView.updateListener.of(update => {
             if (update.docChanged) updateStatus();
@@ -323,14 +338,7 @@ function initializeEditorWindow(dialog, settings) {
         phrases: settings.phrases,
         messages: dialog.querySelector("[data-editor-messages]"),
         token: dialog.querySelector("input[name='__RequestVerificationToken']")?.value ?? "",
-        // References: a reference opens its note in a tab of this window, like a note opened from the board.
-        urls: { suggestions: settings.referenceSuggestionsUrl, targets: settings.referenceTargetsUrl },
-        referenceNumber: settings.referenceNumber,
-        references: async url => {
-            const response = await fetch(url, { headers: { Accept: "application/json" } });
-            if (!response.ok) throw new Error(String(response.status));
-            return (await response.json()).targets ?? [];
-        },
+        // A link opens its note in a tab of this window, like a note opened from the board.
         openNote: id => openNote(String(id))
     };
     const windowPanel = dialog.querySelector("[data-editor-window]");

@@ -3,14 +3,14 @@ using WorkNotes.Business.Models;
 
 namespace WorkNotes.Business.Services;
 
-public sealed class NoteService(INoteRepository notes, IWorkContextRepository contexts, TimeProvider time) : INoteService
+public sealed class NoteService(INoteRepository notes, IWorkContextRepository contexts, INoteReferenceService references, TimeProvider time)
+    : INoteService
 {
     public async Task<IReadOnlyList<NoteMonthGroup>> GetBoardAsync(string userId, int contextId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        var board = await WithPreviewReferencesAsync(userId, contextId, await notes.GetBoardAsync(userId, contextId, cancellationToken),
-            cancellationToken);
+        var board = await notes.GetBoardAsync(userId, contextId, cancellationToken);
         // Grouped by the last change, ISNULL(modified, created): a note changed this month moves to it.
         // Months follow the application's local calendar, like the journal date. Within a month the order the owner
         // arranged comes first (smaller first); notes with the same order show the latest change first, then the
@@ -38,9 +38,12 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
 
         // The journal is dated with the application's local calendar day.
         DateOnly? journalDate = noteType == NoteTypes.Journal ? DateOnly.FromDateTime(time.GetLocalNow().DateTime) : null;
-        return await notes.AddAsync(
-            new NewNote(contextId, userId, noteType, NoteRules.NormalizeTitle(title), journalDate, NoteVisibilities.Private),
+        var normalized = NoteRules.NormalizeTitle(title);
+        var status = await notes.AddAsync(new NewNote(contextId, userId, noteType, normalized, journalDate, NoteVisibilities.Private),
             cancellationToken);
+        // The references its title names can now open it, or have become ambiguous.
+        if (status == NoteCreateStatus.Created) await references.RefreshAsync(contextId, null, normalized, cancellationToken);
+        return status;
     }
 
     public (int Year, int Month) GetCurrentMonth()
@@ -54,11 +57,7 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
         var document = await notes.GetDocumentAsync(noteId, userId, cancellationToken);
-        if (document is null) return null;
-        var targetIds = ReferencedIds(document.Blocks.Select(block => block.Content));
-        return targetIds.Count == 0
-            ? document
-            : document with { References = await notes.GetReferenceTargetsAsync(userId, document.ContextId, document.Id, targetIds, cancellationToken) };
+        return document is null ? null : await references.WithLinksAsync(document, userId, cancellationToken);
     }
 
     public async Task<NoteSaveResult> SaveAsync(string userId, int noteId, string expectedVersion, string? title,
@@ -75,19 +74,16 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (!document.IsOwner) return new(NoteSaveStatus.Forbidden);
         if (string.IsNullOrWhiteSpace(expectedVersion)) return new(NoteSaveStatus.Conflict);
 
-        // The text keeps every reference as it was written; only those whose target the owner may open are stored.
-        var mentioned = NoteReferenceRules.Find(paragraphs.Select(paragraph => paragraph.Content));
-        IReadOnlyList<NoteReferenceInput> references = [];
-        if (mentioned.Count > 0)
-        {
-            var targets = await notes.GetReferenceTargetsAsync(userId, document.ContextId, document.Id,
-                mentioned.Select(reference => reference.TargetNoteId).Distinct().ToList(), cancellationToken);
-            var valid = targets.Select(target => target.Id).ToHashSet();
-            references = mentioned.Where(reference => valid.Contains(reference.TargetNoteId)).ToList();
-        }
-        return await notes.SaveAsync(
-            new NoteChanges(noteId, userId, expectedVersion, NoteRules.NormalizeTitle(title), paragraphs, references, SavedAtUtc()),
+        // The references of the paragraphs are stored with them, in the same transaction.
+        var normalized = NoteRules.NormalizeTitle(title);
+        var resolution = await references.ResolveAsync(userId, document.ContextId, noteId, normalized, paragraphs, cancellationToken);
+        var result = await notes.SaveAsync(
+            new NoteChanges(noteId, userId, expectedVersion, normalized, paragraphs, resolution.References, SavedAtUtc()),
             cancellationToken);
+        if (result.Status != NoteSaveStatus.Saved) return result;
+        // Other paragraphs of the board may name the note by its old or its new title.
+        if (normalized != document.Title) await references.RefreshAsync(document.ContextId, document.Title, normalized, cancellationToken);
+        return WithLinks(result, paragraphs, resolution);
     }
 
     public Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken)
@@ -107,9 +103,10 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (!note.IsOwner) return new(NoteSaveStatus.Forbidden);
         var normalized = NoteRules.NormalizeTitle(title);
         var savedAtUtc = SavedAtUtc();
-        return await notes.RenameAsync(noteId, userId, normalized, savedAtUtc, cancellationToken)
-            ? new(NoteSaveStatus.Saved, note with { Title = normalized, ModifiedAtUtc = savedAtUtc })
-            : new(NoteSaveStatus.NotFound);
+        if (!await notes.RenameAsync(noteId, userId, normalized, savedAtUtc, cancellationToken)) return new(NoteSaveStatus.NotFound);
+        // The references of the board that name the note by its old or its new title follow.
+        await references.RefreshAsync(note.ContextId, note.Title, normalized, cancellationToken);
+        return new(NoteSaveStatus.Saved, note with { Title = normalized, ModifiedAtUtc = savedAtUtc });
     }
 
     public async Task<NoteDeleteStatus> DeleteAsync(string userId, int noteId, CancellationToken cancellationToken)
@@ -119,7 +116,10 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
         if (note is null) return NoteDeleteStatus.NotFound;
         if (!note.IsOwner) return NoteDeleteStatus.Forbidden;
-        return await notes.DeleteAsync(noteId, userId, cancellationToken) ? NoteDeleteStatus.Deleted : NoteDeleteStatus.NotFound;
+        if (!await notes.DeleteAsync(noteId, userId, cancellationToken)) return NoteDeleteStatus.NotFound;
+        // Its references went with it; another note with the same reference in its title may now be the only one.
+        await references.RefreshAsync(note.ContextId, note.Title, null, cancellationToken);
+        return NoteDeleteStatus.Deleted;
     }
 
     public async Task<NoteOrderResult> SwapOrderAsync(string userId, int noteId, int targetNoteId, CancellationToken cancellationToken)
@@ -144,54 +144,26 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         return new(NoteOrderStatus.Saved, noteIds, versions);
     }
 
-    public async Task<IReadOnlyList<NoteReferenceTarget>?> FindReferenceTargetsAsync(string userId, int noteId, string? number,
-        CancellationToken cancellationToken)
+    // Where each saved paragraph shows its links now, for the editor: the references just stored with it.
+    private static NoteSaveResult WithLinks(NoteSaveResult result, IReadOnlyList<NoteBlockInput> paragraphs, NoteReferenceResolution resolution)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
-        cancellationToken.ThrowIfCancellationRequested();
-        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
-        if (note is null) return null;
-        // Only the owner writes in the note, so only the owner is offered references.
-        if (!note.IsOwner || !NoteReferenceRules.IsReferenceNumber(number)) return [];
-        var candidates = await notes.FindReferenceCandidatesAsync(userId, note.ContextId, note.Id, number!, cancellationToken);
-        // The data access matches the digits anywhere in the title; the number must be whole (not part of 130080).
-        return candidates.Where(candidate => NoteReferenceRules.TitleContainsNumber(candidate.Title, number!)).ToList();
+        if (resolution.References.Count == 0 || result.Blocks is null) return result;
+        var content = paragraphs.ToDictionary(paragraph => paragraph.Id, paragraph => paragraph.Content);
+        var targets = resolution.References.ToDictionary(reference => (reference.NoteBlockId, reference.NormalizedReference), reference => reference.TargetNoteId);
+        return result with
+        {
+            Blocks = result.Blocks
+                .Select(block => content.TryGetValue(block.Id, out var text)
+                    ? block with
+                    {
+                        Links = NoteReferenceRules.LinksIn(text,
+                            normalized => targets.TryGetValue((block.Id, normalized), out var targetNoteId) ? targetNoteId : null)
+                    }
+                    : block)
+                .ToList(),
+            References = resolution.Targets
+        };
     }
-
-    public async Task<IReadOnlyList<NoteReferenceTarget>?> GetReferenceTargetsAsync(string userId, int noteId,
-        IReadOnlyCollection<int> targetNoteIds, CancellationToken cancellationToken)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
-        ArgumentNullException.ThrowIfNull(targetNoteIds);
-        cancellationToken.ThrowIfCancellationRequested();
-        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
-        if (note is null) return null;
-        var ids = targetNoteIds.Where(id => id > 0 && id != note.Id).Distinct().Take(NoteReferenceRules.MaxTargetsPerRequest).ToList();
-        return ids.Count == 0 ? [] : await notes.GetReferenceTargetsAsync(userId, note.ContextId, note.Id, ids, cancellationToken);
-    }
-
-    // Each card gets the notes the references in its preview can open: other notes of the board the user may see.
-    private async Task<IReadOnlyList<NoteSummary>> WithPreviewReferencesAsync(string userId, int contextId, IReadOnlyList<NoteSummary> board,
-        CancellationToken cancellationToken)
-    {
-        var referenced = board.Select(note => (Note: note, TargetIds: ReferencedIds([note.Preview]))).ToList();
-        var targetIds = referenced.SelectMany(item => item.TargetIds).Distinct().ToList();
-        if (targetIds.Count == 0) return board;
-        var targets = (await notes.GetReferenceTargetsAsync(userId, contextId, null, targetIds, cancellationToken)).ToDictionary(target => target.Id);
-        return referenced
-            .Select(item => item.TargetIds.Count == 0 ? item.Note : item.Note with
-            {
-                References = item.TargetIds.Where(id => id != item.Note.Id && targets.ContainsKey(id)).Select(id => targets[id]).ToList()
-            })
-            .ToList();
-    }
-
-    private static List<int> ReferencedIds(IEnumerable<string?> texts) =>
-        texts.SelectMany(text => NoteReferenceRules.Split(text))
-            .Select(part => part.TargetNoteId)
-            .OfType<int>()
-            .Distinct()
-            .ToList();
 
     // Audit times are kept to the second, the precision of the stored columns, so they read the same after a reload.
     private DateTime SavedAtUtc()

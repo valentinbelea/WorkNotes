@@ -119,8 +119,11 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                 {
                     id = block.Id,
                     info = NoteDates.BlockAudit(localizer, block.CreatedAtUtc, block.ModifiedAtUtc),
-                    unsavedInfo = NoteDates.BlockAudit(localizer, block.CreatedAtUtc, block.ModifiedAtUtc, unsaved: true)
-                })
+                    unsavedInfo = NoteDates.BlockAudit(localizer, block.CreatedAtUtc, block.ModifiedAtUtc, unsaved: true),
+                    // Where the saved text shows links now, so the editor draws them without reloading the note.
+                    links = NoteReferences.Links(block.Links)
+                }),
+                references = NoteReferences.Targets(localizer, result.References)
             }),
             NoteSaveStatus.Conflict => EditorFailure(StatusCodes.Status409Conflict, "Editor_Conflict"),
             NoteSaveStatus.Forbidden => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
@@ -204,38 +207,6 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
             _ => EditorFailure(StatusCodes.Status400BadRequest, "Notes_ReorderInvalidTarget")
         };
     }
-
-    // Called by note-editor.js when a finished word is a number: the notes of the board it can refer to, for the
-    // suggestion under the number (empty when there are none, or when the note belongs to another member).
-    public async Task<IActionResult> OnGetReferenceSuggestionsAsync(int note, string? number, CancellationToken cancellationToken)
-    {
-        if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
-        var targets = await notes.FindReferenceTargetsAsync(UserId, note, number, cancellationToken);
-        return targets is null ? EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound") : ReferenceTargets(targets);
-    }
-
-    // Called by note-editor.js for references it does not know yet (pasted from another note): those it can open.
-    public async Task<IActionResult> OnGetReferenceTargetsAsync(int note, [FromQuery] int[]? ids, CancellationToken cancellationToken)
-    {
-        if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
-        var targets = await notes.GetReferenceTargetsAsync(UserId, note, ids ?? [], cancellationToken);
-        return targets is null ? EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound") : ReferenceTargets(targets);
-    }
-
-    // Each target as the editor shows it: type and title in the suggestion, the option's full text for screen readers,
-    // and the tooltip of the reference made from it.
-    private JsonResult ReferenceTargets(IReadOnlyList<NoteReferenceTarget> targets) => new(new
-    {
-        targets = targets.Select(target => new
-        {
-            id = target.Id,
-            type = target.NoteType,
-            typeName = NoteReferences.TypeName(localizer, target.NoteType),
-            title = NoteReferences.Title(localizer, target),
-            option = localizer["Editor_ReferenceOption", NoteReferences.Title(localizer, target), NoteReferences.TypeName(localizer, target.NoteType)].Value,
-            label = NoteReferences.Label(localizer, target)
-        })
-    });
 
     // The forms post with ?handler=CreateNote, RenameNote, DeleteNote or SwapNotes; opening those addresses directly
     // shows the board.

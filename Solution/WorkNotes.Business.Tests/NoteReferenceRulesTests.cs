@@ -5,141 +5,168 @@ namespace WorkNotes.Business.Tests;
 public sealed class NoteReferenceRulesTests
 {
     [Theory]
-    [InlineData("300", true)]
-    [InlineData("30080", true)]
-    [InlineData("123456789012345678", true)]
-    [InlineData("12", false)]
-    [InlineData("1234567890123456789", false)]
-    [InlineData("30a80", false)]
-    [InlineData("30 80", false)]
-    [InlineData("-3008", false)]
-    [InlineData("٣٠٠٨٠", false)]
-    [InlineData("", false)]
-    [InlineData(null, false)]
-    public void ReferenceNumbersAreAsciiDigitsOfTheAllowedLength(string? value, bool expected) =>
-        Assert.Equal(expected, NoteReferenceRules.IsReferenceNumber(value));
+    [InlineData("CR 30080", "CR", 30080)]
+    [InlineData("CR-30080", "CR", 30080)]
+    [InlineData("CR_30080", "CR", 30080)]
+    [InlineData("CR30080", "CR", 30080)]
+    [InlineData("cr 30080", "CR", 30080)]
+    [InlineData("Cr-30080", "CR", 30080)]
+    [InlineData("cR_30080", "CR", 30080)]
+    [InlineData("bug 30042", "BUG", 30042)]
+    [InlineData("bug-30042", "BUG", 30042)]
+    [InlineData("bug_30042", "BUG", 30042)]
+    [InlineData("bug30042", "BUG", 30042)]
+    [InlineData("BUG 30042", "BUG", 30042)]
+    [InlineData("Bug-30042", "BUG", 30042)]
+    [InlineData("bUg30042", "BUG", 30042)]
+    public void EveryWrittenFormIsOneReference(string text, string type, long number)
+    {
+        var match = Assert.Single(NoteReferenceRules.Find(text));
+
+        // The text keeps the separator and the case it was written with; type and number are normalized.
+        Assert.Equal((0, text, type, number), (match.Start, match.Text, match.ReferenceType, match.ReferenceNumber));
+        Assert.Equal($"{type}:{number}", match.NormalizedReference);
+    }
 
     [Theory]
-    [InlineData("CR 30080", true)]
-    [InlineData("30080", true)]
-    [InlineData("CR-30080: analiză", true)]
-    [InlineData("CR30080", true)]
-    [InlineData("Bug 130080 și CR 30080", true)]
-    [InlineData("CR 130080", false)]
-    [InlineData("CR 300801", false)]
-    [InlineData("CR 3008", false)]
-    [InlineData(null, false)]
-    public void TitleHasTheNumberOnlyAsAWholeNumber(string? title, bool expected) =>
-        Assert.Equal(expected, NoteReferenceRules.TitleContainsNumber(title, "30080"));
+    [InlineData("CR   30080")]
+    [InlineData("CR 30080")]
+    [InlineData("bug   30042")]
+    public void SeveralSpacesAndNoBreakSpacesSeparateTheTypeFromTheNumber(string text) =>
+        Assert.Equal(text, Assert.Single(NoteReferenceRules.Find(text)).Text);
 
     [Fact]
-    public void AShortNumberIsNeverLookedForInTitles() =>
-        Assert.False(NoteReferenceRules.TitleContainsNumber("Sprint 12", "12"));
-
-    [Fact]
-    public void ReferencesAreSplitFromThePlainText()
+    public void AtMostFiftySpacesSeparateTheTypeFromTheNumber()
     {
-        var parts = NoteReferenceRules.Split("Vezi [[note:12|30080]], apoi [[note:7|512]]");
-
-        Assert.Equal([new NoteTextPart("Vezi ", null), new NoteTextPart("30080", 12), new NoteTextPart(", apoi ", null), new NoteTextPart("512", 7)],
-            parts);
+        Assert.Single(NoteReferenceRules.Find("CR" + new string(' ', NoteReferenceRules.MaxSeparatorLength) + "30080"));
+        Assert.Empty(NoteReferenceRules.Find("CR" + new string(' ', NoteReferenceRules.MaxSeparatorLength + 1) + "30080"));
     }
 
     [Fact]
-    public void AFormattedReferenceIsReadBack() =>
-        Assert.Equal([new NoteTextPart("30080", 12)], NoteReferenceRules.Split(NoteReferenceRules.Format(12, "30080")));
+    public void TheNumberHasAtMostEighteenDigits()
+    {
+        var longest = "CR " + new string('9', NoteReferenceRules.MaxNumberLength);
+
+        Assert.Equal(999_999_999_999_999_999, Assert.Single(NoteReferenceRules.Find(longest)).ReferenceNumber);
+        Assert.Equal(NoteReferenceRules.MaxTextLength,
+            Assert.Single(NoteReferenceRules.Find("BUG" + new string(' ', NoteReferenceRules.MaxSeparatorLength) + new string('9', NoteReferenceRules.MaxNumberLength))).Length);
+        // A longer number is not cut to fit: it is no reference.
+        Assert.Empty(NoteReferenceRules.Find(longest + "9"));
+    }
 
     [Theory]
-    [InlineData("[[note:x|30080]]")]
-    [InlineData("[[note:12|30a80]]")]
-    [InlineData("[[note:12|]]")]
-    [InlineData("[[note:0|30080]]")]
-    [InlineData("[[note:99999999999|30080]]")]
-    [InlineData("[[note:12|30080]")]
-    [InlineData("[note:12|30080]]")]
-    [InlineData("[[Note:12|30080]]")]
-    public void AnythingElseStaysPlainText(string text) =>
-        Assert.Equal([new NoteTextPart(text, null)], NoteReferenceRules.Split(text));
+    [InlineData("XCR30080A")]
+    [InlineData("XCR30080")]
+    [InlineData("CR30080A")]
+    [InlineData("CR 30080a")]
+    [InlineData("MCR 30080")]
+    [InlineData("debug 1234")]
+    [InlineData("bugs 1234")]
+    [InlineData("BUGCR 30080")]
+    [InlineData("1CR 30080")]
+    [InlineData("CR 300801ă")]
+    [InlineData("ăCR 30080")]
+    [InlineData("CR 30080́")]
+    [InlineData("CR 30080٣")]
+    [InlineData("CR - 30080")]
+    [InlineData("CR--30080")]
+    [InlineData("CR-_30080")]
+    [InlineData("CR_ 30080")]
+    [InlineData("CR\t30080")]
+    [InlineData("CR\n30080")]
+    [InlineData("CR")]
+    [InlineData("CR 3OO8O")]
+    [InlineData("C R 30080")]
+    [InlineData("ＣＲ 30080")]
+    [InlineData("CR ３００８０")]
+    public void OnlyAWholeTypeAndAWholeNumberMakeAReference(string text) =>
+        Assert.Empty(NoteReferenceRules.Find(text));
+
+    [Theory]
+    [InlineData("(CR-30080)", "CR-30080")]
+    [InlineData("Vezi CR30080, apoi", "CR30080")]
+    [InlineData("feature/CR-30080_export", "CR-30080")]
+    [InlineData("am rezolvat bug 1234.", "bug 1234")]
+    [InlineData("„CR 30080”", "CR 30080")]
+    [InlineData("CR 30080-2", "CR 30080")]
+    public void PunctuationAroundAReferenceIsNotPartOfIt(string text, string reference) =>
+        Assert.Equal(reference, Assert.Single(NoteReferenceRules.Find(text)).Text);
 
     [Fact]
-    public void NoTextHasNoParts()
+    public void LeadingZerosAreNotPartOfTheNumber()
     {
-        Assert.Empty(NoteReferenceRules.Split(null));
-        Assert.Empty(NoteReferenceRules.Split(""));
+        var match = Assert.Single(NoteReferenceRules.Find("CR 030080"));
+
+        Assert.Equal(("CR 030080", "CR:30080"), (match.Text, match.NormalizedReference));
     }
 
     [Fact]
-    public void EachTargetAndNumberIsFoundOnce()
+    public void EveryReferenceOfATextIsFoundInOrder()
     {
-        var references = NoteReferenceRules.Find([
-            "[[note:12|30080]] și [[note:12|30080]]",
-            "Același număr, altă notă: [[note:13|30080]]",
-            "Altă formă a titlului: [[note:12|512]]",
-            "Fără referințe"
+        var matches = NoteReferenceRules.Find("CR 30080 și bug_30080, apoi Cr-30081 și iar CR30080.");
+
+        Assert.Equal([(0, "CR 30080", "CR:30080"), (12, "bug_30080", "BUG:30080"), (28, "Cr-30081", "CR:30081"), (44, "CR30080", "CR:30080")],
+            matches.Select(match => (match.Start, match.Text, match.NormalizedReference)));
+    }
+
+    [Fact]
+    public void ACrAndABugWithTheSameNumberAreDifferentReferences()
+    {
+        var matches = NoteReferenceRules.Find("CR 1234 / bug 1234");
+
+        Assert.Equal(["CR:1234", "BUG:1234"], matches.Select(match => match.NormalizedReference));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("Fără referințe: 30080, CRs, bug-uri.")]
+    public void TextWithoutReferencesHasNone(string? text) =>
+        Assert.Empty(NoteReferenceRules.Find(text));
+
+    [Fact]
+    public void TitlesNameTheReferencesTheyHave()
+    {
+        var titles = NoteReferenceRules.NotesByTitleReference(
+        [
+            (12, "CR 30080 Export facturi"),
+            (13, "Rezolvare Bug-1234"),
+            (14, "Testare CR_30080 și bug 512"),
+            (15, null),
+            (16, "CRs")
         ]);
 
-        Assert.Equal([new NoteReferenceInput(12, "30080"), new NoteReferenceInput(13, "30080"), new NoteReferenceInput(12, "512")], references);
+        Assert.Equal([12, 14], titles["CR:30080"]);
+        Assert.Equal([13], titles["BUG:1234"]);
+        Assert.Equal([14], titles["BUG:512"]);
+        Assert.Equal(3, titles.Count);
     }
 
-    [Theory]
-    [InlineData("Vezi 30080.", "Vezi [[note:45|30080]].")]
-    [InlineData("30080", "[[note:45|30080]]")]
-    [InlineData("CR_30080, CR-30080 și (30080)", "CR_[[note:45|30080]], CR-[[note:45|30080]] și ([[note:45|30080]])")]
-    [InlineData("Ieri:\n30080\tanaliză", "Ieri:\n[[note:45|30080]]\tanaliză")]
-    public void EveryWholeNumberWithATargetBecomesAReference(string text, string expected) =>
-        Assert.Equal(expected, NoteReferenceRules.LinkNumbers(text, number => number == "30080" ? 45 : null));
+    [Fact]
+    public void ATitleWritingAReferenceTwiceNamesItOnce() =>
+        Assert.Equal([12], NoteReferenceRules.NotesByTitleReference([(12, "CR 30080 (CR-30080)")])["CR:30080"]);
 
     [Fact]
-    public void OnlyWordsOfReferenceNumberDigitsAreAskedFor()
+    public void AReferenceOpensTheOnlyOtherNoteWithItInItsTitle()
     {
-        var asked = new List<string>();
+        var titles = NoteReferenceRules.NotesByTitleReference([(12, "CR 30080"), (13, "bug 30080"), (14, "CR 512"), (15, "Testare CR 512"), (7, "CR 777")]);
 
-        var text = "CR30080 30080a 30080ă 30080\u0301 12 1234567890123456789 ٣٠٠٨٠ 130080 [[note:7|30080]] 512, 30080";
-        var linked = NoteReferenceRules.LinkNumbers(text, number => { asked.Add(number); return null; });
-
-        // Letters, marks or other digits make the number part of a longer word, as in the editor.
-        Assert.Equal(["130080", "512", "30080"], asked);
-        Assert.Same(text, linked);
+        Assert.Equal(12, NoteReferenceRules.TargetOf(titles, "CR:30080", 7));
+        Assert.Equal(13, NoteReferenceRules.TargetOf(titles, "BUG:30080", 7));
+        // No note, several notes, or only the note itself: no link.
+        Assert.Null(NoteReferenceRules.TargetOf(titles, "CR:9999", 7));
+        Assert.Null(NoteReferenceRules.TargetOf(titles, "CR:512", 7));
+        Assert.Null(NoteReferenceRules.TargetOf(titles, "CR:777", 7));
     }
 
-    [Theory]
-    [InlineData("[[note:7|512]]30080")]
-    [InlineData("30080[[note:7|512]]")]
-    [InlineData("[[note:30080|512]]")]
-    public void NumbersInOrNextToAReferenceAreLeftAlone(string text) =>
-        Assert.Equal(text, NoteReferenceRules.LinkNumbers(text, _ => throw new InvalidOperationException("Not a number to link.")));
-
-    [Theory]
-    [InlineData("https://dev.azure.com/topdev/_workitems/edit/30080")]
-    [InlineData("(www.exemplu.ro/cr/30080)")]
-    [InlineData("ion.30080@exemplu.ro")]
-    [InlineData(@"\\server\cr\30080\analiza.docx")]
-    [InlineData(@"C:\cr\30080")]
-    public void AddressesAndPathsAreLeftAlone(string text) =>
-        Assert.Equal(text, NoteReferenceRules.LinkNumbers(text, _ => 45));
-
     [Fact]
-    public void TheSameNumberOutsideAnAddressIsLinked() =>
-        Assert.Equal("Vezi https://exemplu.ro/cr/30080 și [[note:45|30080]]",
-            NoteReferenceRules.LinkNumbers("Vezi https://exemplu.ro/cr/30080 și 30080", _ => 45));
-
-    [Fact]
-    public void ALinkedTextReadsTheSameAndIsFoundAgain()
+    public void EveryPlaceAParagraphWritesALinkedReferenceIsALink()
     {
-        var linked = NoteReferenceRules.LinkNumbers("CR 30080 după 512", number => number == "30080" ? 45 : 7);
+        const string text = "CR 30080, cr-30080 și CR_30080; bug 30080 nu.";
 
-        Assert.Equal("CR 30080 după 512", string.Concat(NoteReferenceRules.Split(linked).Select(part => part.Text)));
-        Assert.Equal([new NoteReferenceInput(45, "30080"), new NoteReferenceInput(7, "512")], NoteReferenceRules.Find([linked]));
-        // Once linked, nothing is left to link.
-        Assert.Same(linked, NoteReferenceRules.LinkNumbers(linked, _ => 99));
+        var links = NoteReferenceRules.LinksIn(text, normalized => normalized == "CR:30080" ? 12 : null);
+
+        Assert.Equal([new NoteReferenceLink(0, 8, 12), new NoteReferenceLink(10, 8, 12), new NoteReferenceLink(22, 8, 12)], links);
+        Assert.Equal(["CR 30080", "cr-30080", "CR_30080"], links.Select(link => text.Substring(link.Start, link.Length)));
     }
-
-    [Theory]
-    [InlineData("Vezi [[note:12|300", "Vezi ")]
-    [InlineData("Vezi [[note:", "Vezi ")]
-    [InlineData("[[note:12|30080]] și [[note:1", "[[note:12|30080]] și ")]
-    [InlineData("Vezi [[note:12|30080]]", "Vezi [[note:12|30080]]")]
-    [InlineData("Fără referințe", "Fără referințe")]
-    public void AnUnfinishedReferenceAtTheEndIsDropped(string text, string expected) =>
-        Assert.Equal(expected, NoteReferenceRules.WithoutUnfinishedReference(text));
 }

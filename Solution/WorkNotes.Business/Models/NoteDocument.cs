@@ -2,7 +2,7 @@ namespace WorkNotes.Business.Models;
 
 // A note opened in the editor. Version is an opaque concurrency token returned with every save.
 // ModifiedAtUtc is the note's last change (the creation time until it is first changed). References are the notes the
-// references in its text can open for the user; the others are shown as references that can no longer be opened.
+// links of its paragraphs open for the user (INoteReferenceService.WithLinksAsync fills them and the links).
 public sealed record NoteDocument(
     int Id,
     int ContextId,

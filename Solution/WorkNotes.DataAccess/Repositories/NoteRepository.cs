@@ -1,4 +1,5 @@
 using System.Data;
+using System.Globalization;
 using System.Linq.Expressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,7 @@ using NoteReferenceEntity = WorkNotes.DataAccess.Entities.NoteReference;
 
 namespace WorkNotes.DataAccess.Repositories;
 
-public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteRepository, INoteReferenceBackfillRepository
+public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteRepository, INoteReferenceRepository
 {
     public async Task<IReadOnlyList<NoteSummary>> GetBoardAsync(string userId, int contextId, CancellationToken cancellationToken)
     {
@@ -39,14 +40,14 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
 
     public async Task<bool> DeleteAsync(int noteId, string ownerUserId, CancellationToken cancellationToken)
     {
-        // Serializable: no other note can add a reference to this one between the two statements.
+        // Serializable: no paragraph can store a reference to this note between the two statements.
         await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-        // The references other notes have to it go first (FK_NoteReferences_Notes_TargetNoteId has no cascade); their text
-        // keeps the number, shown as a reference that can no longer be opened.
+        // The stored references that open it go first (FK_NoteReferences_Notes_TargetNoteId has no cascade: a second
+        // cascade path from Notes is not allowed); the paragraphs keep their text, which is shown as plain text.
         await dbContext.NoteReferences
             .Where(reference => reference.TargetNoteId == noteId && reference.TargetNote.OwnerUserId == ownerUserId)
             .ExecuteDeleteAsync(cancellationToken);
-        // FK_NoteBlocks_Notes_NoteId and FK_NoteReferences_Notes_SourceNoteId cascade: the paragraphs and the note's own
+        // FK_NoteBlocks_Notes_NoteId and FK_NoteReferences_NoteBlocks_NoteBlockId cascade: the paragraphs and their stored
         // references are deleted by SQL Server in the same statement.
         var deleted = await dbContext.Notes
             .Where(note => note.Id == noteId && note.OwnerUserId == ownerUserId)
@@ -191,13 +192,12 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         }
         if (note.Title != changes.Title) { note.Title = changes.Title; changed = true; }
 
-        // Unchanged text has unchanged references: the stored ones stay as they were at the last save of the text.
         if (!changed)
             return note.RowVersion.AsSpan().SequenceEqual(expectedVersion)
                 ? new(NoteSaveStatus.Saved, changes.ExpectedVersion, Audit(saved), Utc(note.ModifiedAtUtc))
                 : new(NoteSaveStatus.Conflict);
 
-        await ReplaceReferencesAsync(note.Id, changes.References, changes.SavedAtUtc, cancellationToken);
+        await SaveReferencesAsync(note.Id, saved, changes.References, changes.SavedAtUtc, cancellationToken);
         note.ModifiedAtUtc = changes.SavedAtUtc;
         note.ModifiedByUserId = changes.OwnerUserId;
         // Always update the note row, even when its audit values are unchanged (two saves in the same second):
@@ -221,109 +221,134 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         }
     }
 
-    // At most this many candidates are read for one number; the service keeps those with the number as a whole number.
-    private const int MaxReferenceCandidates = 200;
-
-    public async Task<IReadOnlyList<NoteReferenceTarget>> FindReferenceCandidatesAsync(string userId, int contextId, int sourceNoteId,
-        string digits, CancellationToken cancellationToken) =>
-        await VisibleTo(userId)
-            .AsNoTracking()
-            .Where(note => note.ContextId == contextId && note.Id != sourceNoteId && note.Title != null && note.Title.Contains(digits))
-            .OrderByDescending(note => note.ModifiedAtUtc)
-            .ThenByDescending(note => note.Id)
-            .Take(MaxReferenceCandidates)
-            .Select(note => new NoteReferenceTarget(note.Id, note.Title, note.NoteType))
-            .ToListAsync(cancellationToken);
-
-    public async Task<IReadOnlyList<NoteReferenceTarget>> GetReferenceTargetsAsync(string userId, int contextId, int? sourceNoteId,
-        IReadOnlyCollection<int> noteIds, CancellationToken cancellationToken) =>
-        await VisibleTo(userId)
-            .AsNoTracking()
-            .Where(note => note.ContextId == contextId && noteIds.Contains(note.Id) && (sourceNoteId == null || note.Id != sourceNoteId))
-            .Select(note => new NoteReferenceTarget(note.Id, note.Title, note.NoteType))
-            .ToListAsync(cancellationToken);
-
-    public async Task<IReadOnlyList<NoteReferenceSource>> GetReferenceSourcesAsync(CancellationToken cancellationToken) =>
-        // VisibleTo for each note's own owner: not archived, in a context the owner belongs to.
-        await dbContext.Notes
-            .AsNoTracking()
-            .Where(note => note.ArchivedAtUtc == null && note.Context.ContextMembers.Any(member => member.UserId == note.OwnerUserId))
-            .OrderBy(note => note.ContextId)
-            .ThenBy(note => note.OwnerUserId)
-            .ThenBy(note => note.Id)
-            .Select(note => new NoteReferenceSource(note.Id, note.ContextId, note.OwnerUserId))
-            .ToListAsync(cancellationToken);
-
-    public async Task<IReadOnlyList<NoteReferenceTarget>> GetAllReferenceTargetsAsync(string userId, int contextId,
-        CancellationToken cancellationToken) =>
-        await VisibleTo(userId)
-            .AsNoTracking()
-            .Where(note => note.ContextId == contextId)
-            .Select(note => new NoteReferenceTarget(note.Id, note.Title, note.NoteType))
-            .ToListAsync(cancellationToken);
-
-    public async Task<bool> SaveReferencesAsync(int noteId, string ownerUserId, string expectedVersion, IReadOnlyList<NoteBlockInput> paragraphs,
-        IReadOnlyList<NoteReferenceInput> references, DateTime savedAtUtc, CancellationToken cancellationToken)
+    // The stored references of the note's paragraphs become those given, saved with the paragraphs. Those of removed
+    // paragraphs go with them.
+    private async Task SaveReferencesAsync(int noteId, IReadOnlyList<NoteBlockEntity> paragraphs, IReadOnlyList<NoteBlockReference> references,
+        DateTime savedAtUtc, CancellationToken cancellationToken)
     {
-        if (!TryReadVersion(expectedVersion, out var version)) return false;
-        // Serializable: the version read here holds until the commit, so no save of the note comes in between. The note
-        // row itself is not updated: an editor open on the note keeps a valid version.
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var byId = paragraphs.ToDictionary(block => block.Id);
+        var stored = await dbContext.NoteReferences.Where(reference => reference.NoteBlock.NoteId == noteId).ToListAsync(cancellationToken);
+        Replace(stored, references.Where(reference => byId.ContainsKey(reference.NoteBlockId)), savedAtUtc,
+            // Through the paragraph, so a new paragraph is inserted before its references.
+            reference => byId[reference.NoteBlockId].NoteReferences.Add(NewReference(reference, savedAtUtc)));
+    }
+
+    public async Task<IReadOnlyList<NoteReferenceTarget>> GetCandidatesAsync(string userId, int contextId, IReadOnlyCollection<long> numbers,
+        CancellationToken cancellationToken)
+    {
+        var digits = Digits(numbers);
+        return await VisibleTo(userId)
+            .AsNoTracking()
+            .Where(note => note.ContextId == contextId && note.Title != null && digits.Any(number => note.Title.Contains(number)))
+            .Select(note => new NoteReferenceTarget(note.Id, note.Title, note.NoteType))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<NoteReferenceSource>> GetSourcesAsync(int contextId, IReadOnlyCollection<long> numbers,
+        CancellationToken cancellationToken)
+    {
+        var digits = Digits(numbers);
+        // VisibleTo for each note's own owner: not archived, in a context the owner still belongs to.
+        var rows = await dbContext.NoteBlocks
+            .AsNoTracking()
+            .Where(block => block.Note.ContextId == contextId && block.Note.ArchivedAtUtc == null
+                && block.Note.Context.ContextMembers.Any(member => member.UserId == block.Note.OwnerUserId)
+                && digits.Any(number => block.Content.Contains(number)))
+            .Select(block => new { block.Id, block.NoteId, block.Note.OwnerUserId, block.Content, block.RowVersion })
+            .ToListAsync(cancellationToken);
+        return rows.Select(row => new NoteReferenceSource(row.Id, row.NoteId, row.OwnerUserId, row.Content, Convert.ToBase64String(row.RowVersion))).ToList();
+    }
+
+    public async Task<bool> ReplaceReferencesAsync(IReadOnlyCollection<string> normalizedReferences, IReadOnlyList<NoteReferenceSource> paragraphs,
+        IReadOnlyList<NoteBlockReference> references, DateTime savedAtUtc, CancellationToken cancellationToken)
+    {
+        var read = new Dictionary<Guid, byte[]>();
+        foreach (var paragraph in paragraphs)
+            if (TryReadVersion(paragraph.Version, out var version)) read[paragraph.NoteBlockId] = version;
+        if (normalizedReferences.Count == 0 || read.Count == 0) return true;
+        var keys = normalizedReferences.ToList();
+        var ids = read.Keys.ToList();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            var current = await dbContext.Notes
-                .Where(note => note.Id == noteId && note.OwnerUserId == ownerUserId && note.ArchivedAtUtc == null)
-                .Select(note => note.RowVersion)
-                .SingleOrDefaultAsync(cancellationToken);
-            if (current is null || !current.AsSpan().SequenceEqual(version)) return false;
-            var contents = paragraphs.ToDictionary(paragraph => paragraph.Id, paragraph => paragraph.Content);
-            var ids = contents.Keys.ToList();
-            var blocks = await dbContext.NoteBlocks
-                .Where(block => block.NoteId == noteId && ids.Contains(block.Id))
+            // Only the paragraphs whose text is the one read: a paragraph saved since then got its references from its save.
+            var current = await dbContext.NoteBlocks
+                .AsNoTracking()
+                .Where(block => ids.Contains(block.Id))
+                .Select(block => new { block.Id, block.RowVersion })
                 .ToListAsync(cancellationToken);
-            if (blocks.Count != ids.Count) return false;
-            // Only the text changes and it reads the same: the paragraphs keep their audit, and the note row (version,
-            // audit, order) is not updated.
-            foreach (var block in blocks) block.Content = contents[block.Id];
-            await ReplaceReferencesAsync(noteId, references, savedAtUtc, cancellationToken);
+            var unchanged = current.Where(block => block.RowVersion.AsSpan().SequenceEqual(read[block.Id])).Select(block => block.Id).ToList();
+            if (unchanged.Count == 0) return true;
+            var stored = await dbContext.NoteReferences
+                .Where(reference => unchanged.Contains(reference.NoteBlockId) && keys.Contains(reference.NormalizedReference))
+                .ToListAsync(cancellationToken);
+            var kept = unchanged.ToHashSet();
+            Replace(stored, references.Where(reference => kept.Contains(reference.NoteBlockId) && keys.Contains(reference.NormalizedReference)),
+                savedAtUtc, reference => dbContext.NoteReferences.Add(NewReference(reference, savedAtUtc)));
             await dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return true;
         }
-        catch (DbUpdateConcurrencyException)
-        {
-            return false;
-        }
         catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
         {
-            // A referenced note was deleted after the references were checked: nothing is saved, as for a conflict.
-            return false;
-        }
-        finally
-        {
-            // Many notes are saved with the same context: none stays tracked.
+            // A note one of the references opens was deleted after it was read: nothing is saved.
             dbContext.ChangeTracker.Clear();
+            return false;
         }
     }
 
-    // The note's stored references follow its text: those no longer in it go, new ones get the save time, the others
-    // keep theirs. Saved together with the note, under the same version check.
-    private async Task ReplaceReferencesAsync(int noteId, IReadOnlyList<NoteReferenceInput> references, DateTime savedAtUtc,
-        CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<NoteBlockTarget>> GetTargetsAsync(int noteId, string userId, CancellationToken cancellationToken)
     {
-        var wanted = references.Select(reference => (reference.TargetNoteId, reference.Text)).ToHashSet();
-        foreach (var stored in await dbContext.NoteReferences.Where(reference => reference.SourceNoteId == noteId).ToListAsync(cancellationToken))
-        {
-            if (!wanted.Remove((stored.TargetNoteId, stored.DisplayText))) dbContext.NoteReferences.Remove(stored);
-        }
-        foreach (var (targetNoteId, text) in wanted)
-        {
-            dbContext.NoteReferences.Add(new NoteReferenceEntity
-            {
-                SourceNoteId = noteId, TargetNoteId = targetNoteId, DisplayText = text, CreatedAtUtc = savedAtUtc
-            });
-        }
+        var visible = VisibleTo(userId);
+        return await dbContext.NoteReferences
+            .AsNoTracking()
+            .Where(reference => reference.NoteBlock.NoteId == noteId
+                && visible.Any(note => note.Id == noteId)
+                && visible.Any(note => note.Id == reference.TargetNoteId && note.ContextId == reference.NoteBlock.Note.ContextId))
+            .Select(reference => new NoteBlockTarget(reference.NoteBlockId, reference.NormalizedReference,
+                new NoteReferenceTarget(reference.TargetNote.Id, reference.TargetNote.Title, reference.TargetNote.NoteType)))
+            .ToListAsync(cancellationToken);
     }
+
+    // The stored references become the wanted ones: the others are removed; a kept one (same paragraph and reference)
+    // takes the text it is now first written with, and a new creation time when it opens another note; the missing ones
+    // are added.
+    private void Replace(IEnumerable<NoteReferenceEntity> stored, IEnumerable<NoteBlockReference> wanted, DateTime savedAtUtc,
+        Action<NoteBlockReference> add)
+    {
+        var missing = new Dictionary<(Guid, string), NoteBlockReference>();
+        foreach (var reference in wanted) missing.TryAdd((reference.NoteBlockId, reference.NormalizedReference), reference);
+        foreach (var entity in stored)
+        {
+            if (!missing.Remove((entity.NoteBlockId, entity.NormalizedReference), out var reference))
+            {
+                dbContext.NoteReferences.Remove(entity);
+                continue;
+            }
+            if (entity.TargetNoteId != reference.TargetNoteId)
+            {
+                entity.TargetNoteId = reference.TargetNoteId;
+                entity.CreatedAtUtc = savedAtUtc;
+            }
+            entity.ReferenceText = reference.ReferenceText;
+        }
+        foreach (var reference in missing.Values) add(reference);
+    }
+
+    private static NoteReferenceEntity NewReference(NoteBlockReference reference, DateTime savedAtUtc) => new()
+    {
+        NoteBlockId = reference.NoteBlockId,
+        TargetNoteId = reference.TargetNoteId,
+        ReferenceType = reference.ReferenceType,
+        ReferenceNumber = reference.ReferenceNumber,
+        ReferenceText = reference.ReferenceText,
+        NormalizedReference = reference.NormalizedReference,
+        CreatedAtUtc = savedAtUtc
+    };
+
+    // The numbers as their digits are written: a title or a paragraph writing the reference contains them.
+    private static List<string> Digits(IReadOnlyCollection<long> numbers) =>
+        numbers.Select(number => number.ToString(CultureInfo.InvariantCulture)).Distinct().ToList();
 
     // The card fields plus the start of the first paragraphs, read by SQL Server; the preview itself is built by NoteRules.
     // SQL Server numbers the paragraphs of every note (ROW_NUMBER) before it joins them to the notes read, so paragraphs

@@ -102,18 +102,22 @@ public partial class WorkNotesDbContext : DbContext
 
         modelBuilder.Entity<NoteReference>(entity =>
         {
+            entity.HasIndex(e => e.NormalizedReference, "IX_NoteReferences_NormalizedReference");
+
             entity.HasIndex(e => e.TargetNoteId, "IX_NoteReferences_TargetNoteId");
 
-            entity.HasIndex(e => new { e.SourceNoteId, e.TargetNoteId, e.DisplayText }, "UX_NoteReferences_SourceNoteId_TargetNoteId_DisplayText").IsUnique();
+            entity.HasIndex(e => new { e.NoteBlockId, e.NormalizedReference }, "UX_NoteReferences_NoteBlockId_NormalizedReference").IsUnique();
 
             entity.Property(e => e.CreatedAtUtc)
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_NoteReferences_CreatedAtUtc");
-            entity.Property(e => e.DisplayText).HasMaxLength(20);
+            entity.Property(e => e.NormalizedReference).HasMaxLength(30);
+            entity.Property(e => e.ReferenceText).HasMaxLength(100);
+            entity.Property(e => e.ReferenceType).HasMaxLength(20);
 
-            entity.HasOne(d => d.SourceNote).WithMany(p => p.NoteReferenceSourceNotes).HasForeignKey(d => d.SourceNoteId);
+            entity.HasOne(d => d.NoteBlock).WithMany(p => p.NoteReferences).HasForeignKey(d => d.NoteBlockId);
 
-            entity.HasOne(d => d.TargetNote).WithMany(p => p.NoteReferenceTargetNotes)
+            entity.HasOne(d => d.TargetNote).WithMany(p => p.NoteReferences)
                 .HasForeignKey(d => d.TargetNoteId)
                 .OnDelete(DeleteBehavior.ClientSetNull);
         });
