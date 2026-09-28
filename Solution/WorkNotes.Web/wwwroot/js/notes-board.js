@@ -8,11 +8,53 @@ import { showStatusMessage } from "./status-messages.js";
 // Single entry point for opening a note from the board: a card's Open and double-click, and a reference in a card's
 // preview. When the editor is already on the page (for example minimized), it opens the note in a tab (note-editor.js
 // handles the note-editor:open event: it brings a minimized editor back and selects the note's tab when it is already
-// open), keeping the other tabs; otherwise the link (/?note={id}, the editor over the board) is followed. Without
-// JavaScript the links work on their own.
+// open), keeping the other tabs. Otherwise the editor window with the note is fetched and put over this board, which
+// is not read and drawn again as it would be for the link (/?note={id}, the editor over the board). The address still
+// becomes the link's, as a new history entry, and closing the editor goes back to the board as before. When the window
+// cannot be fetched, the link is followed. Without JavaScript the links work on their own.
 export function openNote(id, href) {
     const handled = !document.dispatchEvent(new CustomEvent("note-editor:open", { detail: { id }, cancelable: true }));
-    if (!handled) window.location.assign(href);
+    if (!handled) openEditorWindow(id, href);
+}
+
+// The editor window while it is being fetched: notes opened meanwhile wait for it and open in its tabs.
+let editorWindow = null;
+
+async function openEditorWindow(id, href) {
+    if (editorWindow) {
+        if (await editorWindow) openNote(id, href);
+        return;
+    }
+    editorWindow = loadEditorWindow(id, href);
+    await editorWindow;
+    editorWindow = null;
+}
+
+// True once the window with the note is on the page; false when the link is followed instead.
+async function loadEditorWindow(id, href) {
+    const dashboard = document.querySelector("[data-notes-dashboard][data-editor-url]");
+    try {
+        if (!dashboard) throw new Error("board");
+        const response = await fetch(`${dashboard.dataset.editorUrl}&note=${encodeURIComponent(id)}`, { headers: { Accept: "text/html" } });
+        if (!response.ok) throw new Error(String(response.status));
+        const fragment = document.createElement("template");
+        fragment.innerHTML = await response.text();
+        const dialog = fragment.content.querySelector("dialog.note-editor-dialog");
+        const data = fragment.content.querySelector("#note-editor-data");
+        if (!dialog || !data) throw new Error("fragment");
+        window.history.pushState(null, "", href);
+        // Back leaves the note for the board, as it did when the note was loaded as a page; note-editor.js asks first
+        // when a tab has unsaved changes.
+        window.addEventListener("popstate", () => window.location.reload());
+        // Where the page puts the window it renders itself; modal.js makes it modal, then note-editor.js sets it up.
+        dashboard.after(dialog, data);
+        dialog.dispatchEvent(new Event("modal:open", { bubbles: true }));
+        await import("./note-editor.js");
+        return true;
+    } catch {
+        window.location.assign(href);
+        return false;
+    }
 }
 
 export function openNoteEditor(card) {

@@ -509,6 +509,7 @@ function initializeEditorWindow(dialog, settings) {
     activate(addTab(first, dialog.querySelector("[data-editor-panel]")));
 }
 
+// The window is on the page when it loads (/?note={id}), or notes-board.js has just put it there and imports this module.
 const editorDialog = document.querySelector("dialog.note-editor-dialog");
 const dataElement = document.getElementById("note-editor-data");
 if (editorDialog && dataElement) initializeEditorWindow(editorDialog, JSON.parse(dataElement.textContent));

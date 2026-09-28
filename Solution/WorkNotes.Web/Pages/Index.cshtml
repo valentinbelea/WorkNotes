@@ -9,7 +9,8 @@
 @if (isAuthenticated)
 {
     <section class="dashboard" aria-labelledby="dashboard-title" data-notes-dashboard data-rename-failed="@L["Notes_RenameFailed"]"
-             data-reorder-failed="@L["Notes_ReorderFailed"]" data-drag-hint="@L["Notes_DragHandle"]">
+             data-reorder-failed="@L["Notes_ReorderFailed"]" data-drag-hint="@L["Notes_DragHandle"]"
+             data-editor-url="@Url.Page("/Index", "NoteEditor")">
         <h1 id="dashboard-title" class="visually-hidden">@L["Dashboard_Title"]</h1>
         <div class="dashboard-header">
             @if (Model.SelectedContext is { } selected)

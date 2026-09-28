@@ -82,6 +82,15 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         return Page();
     }
 
+    // The editor window with one note, for a board without it: notes-board.js puts it over the board already on the page
+    // instead of loading /?note={id}, which would read and draw the whole board again.
+    public async Task<IActionResult> OnGetNoteEditorAsync(int note, CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return Unauthorized();
+        OpenNote = await notes.GetDocumentAsync(note, UserId, cancellationToken);
+        return OpenNote is null ? NotFound() : Partial("_NoteEditorDialog", this);
+    }
+
     // A note opened from the board while the editor is already on the page: note-editor.js adds it as a new tab.
     public async Task<IActionResult> OnGetNoteTabAsync(int note, CancellationToken cancellationToken)
     {
