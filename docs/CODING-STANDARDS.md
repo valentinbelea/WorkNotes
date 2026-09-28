@@ -20,6 +20,7 @@ Regula: [AGENTS.md › SOLID, interfețe și dependency injection](../AGENTS.md#
 - DTO-urile imutabile sunt `sealed record`; actualizările folosesc `with`.
 - Regulile și limitele stau în clase statice `*Rules` (`NoteRules`, `WorkContextRules`, `AccountRules`), cu constante pentru lungimi și metode `Valid…` / `Normalize…`. Limitele corespund coloanelor SQL.
 - Valorile stocate ca text (`NoteTypes`, `NoteVisibilities`, `ContextRoles`) sunt constante care corespund exact constrângerilor `CHECK` din SQL; o valoare nouă cere și un script SQL.
+- PR #4: tipurile de referință internă (`CR`, `BUG`…) nu sunt constante în cod: vin din tabela de configurare `dbo.ReferenceTypes`, prin `IReferenceTypeService`, iar textele se citesc numai cu parserul dat de el (`NoteReferenceParser`).
 - Colecțiile din contracte sunt `IReadOnlyList<T>`; se folosesc collection expressions (`[]`) și expresii `switch`.
 - Timpul vine din `TimeProvider` injectat, nu din `DateTime.Now`: ziua jurnalului și lunile tablei folosesc calendarul local al aplicației, auditul se păstrează în UTC, trunchiat la secundă.
 

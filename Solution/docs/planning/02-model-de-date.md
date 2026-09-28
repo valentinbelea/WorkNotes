@@ -28,6 +28,10 @@ Abordarea este **Database First**: schema se scrie în scripturi SQL explicite, 
 | 006_CreateWorkReferences | Catalogul `WorkReferences`: fiecare referință, tipul și numărul, o singură dată, cu ID propriu |
 | 007_InsertWorkReferences | Datele catalogului: fiecare tip și număr stocat în `NoteReferences` |
 | 008_UpdateNoteReferencesWorkReferenceId | Coloana `NoteReferences.WorkReferenceId`, completată după tip și număr, obligatorie, cu cheia externă și indexul |
+| 009_CreateReferenceTypes | Tabela de configurare `ReferenceTypes`: tipurile de referință (prefixele), active sau nu |
+| 010_InsertReferenceTypes | Datele tabelei: `CR` și `BUG`, active |
+| 011_UpdateReferenceTypeKeys | Cheile externe ale tipului din `NoteReferences` și `WorkReferences` către `ReferenceTypes`, în locul constrângerilor `CHECK` |
+| 012_RefreshNoteReferences | Reindexarea tuturor textelor cu tipurile active (după o schimbare a lor), cu listele referințelor fără notă și cu mai multe note; se poate rula oricând |
 
 ## Tabele realizate
 
@@ -66,14 +70,14 @@ Tabla grupează notele pe luni după `ISNULL(ModifiedAtUtc, CreatedAtUtc)`: pent
 | `CreatedAtUtc`, `CreatedByUserId`, `ModifiedAtUtc`, `ModifiedByUserId` | auditul paragrafului |
 | `RowVersion` | pregătit pentru concurență |
 
-Textul notei există numai în `NoteBlocks` (nicio copie în `Notes`). Limite: maximum 5000 de paragrafe și 1 000 000 de caractere pe notă (`NoteRules`). O referință internă (un CR sau un bug scris în text, de exemplu `CR 30080` sau `bug_1234`) nu schimbă textul: legătura ei este un rând în `NoteReferences`, cu notele ei în `NoteReferenceTargets`, iar editorul o desenează peste text (`NoteReferenceRules`, docs/decisions/ADR-003-internal-references.md).
+Textul notei există numai în `NoteBlocks` (nicio copie în `Notes`). Limite: maximum 5000 de paragrafe și 1 000 000 de caractere pe notă (`NoteRules`). O referință internă (un CR, un bug sau alt tip activ din `ReferenceTypes`, scris în text, de exemplu `CR 30080` sau `bug_1234`) nu schimbă textul: legătura ei este un rând în `NoteReferences`, cu notele ei în `NoteReferenceTargets`, iar editorul o desenează peste text (`NoteReferenceRules`, docs/decisions/ADR-003-internal-references.md).
 
 ### NoteReferences
 | Coloană | Rol |
 | --- | --- |
 | `Id` | identitate |
 | `NoteBlockId` | paragraful care scrie referința (cascadă la ștergerea lui) |
-| `ReferenceType` | `CR` / `BUG` (`CK_NoteReferences_ReferenceType`) |
+| `ReferenceType` | tipul, cu majuscule (`CR`, `BUG`); cheie externă către `ReferenceTypes` (înainte de 011, `CK_NoteReferences_ReferenceType`) |
 | `ReferenceNumber` | numărul, bigint, fără zerourile de la început |
 | `ReferenceText` | textul primei apariții în paragraf, ca scris (`CR_30080`) |
 | `NormalizedReference` | `CR:30080` / `BUG:1234`, după care se compară referințele |
@@ -95,12 +99,21 @@ Câte un rând pentru fiecare referință și notă (cheia primară `NoteReferen
 | Coloană | Rol |
 | --- | --- |
 | `Id` | identitate: ID-ul referinței |
-| `ReferenceType` | `CR` / `BUG` |
+| `ReferenceType` | tipul (`CR`, `BUG`); cheie externă către `ReferenceTypes` |
 | `ReferenceNumber` | numărul, bigint, fără zerourile de la început |
 | `NormalizedReference` | `CR:30080` / `BUG:1234` |
 | `CreatedAtUtc` | data la care referința a intrat în catalog |
 
 Fiecare referință stocată o singură dată: cheia unică este tipul și numărul (`UX_WorkReferences_ReferenceType_ReferenceNumber`), iar forma normalizată este unică și ea. Catalogul este comun tuturor contextelor; o referință intră în el prima dată când un paragraf o stochează și rămâne, cu același ID, și când niciun paragraf nu o mai scrie.
+
+### ReferenceTypes
+| Coloană | Rol |
+| --- | --- |
+| `Code` | tipul (prefixul), 1–10 litere ASCII mari; cheia primară |
+| `IsActive` | tipul se citește în texte sau nu |
+| `CreatedAtUtc` | data adăugării |
+
+Tabela de configurare a prefixelor: aplicația citește toate textele cu tipurile active, ținute în memorie și citite din nou după cel mult 5 minute. Un tip folosit se dezactivează, nu se șterge; după o schimbare, `012_RefreshNoteReferences.sql` citește din nou textele deja salvate.
 
 ## Regulile paragrafelor (confirmate și implementate în editor)
 

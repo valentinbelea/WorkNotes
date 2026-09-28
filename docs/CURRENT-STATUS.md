@@ -25,6 +25,7 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
   - referințele interne refăcute la cererea utilizatorului din 2026-09-28 ([ADR-003](decisions/ADR-003-internal-references.md), deciziile 51–58): referințele CR/bug scrise în paragrafe (`CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `bug_1234`…), destinația aflată din titluri (exact o notă a contextului vizibilă proprietarului paragrafului), relații pe paragraf în tabela `NoteReferences` recreată de `Scripts/version_0.02/004_ReplaceNoteReferences.sql` (care reindexează și conținutul existent și listează referințele fără destinație și pe cele ambigue), recalculare la salvare, la schimbarea titlului, la crearea și la ștergerea notelor, prin `INoteReferenceService`; editorul desenează linkurile din relații, fără să schimbe textul. Sugestiile din editor, comanda `create-note-references` și linkurile din previzualizarea cardurilor au fost eliminate.
   - referințele cu mai multe note, la cererea utilizatorului din 2026-09-28, după cazul `CR 27881` din jurnalul „CRs” (deciziile 59–64): o referință deschide toate notele contextului care au CR-ul sau bugul în titlu, în afară de nota paragrafului. Notele fiecărei referințe sunt în tabela nouă `NoteReferenceTargets` (legătură 1–M cu `NoteReferences`, care pierde coloana `TargetNoteId`), creată de `Scripts/version_0.02/005_CreateNoteReferenceTargets.sql`. Scriptul mută legăturile existente, reindexează conținutul și listează referințele fără notă, pe cele cu mai multe note și jurnalul „CRs”. Click sau Ctrl+Enter deschide toate notele, în taburi; fără JavaScript, fiecare notă are link. Ștergerea unei note nu mai recalculează referințele.
   - catalogul referințelor, la cererea utilizatorului din 2026-09-28 (deciziile 65–69): fiecare referință stocată, tipul și numărul, este o singură dată în tabela nouă `WorkReferences` (cheia unică tip + număr, ID propriu), creată de `Scripts/version_0.02/006_CreateWorkReferences.sql` și completată cu referințele existente de `007_InsertWorkReferences.sql`. `008_UpdateNoteReferencesWorkReferenceId.sql` adaugă în `NoteReferences` coloana obligatorie `WorkReferenceId`, cu ID-ul referinței lângă textul ei. Aplicația adaugă o referință în catalog prima dată când un paragraf o stochează; afișarea și comportamentul referințelor nu se schimbă.
+  - tipurile de referință configurabile, la cererea utilizatorului din 2026-09-28 (deciziile 70–76): prefixele recunoscute în toată aplicația sunt tipurile active din tabela nouă `ReferenceTypes` (implicit `CR` și `BUG`, adăugate de `010_InsertReferenceTypes.sql`), ținute în memorie pentru toată aplicația și citite din nou după cel mult 5 minute. `009_CreateReferenceTypes.sql` creează tabela, `011_UpdateReferenceTypeKeys.sql` înlocuiește constrângerile `CHECK` ale tipului cu chei externe, iar `012_RefreshNoteReferences.sql` citește din nou toate textele cu tipurile active (după o schimbare a lor) și ține locul lui `005`.
 - **Branch-ul de documentare** `claude/worknotes-markdown-docs-6xyqw4` — această structură de documentație; nu modifică codul, schema sau funcționalitățile.
 
 ## Probleme cunoscute
@@ -45,14 +46,16 @@ Limitări documentate în version_0.01–0.02:
 Limitări ale referințelor interne din PR #4 ([ADR-003](decisions/ADR-003-internal-references.md#consecințe)):
 
 - O referință nou scrisă devine link abia după salvare; textul scris într-un link îl ascunde până la salvare.
-- Referințele fără nicio notă nu au semn în editor; `005_CreateNoteReferenceTargets.sql`, rulat din nou (și cu `@Save = 0`), le listează numai până la aplicarea `008`, după care nu se mai rulează.
+- Referințele fără nicio notă nu au semn în editor; `012_RefreshNoteReferences.sql`, rulat din nou (și cu `@Save = 0`), le listează (înainte de `008`, `005_CreateNoteReferenceTargets.sql`).
 - O referință cu multe note deschide tot atâtea taburi; fără JavaScript, un link deschide o singură notă, iar celelalte au câte un link numerotat.
 - Recalcularea după schimbarea unui titlu sau crearea unei note este o tranzacție separată de operație: două operații simultane pe aceeași referință sau o cerere întreruptă între ele pot lăsa o legătură învechită până la următoarea salvare ([DATABASE.md](DATABASE.md#concurență)).
+- O schimbare în `ReferenceTypes` se vede în aplicație după cel mult 5 minute (sau la repornire); textele deja salvate o urmează la următoarea salvare a fiecărui paragraf sau după `012_RefreshNoteReferences.sql`. Până atunci, referințele stocate ale unui tip dezactivat nu mai sunt linkuri, dar rămân în tabele.
+- Un tip de referință folosit nu se poate șterge (cheile externe îl păstrează), ci se dezactivează; un tip nefolosit, șters cât timp aplicația îl mai are în memorie, face ca salvarea unei referințe de acel tip să dea eroare până la următoarea citire a tipurilor.
 - Catalogul `WorkReferences` nu scade: o referință rămâne în el, cu ID-ul ei, și când niciun paragraf nu o mai scrie (inclusiv după o salvare respinsă pentru care fusese adăugată).
 - Schimbarea vizibilității, arhivarea și ieșirea unui membru din context nu recalculează legăturile (nu au interfață).
 - Previzualizarea cardurilor afișează textul fără linkuri.
-- După `004`, scripturile `002` și `003` nu se mai pot rula; după `005`, nici `004`; după `008`, nici `005`.
-- Codul presupune că `005`–`008` au fost aplicate: fără `NoteReferenceTargets`, deschiderea și salvarea notelor dau eroare, iar fără `NoteReferences.WorkReferenceId`, salvarea lor. Codul anterior nu scrie `WorkReferenceId`, deci după `008` nu mai poate salva o referință nouă: scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea codului.
+- După `004`, scripturile `002` și `003` nu se mai pot rula; după `005`, nici `004`; după `008`, nici `005`, al cărui loc îl ia `012`.
+- Codul presupune că `005`–`011` au fost aplicate: fără `NoteReferenceTargets`, deschiderea și salvarea notelor dau eroare, fără `NoteReferences.WorkReferenceId`, salvarea lor, iar fără `ReferenceTypes`, orice citire a referințelor. Codul de dinaintea catalogului nu scrie `WorkReferenceId`, deci după `008` nu mai poate salva o referință nouă: scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea codului; `009`–`011` se aplică și ele înaintea codului, iar codul cu catalogul funcționează și cu ele.
 
 Constatări din analiza din 2026-09-25 (codul nu a fost modificat):
 
@@ -88,12 +91,12 @@ Contradicțiile nu au fost rezolvate prin alegerea arbitrară a unei variante; t
 PR #4 modifică `Solution/AGENTS.md`, `Solution/README.md`, `Solution/docs/design-system.md` și `Solution/docs/planning/02`–`06`, pe care branch-ul de documentare le-a mutat sau integrat. Oricare dintre cele două se integrează al doilea va avea conflicte (fișiere modificate într-o parte și eliminate în cealaltă). La rezolvare, modificările de documentație din PR #4 se portează în noua structură:
 
 - [AGENTS.md](../AGENTS.md): regula drag-and-drop cu salvări pe rând, regulile referințelor interne (în `Solution/AGENTS.md`, după [ADR-003](decisions/ADR-003-internal-references.md)) și regula Git (armonizată cu contradicția 2);
-- [DATABASE.md](DATABASE.md) și [Scripts/README.md](../Scripts/README.md): portate — tabelele `NoteReferences`, `NoteReferenceTargets` și `WorkReferences` (modelul nou), scripturile `002`–`008`, `--table dbo.NoteReferences`, `--table dbo.NoteReferenceTargets` și `--table dbo.WorkReferences` în comanda de scaffolding; marcajele „PR #4” se elimină la integrare;
-- [decisions/README.md](decisions/README.md): deciziile 32–69 și [ADR-003](decisions/ADR-003-internal-references.md) sunt deja în jurnal; deciziile 33–38, 40–47 și 52 sunt marcate ca înlocuite;
+- [DATABASE.md](DATABASE.md) și [Scripts/README.md](../Scripts/README.md): portate — tabelele `NoteReferences`, `NoteReferenceTargets`, `WorkReferences` și `ReferenceTypes` (modelul nou), scripturile `002`–`012`, `--table dbo.NoteReferences`, `--table dbo.NoteReferenceTargets`, `--table dbo.WorkReferences` și `--table dbo.ReferenceTypes` în comanda de scaffolding; marcajele „PR #4” se elimină la integrare;
+- [decisions/README.md](decisions/README.md): deciziile 32–76 și [ADR-003](decisions/ADR-003-internal-references.md) sunt deja în jurnal; deciziile 33–38, 40–47 și 52 sunt marcate ca înlocuite;
 - [ARCHITECTURE.md](ARCHITECTURE.md): `INoteReferenceService` / `NoteReferenceService`, `INoteReferenceRepository` (implementat de `NoteRepository`), fluxurile salvării și al recalculării, `note-references.js` și `WorkNotes.Web/Notes/NoteReferences.cs`; deschiderea fără reîncărcare (handlerul `NoteEditor`, evenimentul `modal:open`, subinterogarea previzualizării limitată la paragrafele notelor citite);
 - [SECURITY.md](SECURITY.md): legăturile respectă contextul și vizibilitatea proprietarului paragrafului, cititorul vede numai linkurile către notele pe care le poate vedea, iar recalcularea modifică legăturile paragrafelor altor membri ai contextului;
 - [TESTING.md](TESTING.md): `NoteReferenceRulesTests`, `NoteReferenceServiceTests`, noile teste din `NoteServiceTests` și totalurile; verificările manuale ale linkurilor și ale scriptului `004`;
-- fișierele `CLAUDE.md` din Web, Business și DataAccess: noile tipuri (`INoteReferenceService`, `INoteReferenceRepository`, `NoteReference.cs`, `NoteReferenceTarget.cs` și `WorkReference.cs` generate prin scaffolding);
+- fișierele `CLAUDE.md` din Web, Business și DataAccess: noile tipuri (`INoteReferenceService`, `INoteReferenceRepository`, `IReferenceTypeService`, `IReferenceTypeRepository`, `NoteReferenceParser`, `ReferenceTypeCache`, `NoteReference.cs`, `NoteReferenceTarget.cs`, `WorkReference.cs` și `ReferenceType.cs` generate prin scaffolding);
 - [UI-UX.md](UI-UX.md), [REQUIREMENTS.md](REQUIREMENTS.md), [DOMAIN-MODEL.md](DOMAIN-MODEL.md): actualizate pentru modelul nou; statusurile trec din [~] în [x] la integrare;
 - [ROADMAP.md](ROADMAP.md) și această pagină: lista „Referințe către această notă” și limitările de mai sus;
 - [CHANGELOG.md](../CHANGELOG.md), [LOCALIZATION.md](LOCALIZATION.md) (169 de chei, cu `Notes_ReferenceTarget`) și [TESTING.md](TESTING.md) (noile totaluri).
@@ -180,6 +183,20 @@ Tot pe 2026-09-28, pentru catalogul referințelor (`WorkReferences`, `006`–`00
 | `006_CreateWorkReferences.sql`, `007_InsertWorkReferences.sql`, `008_UpdateNoteReferencesWorkReferenceId.sql` | fără erori de sintaxă (ScriptDom, gramaticile SQL Server 2016 și 2022, inclusiv instrucțiunile din `EXEC` și `sp_executesql`) |
 | Căutarea în catalog și adăugarea unei referințe | SQL-ul generat de EF, verificat offline (`ToQueryString`); instrucțiunea `INSERT … WHERE NOT EXISTS`, cu parametrii ei, fără erori de sintaxă |
 | Aplicația pe SQL Server, scaffolding-ul și aplicarea `006`–`008` | neverificate: sesiunea nu are SQL Server; scripturile nu au fost aplicate pe nicio bază |
+
+Tot pe 2026-09-28, pentru tipurile de referință configurabile (`ReferenceTypes`, `009`–`012`), în aceeași sesiune:
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet tool restore`, `dotnet restore WorkNotes.sln` | reușite |
+| `dotnet build WorkNotes.sln --no-restore` | reușit, 0 avertismente, 0 erori |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 220 de teste trecute, 0 eșuate, 0 omise (noile `NoteReferenceParserTests` și `ReferenceTypeServiceTests`) |
+| `tools/Test-Resources.ps1` | `PASS`: 169 de chei (nicio cheie nouă) |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale) | niciun rezultat |
+| Paginile reale, pe gazda de test cu depozit în memorie (Chromium; Firefox 136 cu mouse și tastatură reale) | testele anterioare ale referințelor trec neschimbate cu `CR` și `BUG`; cu tipul `TASK` configurat, `task 12` și `TASK_12` sunt linkuri către „TASK-12 migrare” (și fără JavaScript), click deschide nota, un `Task-12` nou scris devine link la salvare; fără `TASK`, `task 12` rămâne text; tipurile au fost citite o singură dată pe toată durata testelor |
+| `009_CreateReferenceTypes.sql`–`012_RefreshNoteReferences.sql` | fără erori de sintaxă (ScriptDom, gramaticile SQL Server 2016 și 2022, inclusiv instrucțiunea din `EXEC`); recunoașterea din `012`, reprodusă în C#, dă aceleași rezultate ca `NoteReferenceParser` pe 800 000 de texte, cu seturi de tipuri generate aleatoriu (63 146 de referințe); regula notelor, pe 3000 de table cu `CR`, `BUG` și `TASK`, aceleași legături ca `NoteReferenceService` |
+| Modelul EF | construit fără avertismente; interogarea tipurilor active, verificată offline (`ToQueryString`) |
+| Aplicația pe SQL Server, scaffolding-ul și aplicarea `009`–`012` | neverificate: sesiunea nu are SQL Server; scripturile nu au fost aplicate pe nicio bază |
 
 ## Următorii pași
 

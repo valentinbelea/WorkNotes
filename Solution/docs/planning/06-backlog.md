@@ -32,7 +32,7 @@
 - Două note cu aceeași valoare `Order` (posibil numai prin inserări directe în SQL) nu își schimbă locurile prin drag-and-drop; tabla le ordonează după date.
 - Tooltipul unui link (titlul destinației) și linkurile unei note deschise se actualizează la următoarea deschidere sau salvare a notei, nu imediat după redenumirea destinației în alt tab sau în altă fereastră.
 - O referință nou scrisă sau lipită devine link abia după salvare; textul scris într-un link sau lângă el îl ascunde până la salvare; Ctrl+Z nu readuce un link înainte de salvare.
-- Referințele fără destinație nu au niciun semn în editor; le listează `005_CreateNoteReferenceTargets.sql`, rulat din nou, dar numai înainte de `008`.
+- Referințele fără destinație nu au niciun semn în editor; le listează `012_RefreshNoteReferences.sql`, rulat din nou.
 - O referință cu multe note deschide tot atâtea taburi; fără JavaScript, linkul deschide numai prima notă, iar celelalte au câte un link numerotat.
 - Recalcularea după schimbarea unui titlu, crearea sau ștergerea unei note este o tranzacție separată de operație: două operații simultane pe aceeași referință sau o cerere întreruptă între ele pot lăsa o legătură învechită până la următoarea salvare.
 - Schimbarea vizibilității, arhivarea și ieșirea unui membru din context nu recalculează legăturile (nu au încă interfață).

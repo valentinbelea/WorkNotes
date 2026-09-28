@@ -4,7 +4,7 @@ Proiectul de persistență: EF Core pe SQL Server, repository-uri și implementa
 
 ## Conținut
 
-- `Context/WorkNotesDbContext.cs` și `Entities/{DatabaseVersion, WorkContext, ContextMember, Note, NoteBlock}.cs` (cu PR #4 și `NoteReference.cs`, `NoteReferenceTarget.cs`, `WorkReference.cs`) — generate prin scaffolding; `--force` le suprascrie.
+- `Context/WorkNotesDbContext.cs` și `Entities/{DatabaseVersion, WorkContext, ContextMember, Note, NoteBlock}.cs` (cu PR #4 și `NoteReference.cs`, `NoteReferenceTarget.cs`, `WorkReference.cs`, `ReferenceType.cs`) — generate prin scaffolding; `--force` le suprascrie.
 - `Context/AccountsDbContext.cs` și `Entities/ApplicationUser.cs` — scrise manual (Identity).
 - `Repositories/` — implementările interfețelor din `WorkNotes.Business/Abstractions`.
 - `Identity/` — `IdentityAccountService` (contractele de cont, peste `UserManager` / `SignInManager`) și `AccountClaimsPrincipalFactory`.
