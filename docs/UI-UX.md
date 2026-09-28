@@ -199,6 +199,7 @@ Scripturile sunt descrise în [ARCHITECTURE.md](ARCHITECTURE.md#javascript). Nu 
 - [x] Panoul are culoarea tipului notei active (`note-sheet--journal` / `note-sheet--article`) și conține headerul (sigla, taburile, Minimizează, Închide) și, pentru fiecare tab, titlul editabil pe loc, editorul și footerul notei (bara de informații; tipul, contextul și vizibilitatea; starea salvării și Salvează). Nu există butoane dublate.
 - [x] Funcții: text pe paragrafe (un rând gol separă paragrafele), căutare și înlocuire (Ctrl+F, panoul sus), undo/redo, evidențierea rândului activ, salvare cu butonul sau Ctrl+S. Textele editorului, inclusiv frazele panoului de căutare, vin din .resx, randate de server în datele paginii.
 - [x] Închide, Escape și click în afara panoului revin la tabla notei (`/?context={id}`); Escape în panoul de căutare închide doar panoul.
+- [~] PR #4: Escape închide fereastra și în Firefox; pe `main`, Firefox oprește navigarea pornită din Escape ([CURRENT-STATUS.md](CURRENT-STATUS.md#probleme-cunoscute)).
 - [x] Pentru cine poate doar citi (membrii, la o notă `Context` a altcuiva), editorul nu este editabil, butonul Salvează lipsește, iar bara de informații o spune.
 - [ ] Salvarea automată.
 

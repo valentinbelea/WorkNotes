@@ -37,7 +37,7 @@ Deciziile punctuale (un detaliu de interfață, o regulă de ordonare) se adaug�
 
 ## Jurnalul deciziilor
 
-Deciziile înregistrate în version_0.01 și version_0.02, cu motivele lor. Coloana ADR arată decizia de ansamblu care le cuprinde. Deciziile 32–49 vin din PR #4 (ordonarea fără blocare, referințele interne și crearea lor în notele existente, deschiderea mai rapidă a notelor); formatul referințelor va primi un ADR propriu la integrare ([ADR-002](ADR-002-note-editor.md)).
+Deciziile înregistrate în version_0.01 și version_0.02, cu motivele lor. Coloana ADR arată decizia de ansamblu care le cuprinde. Deciziile 32–50 vin din PR #4 (ordonarea fără blocare, referințele interne și crearea lor în notele existente, deschiderea mai rapidă a notelor, Escape în Firefox); formatul referințelor va primi un ADR propriu la integrare ([ADR-002](ADR-002-note-editor.md)).
 
 | # | Decizie | Motiv | ADR |
 | --- | --- | --- | --- |
@@ -90,3 +90,4 @@ Deciziile înregistrate în version_0.01 și version_0.02, cu motivele lor. Colo
 | 47 | Raportul comenzii este în engleză, nelocalizat | Este ieșire tehnică pentru cine întreține aplicația, ca logurile (AGENTS.md) | — |
 | 48 | Fără editor în pagină, o notă deschisă de pe tablă aduce fereastra editorului (`?handler=NoteEditor`, același `_NoteEditorDialog`) peste tabla din pagină, cu adresa `/?note={id}` ca intrare nouă în istoric; închiderea reîncarcă tabla, ca înainte | Deschiderea nu mai recitește și nu mai redesenează toată tabla; adresa, reîncărcarea și Back se comportă ca pentru pagina notei; tabla reîncărcată la închidere arată ce s-a salvat | — |
 | 49 | Previzualizarea cardurilor numerotează (`ROW_NUMBER`) numai paragrafele notelor citite | Fără filtru în subinterogare, SQL Server numerota toate paragrafele din bază la fiecare tablă și la fiecare card citit (schimb, redenumire, ștergere, sugestii de referință) | — |
+| 50 | Dialogurile `modal.js` tratează Escape la `keydown`: previn tasta și merg la adresa de închidere; `cancel` rămâne pentru celelalte cereri de închidere | Firefox oprea navigarea pornită din `cancel` (Escape oprește o pagină care se încarcă); o tastă Escape folosită deja de conținut (căutare, sugestie, selecție) nu închide | — |

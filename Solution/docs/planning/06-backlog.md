@@ -35,7 +35,6 @@
 - Textul copiat în afara aplicației păstrează forma `[[note:{id}|{număr}]]`; lipit în altă notă, redevine referință.
 - Referința se creează numai dintr-un număr tastat: un număr lipit nu aduce sugestii, iar numerele de 1–2 cifre nu sunt propuse.
 - Într-o notă read-only (a unui coleg), referințele se deschid cu mouse-ul; de la tastatură nu, pentru că editorul read-only nu primește focus.
-- În Firefox, Escape nu închide fereastra editorului: Firefox anulează navigarea pornită din Escape (verificat în Firefox 136, cu editorul deschis peste tablă sau ca pagină); butonul Închide funcționează. Celelalte overlay-uri folosesc același `modal.js`.
 - Închiderea editorului reîncarcă tabla, ca să arate cardurile după salvări; numai deschiderea nu o mai reîncarcă.
 - `create-note-references` nu știe ce sugestii a refuzat proprietarul: leagă orice număr cu o singură notă posibilă, inclusiv unul lăsat intenționat simplu.
 - Un editor deschis înainte de `create-note-references` și salvat după ea readuce, în paragrafele schimbate de comandă, textul fără referințe (și le actualizează data modificării); comanda se rulează când aplicația nu este folosită.

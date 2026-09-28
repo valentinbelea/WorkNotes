@@ -19,14 +19,15 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
   - „Board: the next drag is no longer refused while a swap is being saved” — schimburile se aplică la `dragend` și se salvează pe rând;
   - „Editor and board: internal references between notes” — referințe interne între note, tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`;
   - „Notes: create-note-references command for the existing notes” — comanda de mentenanță `create-note-references`, care creează o dată, în notele existente, referințele pe care editorul le-ar fi oferit (numai numerele cu o singură notă posibilă; fără `--save` doar le arată), deciziile 42–47; descrisă în `Solution/README.md`;
-  - „Data access: card previews number only the paragraphs of the notes read” și „Board: a note opens over the board without reloading the page” — previzualizarea cardurilor nu mai numerotează toate paragrafele din bază, iar o notă deschisă de pe tablă apare peste tabla din pagină (`?handler=NoteEditor`), fără reîncărcare; deciziile 48–49.
+  - „Data access: card previews number only the paragraphs of the notes read” și „Board: a note opens over the board without reloading the page” — previzualizarea cardurilor nu mai numerotează toate paragrafele din bază, iar o notă deschisă de pe tablă apare peste tabla din pagină (`?handler=NoteEditor`), fără reîncărcare; deciziile 48–49;
+  - „Modal dialogs: Escape closes them in Firefox too” — `modal.js` tratează Escape la `keydown`, cu tasta prevenită, apoi navighează la adresa de închidere; decizia 50.
 - **Branch-ul de documentare** `claude/worknotes-markdown-docs-6xyqw4` — această structură de documentație; nu modifică codul, schema sau funcționalitățile.
 
 ## Probleme cunoscute
 
 Limitări documentate în version_0.01–0.02:
 
-- [!] În Firefox, Escape nu închide fereastra editorului: Firefox anulează navigarea pornită de `modal.js` din Escape (verificat pe 2026-09-28 în Firefox 136, pe `main_task_02`, cu editorul deschis peste tablă sau ca pagină); butonul Închide funcționează. Celelalte overlay-uri folosesc același `modal.js`.
+- [!] Pe `main`, în Firefox, Escape nu închide fereastra editorului: Firefox anulează navigarea pornită de `modal.js` din evenimentul `cancel` al tastei (verificat pe 2026-09-28 în Firefox 136); butonul Închide funcționează. Corecția este în PR #4.
 - [!] Pe `main`, după primul schimb prin drag-and-drop, un al doilea drag început cât timp prima salvare este în curs este anulat fără niciun semn vizibil (`dragstart` refuzat cât timp `saving` este activ); corecția este în PR #4.
 - La reîncărcarea paginii editorului se redeschide doar tabul activ (adresa `/?note={id}`), nu toate taburile.
 - Mutarea unui paragraf prin tăiere și lipire creează un paragraf nou (ID nou).

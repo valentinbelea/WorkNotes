@@ -9,6 +9,14 @@ function upgrade(dialog) {
         event.preventDefault();
         if (closeUrl) window.location.assign(closeUrl);
     });
+    // Escape itself leads to the close URL, with the key's default prevented: left to the browser, Firefox would stop
+    // that navigation (Escape stops a page that is loading). An Escape the content already used (an editor's search
+    // panel or suggestion), typed through an input method, or pressed on a minimized editor does not close.
+    dialog.addEventListener("keydown", event => {
+        if (event.key !== "Escape" || event.defaultPrevented || event.isComposing || !closeUrl || !dialog.matches(":modal")) return;
+        event.preventDefault();
+        window.location.assign(closeUrl);
+    });
     dialog.addEventListener("click", event => {
         // A minimized editor (note-editor.js) is no overlay: a click on it never closes it.
         if (event.target === dialog && closeUrl && dialog.matches(":modal")) window.location.assign(closeUrl);
