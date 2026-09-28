@@ -23,13 +23,13 @@ Regulile obligatorii de verificare sunt în [AGENTS.md › Verificarea livrării
 | `WorkContextServiceTests` | normalizarea, validarea, proprietarul, filtrul de membru, anularea | 22 |
 | **Total** | | **98** |
 
-PR #4 (neintegrat în `main`) adaugă, pentru referințele interne (rulate pe 2026-09-28: **196** de teste în total):
+PR #4 (neintegrat în `main`) adaugă, pentru referințele interne (rulate pe 2026-09-28, după trecerea la mai multe note pe referință: **197** de teste în total):
 
 | Clasa de teste | Acoperă | Teste |
 | --- | --- | --- |
-| `NoteReferenceRulesTests` | formele `CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `cr 30080`, `Cr-30080`, `bug 30042`…`Bug-30042`; spațiile multiple și neseparabile; limitele (50 de spații, 18 cifre); textele care nu sunt referințe (`XCR30080A`, `debug 1234`, forme cu tab, cu `- ` sau cu cifre de alt alfabet); punctuația din jur; zerourile de la început; ordinea; CR și bug cu același număr; titlurile; destinația unică; linkurile fiecărei apariții | 59 |
-| `NoteReferenceServiceTests` | stocarea cu textul primei apariții, mai multe referințe într-un paragraf, CR și bug cu același număr, fără destinație, ambiguitatea, nota însăși, titlul salvat, jurnalul „CRs”, recalcularea după redenumire, creare și ștergere, vizibilitatea fiecărui proprietar, reluarea după o destinație ștearsă, linkurile afișate, anularea | 26 |
-| `NoteServiceTests` (13 teste noi, 52 în total) | referințele salvate cu paragrafele, linkurile din răspunsul salvării, recalcularea după titlu, creare și ștergere și numai după operațiile reușite, linkurile la deschiderea notei | 13 |
+| `NoteReferenceRulesTests` | formele `CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `cr 30080`, `Cr-30080`, `bug 30042`…`Bug-30042`; spațiile multiple și neseparabile; limitele (50 de spații, 18 cifre); textele care nu sunt referințe (`XCR30080A`, `debug 1234`, forme cu tab, cu `- ` sau cu cifre de alt alfabet); punctuația din jur; zerourile de la început; ordinea; CR și bug cu același număr; titlurile; notele destinație (toate, fără nota însăși, în ordinea ID-urilor); linkurile fiecărei apariții, cu toate notele | 59 |
+| `NoteReferenceServiceTests` | stocarea cu textul primei apariții, mai multe referințe într-un paragraf, CR și bug cu același număr, fără destinație, mai multe note cu referința în titlu (toate deschise), nota însăși (niciodată destinație), jurnalul „CRs”, recalcularea după redenumire și creare (o notă adăugată sau scoasă dintre notele referinței), vizibilitatea fiecărui proprietar, reluarea după o destinație ștearsă, linkurile afișate cu toate notele lor, anularea | 27 |
+| `NoteServiceTests` (13 teste noi, 52 în total) | referințele salvate cu paragrafele, linkurile din răspunsul salvării (și cu mai multe note), recalcularea după titlu și creare, numai după operațiile reușite, nicio recalculare după ștergere, linkurile la deschiderea notei | 13 |
 
 ## Teste unitare — convenții
 
@@ -78,7 +78,7 @@ Scenarii care trebuie să rămână acoperite, prin teste automate unde regula e
 - schimbul prin drag-and-drop este permis numai în aceeași lună și același context; eșecul readuce ordinea anterioară;
 - gruparea pe luni după ultima modificare și ordinea din lună (`Order`, apoi ultima modificare, crearea și `Id`);
 - versiunea din footer: versiunea maximă, tabela goală, eroarea de conexiune;
-- PR #4, referințele interne: toate formele cerute, termenii întregi, CR și bug distincte, destinația unică (fără legătură când lipsește sau este ambiguă), o singură relație pe paragraf și referință, recalcularea la schimbarea textului, a titlului destinației, la ștergerea unui paragraf și a destinației, clicul pe un link al unei note deschise deja într-un tab;
+- PR #4, referințele interne: toate formele cerute, termenii întregi, CR și bug distincte, toate notele cu referința în titlu (nota însăși niciodată; fără legătură când nu există nicio altă notă), o singură relație pe paragraf și referință, cu notele ei, recalcularea la schimbarea textului, a titlului unei destinații, la ștergerea unui paragraf și a unei destinații, clicul pe un link al unei note deschise deja într-un tab și deschiderea tuturor notelor unui link;
 - politica de parolă, blocarea după 5 încercări, mesajul unic la autentificare;
 - cele trei limbi și fallback-ul românesc.
 
@@ -92,7 +92,7 @@ După modificările care le ating, înainte de predare:
 4. Navigarea cu tastatura, focusul vizibil, erorile de validare client și server, mesajele Identity și paginile protejate.
 5. Pentru tablă și editor: selectarea contextului, ordinea, gruparea pe luni, metadatele cardurilor (datele), încadrarea cardurilor în celule, drag-and-drop, taburile, minimizarea și avertizarea pentru modificări nesalvate.
 6. Pentru schimbări ale fluxului versiunii: citirea din SQL Server și cazul tabelei goale, fără a șterge datele utilizatorului.
-7. PR #4, pentru referințele interne: pe o copie a bazei sau cu acordul utilizatorului, `004_ReplaceNoteReferences.sql` rulat întâi cu `@Save = 0` (listele: rezumatul, referințele fără destinație, cele ambigue, jurnalul „CRs”, legăturile vechi transformate), apoi cu `@Save = 1`; în aplicație, jurnalul „CRs” cu linkurile lui, click și Ctrl+Enter pe un link (tab nou, tab deja deschis, editor minimizat), o referință nou scrisă și salvată, redenumirea destinației și ștergerea ei.
+7. PR #4, pentru referințele interne: pe o copie a bazei sau cu acordul utilizatorului, `004_ReplaceNoteReferences.sql` (dacă nu a fost aplicat), apoi `005_CreateNoteReferenceTargets.sql`, rulate întâi cu `@Save = 0` (listele lui `005`: rezumatul, referințele fără notă, cele cu mai multe note, jurnalul „CRs”), apoi cu `@Save = 1`. În aplicație: jurnalul „CRs” cu linkurile lui, inclusiv `CR 27881`; click și Ctrl+Enter pe un link cu o notă și pe unul cu mai multe (tab nou, tab deja deschis, editor minimizat); o referință nou scrisă și salvată; redenumirea unei destinații și ștergerea ei.
 8. Procesele `WorkNotes.Web` pornite pentru verificare sunt oprite la final.
 
 Verificările care nu pot fi făcute într-un mediu (de exemplu fără SQL Server într-o sesiune cloud) se raportează explicit ca neefectuate.

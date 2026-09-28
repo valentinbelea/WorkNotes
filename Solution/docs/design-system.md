@@ -134,8 +134,9 @@ Iconul Open al cardului este un link către /?note={id}, deci funcționează și
 
 ### Referințe între note
 
-- Un CR sau un bug scris în text (CR 30080, CR-30080, CR_30080, CR30080, bug_1234...) care are o notă destinație arată ca un link: toată expresia, așa cum e scrisă, accent #176C65, semibold, subliniat (mai gros la hover), cursor pointer, cu tooltipul „„titlu” (tip)” al notei destinație. Textul nu se schimbă: linkul este desenat peste el, din pozițiile trimise de server. În editor clasa este cm-note-reference (note-editor.css), în textul fără JavaScript note-reference (site.css).
-- O referință fără destinație sau cu mai multe note posibile rămâne text simplu, fără niciun semn. Nu există sugestii în timpul scrierii; o referință nou scrisă devine link după salvare, iar textul scris într-un link îl ascunde până la salvare.
+- Un CR sau un bug scris în text (CR 30080, CR-30080, CR_30080, CR30080, bug_1234...) care are cel puțin o notă destinație arată ca un link: toată expresia, așa cum e scrisă, accent #176C65, semibold, subliniat (mai gros la hover), cursor pointer, cu tooltipul „„titlu” (tip)” al fiecărei note destinație, câte una pe rând. Click sau Ctrl+Enter deschide toate notele, în taburi, și o arată pe prima. Textul nu se schimbă: linkul este desenat peste el, din pozițiile trimise de server. În editor clasa este cm-note-reference (note-editor.css), în textul fără JavaScript note-reference (site.css).
+- Fără JavaScript, o referință cu mai multe note duce la prima; fiecare notă următoare are un link numerotat mic după ea (sup.note-reference-more: 2, 3...), cu titlul și tipul notei ca nume accesibil.
+- O referință fără destinație rămâne text simplu, fără niciun semn. Nu există sugestii în timpul scrierii; o referință nou scrisă devine link după salvare, iar textul scris într-un link îl ascunde până la salvare.
 - În forced-colors: referințele folosesc LinkText.
 
 ## Verificare vizuală

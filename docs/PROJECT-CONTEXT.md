@@ -20,7 +20,7 @@ WorkNotes este un caiet de lucru pentru munca de zi cu zi pe proiecte: jurnalul 
 
 - Astăzi, un CR sau un bug se documentează într-un articol (de exemplu articolul „CR 30042”), iar jurnalele îl menționează în text.
 - Planificat: catalogul de referințe de lucru pe context (`WorkReferences`, tipurile `CR` și `Bug`) și asocierea lor cu notele și paragrafele, pentru căutarea tuturor explicațiilor după codul CR-ului ([DOMAIN-MODEL.md](DOMAIN-MODEL.md#entități-planificate)).
-- În dezvoltare (PR #4): referințe interne între note — un CR sau un bug scris într-un paragraf (`CR 30080`, `CR-30080`, `bug_1234`…) deschide nota a aceluiași context care îl are în titlu (de exemplu `CR_30080` din jurnalul „CRs” către articolul „CR 30080 Export facturi”), când există exact o astfel de notă.
+- În dezvoltare (PR #4): referințe interne între note — un CR sau un bug scris într-un paragraf (`CR 30080`, `CR-30080`, `bug_1234`…) deschide notele aceluiași context care îl au în titlu (de exemplu `CR_30080` din jurnalul „CRs” către articolul „CR 30080 Export facturi”); când mai multe note au CR-ul în titlu, le deschide pe toate.
 
 ## Branch-uri, versiuni și publish-uri
 
@@ -66,7 +66,7 @@ Termenii au două sensuri, care nu trebuie confundate:
 | `RowVersion` / versiune | Tokenul de concurență al unei note |
 | Referință de lucru | CR sau bug dintr-un sistem extern, catalogat o singură dată pe context (planificat) |
 | CR | Cerere de modificare (change request) dintr-un sistem extern |
-| Referință internă | Un CR sau un bug scris într-un paragraf, legat de nota aceluiași context care îl are în titlu (în dezvoltare, PR #4) |
+| Referință internă | Un CR sau un bug scris într-un paragraf, legat de notele aceluiași context care îl au în titlu, una sau mai multe (în dezvoltare, PR #4) |
 | Legătură | URL extern atașat unei note sau unui paragraf (planificat, `NoteLinks`) |
 | Versiune | Versiunea bazei de date (`v.0.0x`), afișată în footer; folderul `Scripts/version_0.0x` |
 | Task | Unitate de dezvoltare numerotată (task 00, 01, 02), lucrată într-un branch propriu |

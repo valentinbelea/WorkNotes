@@ -65,11 +65,11 @@ Notele noi sunt private (`Private`). O notă `Context` este citită de membri nu
 ## Referințele interne
 
 - Pe `main` nu există referințe între note.
-- PR #4 (neintegrat, [ADR-003](decisions/ADR-003-internal-references.md)) adaugă referințe interne CR/bug. Contextul rămâne granița: o referință deschide numai o notă a aceluiași context, nearhivată, pe care proprietarul paragrafului o poate vedea (a lui sau partajată cu contextul), deci legăturile nu dezvăluie notele private ale colegilor.
-- Un cititor vede ca link numai referințele stocate a căror notă destinație o poate vedea el însuși (`GetTargetsAsync` aplică `VisibleTo` pentru notă și pentru destinație); celelalte rămân text simplu, fără titlul destinației.
+- PR #4 (neintegrat, [ADR-003](decisions/ADR-003-internal-references.md)) adaugă referințe interne CR/bug. Contextul rămâne granița: o referință deschide numai note ale aceluiași context, nearhivate, pe care proprietarul paragrafului le poate vedea (ale lui sau partajate cu contextul), deci legăturile nu dezvăluie notele private ale colegilor.
+- Un cititor vede ca link numai referințele stocate cu cel puțin o notă destinație pe care o poate vedea el însuși, iar linkul deschide numai acele note (`GetTargetsAsync` aplică `VisibleTo` pentru notă și pentru fiecare destinație); celelalte rămân text simplu, fără titlurile destinațiilor.
 - Referințele se citesc din text și se rezolvă numai pe server (`NoteReferenceRules`, `NoteReferenceService`); editorul primește pozițiile linkurilor și titlurile destinațiilor ca date JSON codificate, iar CodeMirror afișează textul ca text. Fără JavaScript, paragrafele sunt HTML codificat, cu linkuri `/?note={id}`. HTML-ul scris într-o notă rămâne text.
-- Recalcularea după schimbarea titlului, crearea sau ștergerea unei note modifică legăturile paragrafelor tuturor membrilor contextului, nu textul lor: legăturile sunt derivate din text și titluri, iar fiecare paragraf urmează ce poate vedea proprietarul lui. Numai proprietarul notei o salvează, o redenumește sau o șterge.
-- `004_ReplaceNoteReferences.sql` modifică textul paragrafelor care conțin legături de forma veche `[[note:{id}|{număr}]]`, înlocuindu-le cu numărul afișat; se aplică numai la cerere explicită, de cine are drepturi asupra bazei.
+- Recalcularea după schimbarea titlului sau crearea unei note, ca și ștergerea unei note, modifică legăturile paragrafelor tuturor membrilor contextului, nu textul lor: legăturile sunt derivate din text și titluri, iar fiecare paragraf urmează ce poate vedea proprietarul lui. Numai proprietarul notei o salvează, o redenumește sau o șterge.
+- `004_ReplaceNoteReferences.sql` modifică textul paragrafelor care conțin legături de forma veche `[[note:{id}|{număr}]]`, înlocuindu-le cu numărul afișat; `005_CreateNoteReferenceTargets.sql` schimbă numai tabelele referințelor, nu textul. Amândouă se aplică numai la cerere explicită, de cine are drepturi asupra bazei.
 - Pentru referințele de lucru planificate (CR/bug, `WorkReferences`), toate asocierile trebuie să respecte contextul notei ([DOMAIN-MODEL.md](DOMAIN-MODEL.md#entități-planificate)).
 
 ## Secretele

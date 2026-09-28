@@ -24,6 +24,7 @@ Abordarea este **Database First**: schema se scrie în scripturi SQL explicite, 
 | 002_CreateNoteReferences | Tabela `NoteReferences` a modelului anterior (nota sursă, nota destinație, numărul); înlocuită de 004 |
 | 003_InsertNoteReferences | Datele tabelei modelului anterior, din textul existent; înlocuit de 004 |
 | 004_ReplaceNoteReferences | Legăturile vechi din text redevin numere; tabela `NoteReferences` pe paragraf, cu cheile și indexurile ei; reindexarea tuturor paragrafelor și listele referințelor fără destinație și ambigue |
+| 005_CreateNoteReferenceTargets | Tabela `NoteReferenceTargets` (notele fiecărei referințe, una sau mai multe); nota fiecărui rând din 004 mutată în ea și coloana `NoteReferences.TargetNoteId` eliminată; reindexarea tuturor paragrafelor și listele referințelor fără notă și cu mai multe note |
 
 ## Tabele realizate
 
@@ -62,21 +63,29 @@ Tabla grupează notele pe luni după `ISNULL(ModifiedAtUtc, CreatedAtUtc)`: pent
 | `CreatedAtUtc`, `CreatedByUserId`, `ModifiedAtUtc`, `ModifiedByUserId` | auditul paragrafului |
 | `RowVersion` | pregătit pentru concurență |
 
-Textul notei există numai în `NoteBlocks` (nicio copie în `Notes`). Limite: maximum 5000 de paragrafe și 1 000 000 de caractere pe notă (`NoteRules`). O referință internă (un CR sau un bug scris în text, de exemplu `CR 30080` sau `bug_1234`) nu schimbă textul: legătura ei este un rând în `NoteReferences`, iar editorul o desenează peste text (`NoteReferenceRules`, docs/decisions/ADR-003-internal-references.md).
+Textul notei există numai în `NoteBlocks` (nicio copie în `Notes`). Limite: maximum 5000 de paragrafe și 1 000 000 de caractere pe notă (`NoteRules`). O referință internă (un CR sau un bug scris în text, de exemplu `CR 30080` sau `bug_1234`) nu schimbă textul: legătura ei este un rând în `NoteReferences`, cu notele ei în `NoteReferenceTargets`, iar editorul o desenează peste text (`NoteReferenceRules`, docs/decisions/ADR-003-internal-references.md).
 
 ### NoteReferences
 | Coloană | Rol |
 | --- | --- |
 | `Id` | identitate |
 | `NoteBlockId` | paragraful care scrie referința (cascadă la ștergerea lui) |
-| `TargetNoteId` | nota destinație (fără cascadă: aplicația șterge rândurile care o indică înainte să o șteargă) |
 | `ReferenceType` | `CR` / `BUG` (`CK_NoteReferences_ReferenceType`) |
 | `ReferenceNumber` | numărul, bigint, fără zerourile de la început |
 | `ReferenceText` | textul primei apariții în paragraf, ca scris (`CR_30080`) |
 | `NormalizedReference` | `CR:30080` / `BUG:1234`, după care se compară referințele |
-| `CreatedAtUtc` | data la care paragraful a primit legătura |
+| `CreatedAtUtc` | data la care paragraful a primit referința |
 
-Câte un rând pentru fiecare paragraf și referință cu destinație (`UX_NoteReferences_NoteBlockId_NormalizedReference`), oricâte apariții ar avea referința în paragraf. Destinația este singura notă a contextului, vizibilă proprietarului paragrafului și nearhivată, cu aceeași referință în titlu (nota însăși se numără, dar nu este destinație); fără ea sau cu mai multe note, nu există rând. Rândurile se scriu la salvarea notei, în tranzacția paragrafelor, și se recalculează la schimbarea titlului, crearea și ștergerea unei note. `IX_NoteReferences_TargetNoteId` servește ștergerea destinației și lista viitoare „Referințe către această notă”; `IX_NoteReferences_NormalizedReference`, căutarea paragrafelor care scriu o referință.
+Câte un rând pentru fiecare paragraf și referință cu cel puțin o notă (`UX_NoteReferences_NoteBlockId_NormalizedReference`), oricâte apariții ar avea referința în paragraf. Destinațiile sunt toate notele contextului, vizibile proprietarului paragrafului și nearhivate, cu aceeași referință în titlu, în afară de nota paragrafului; fără nicio altă notă, nu există rând. Rândurile se scriu la salvarea notei, în tranzacția paragrafelor, și se recalculează la schimbarea titlului și la crearea unei note; ștergerea unei note își scoate rândurile. `IX_NoteReferences_NormalizedReference` servește căutarea paragrafelor care scriu o referință.
+
+### NoteReferenceTargets
+| Coloană | Rol |
+| --- | --- |
+| `NoteReferenceId` | referința (cascadă la ștergerea ei) |
+| `TargetNoteId` | nota destinație (fără cascadă: aplicația șterge rândurile care o indică înainte să o șteargă) |
+| `CreatedAtUtc` | data la care referința a primit nota |
+
+Câte un rând pentru fiecare referință și notă (cheia primară `NoteReferenceId` + `TargetNoteId`). `IX_NoteReferenceTargets_TargetNoteId` servește ștergerea destinației și lista viitoare „Referințe către această notă”.
 
 ## Regulile paragrafelor (confirmate și implementate în editor)
 
