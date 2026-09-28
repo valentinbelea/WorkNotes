@@ -1,4 +1,5 @@
 using System.Data;
+using System.Linq.Expressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using WorkNotes.Business.Abstractions;
@@ -14,14 +15,15 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
 {
     public async Task<IReadOnlyList<NoteSummary>> GetBoardAsync(string userId, int contextId, CancellationToken cancellationToken)
     {
-        var rows = await SummaryRows(VisibleTo(userId).AsNoTracking().Where(note => note.ContextId == contextId), userId)
+        var rows = await SummaryRows(VisibleTo(userId).AsNoTracking().Where(note => note.ContextId == contextId), userId,
+                block => block.Note.ContextId == contextId)
             .ToListAsync(cancellationToken);
         return rows.Select(ToSummary).ToList();
     }
 
     public async Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken)
     {
-        var row = await SummaryRows(VisibleTo(userId).AsNoTracking().Where(note => note.Id == noteId), userId)
+        var row = await SummaryRows(VisibleTo(userId).AsNoTracking().Where(note => note.Id == noteId), userId, block => block.NoteId == noteId)
             .SingleOrDefaultAsync(cancellationToken);
         return row is null ? null : ToSummary(row);
     }
@@ -324,7 +326,10 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
     }
 
     // The card fields plus the start of the first paragraphs, read by SQL Server; the preview itself is built by NoteRules.
-    private static IQueryable<SummaryRow> SummaryRows(IQueryable<NoteEntity> notes, string userId) =>
+    // SQL Server numbers the paragraphs of every note (ROW_NUMBER) before it joins them to the notes read, so paragraphs
+    // narrows that numbering to those notes: without it, every paragraph of the database is read for a single card.
+    private static IQueryable<SummaryRow> SummaryRows(IQueryable<NoteEntity> notes, string userId,
+        Expression<Func<NoteBlockEntity, bool>> paragraphs) =>
         notes.Select(note => new SummaryRow
         {
             Id = note.Id,
@@ -339,6 +344,8 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             Order = note.Order,
             RowVersion = note.RowVersion,
             FirstParagraphs = note.NoteBlocks
+                .AsQueryable()
+                .Where(paragraphs)
                 .OrderBy(block => block.Position)
                 .Take(NoteRules.PreviewParagraphs)
                 .Select(block => block.Content.Substring(0, NoteRules.PreviewSourceLength))
