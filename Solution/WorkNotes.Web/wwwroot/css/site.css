@@ -12,6 +12,8 @@ a:hover { color: var(--wn-primary-hover); }
    reference as written reads as a link in the accent colour. */
 .note-reference { color: var(--wn-primary); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
 a.note-reference:hover { color: var(--wn-primary-hover); text-decoration-thickness: 2px; }
+/* A reference with several notes, without JavaScript: the reference opens the first, each small number another one. */
+.note-reference-more { margin-inline-start: .15em; }
 @media (forced-colors: active) { a.note-reference { color: LinkText; } }
 button, input, select, textarea { font: inherit; }
 button, select { cursor: pointer; }

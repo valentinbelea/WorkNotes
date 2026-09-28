@@ -9,6 +9,7 @@ using WorkNotes.DataAccess.Context;
 using NoteBlockEntity = WorkNotes.DataAccess.Entities.NoteBlock;
 using NoteEntity = WorkNotes.DataAccess.Entities.Note;
 using NoteReferenceEntity = WorkNotes.DataAccess.Entities.NoteReference;
+using NoteReferenceTargetEntity = WorkNotes.DataAccess.Entities.NoteReferenceTarget;
 
 namespace WorkNotes.DataAccess.Repositories;
 
@@ -40,15 +41,24 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
 
     public async Task<bool> DeleteAsync(int noteId, string ownerUserId, CancellationToken cancellationToken)
     {
-        // Serializable: no paragraph can store a reference to this note between the two statements.
+        // Serializable: no paragraph can store a reference to this note between the statements.
         await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-        // The stored references that open it go first (FK_NoteReferences_Notes_TargetNoteId has no cascade: a second
-        // cascade path from Notes is not allowed); the paragraphs keep their text, which is shown as plain text.
+        // Disposing the transaction without a commit leaves everything as it was.
+        if (!await dbContext.Notes.AnyAsync(note => note.Id == noteId && note.OwnerUserId == ownerUserId, cancellationToken)) return false;
+        // The rows that open it go first (FK_NoteReferenceTargets_Notes_TargetNoteId has no cascade: a second cascade path
+        // from Notes is not allowed): the stored references it is the only note of go whole (their rows of
+        // NoteReferenceTargets by cascade), the others lose only its row. The paragraphs keep their text; a reference left
+        // without a note is shown as plain text.
         await dbContext.NoteReferences
-            .Where(reference => reference.TargetNoteId == noteId && reference.TargetNote.OwnerUserId == ownerUserId)
+            .Where(reference => reference.NoteReferenceTargets.Any(target => target.TargetNoteId == noteId)
+                && reference.NoteReferenceTargets.All(target => target.TargetNoteId == noteId))
             .ExecuteDeleteAsync(cancellationToken);
-        // FK_NoteBlocks_Notes_NoteId and FK_NoteReferences_NoteBlocks_NoteBlockId cascade: the paragraphs and their stored
-        // references are deleted by SQL Server in the same statement.
+        await dbContext.NoteReferenceTargets
+            .Where(target => target.TargetNoteId == noteId)
+            .ExecuteDeleteAsync(cancellationToken);
+        // FK_NoteBlocks_Notes_NoteId, FK_NoteReferences_NoteBlocks_NoteBlockId and
+        // FK_NoteReferenceTargets_NoteReferences_NoteReferenceId cascade: the paragraphs and their stored references are
+        // deleted by SQL Server in the same statement.
         var deleted = await dbContext.Notes
             .Where(note => note.Id == noteId && note.OwnerUserId == ownerUserId)
             .ExecuteDeleteAsync(cancellationToken) > 0;
@@ -227,7 +237,10 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         DateTime savedAtUtc, CancellationToken cancellationToken)
     {
         var byId = paragraphs.ToDictionary(block => block.Id);
-        var stored = await dbContext.NoteReferences.Where(reference => reference.NoteBlock.NoteId == noteId).ToListAsync(cancellationToken);
+        var stored = await dbContext.NoteReferences
+            .Include(reference => reference.NoteReferenceTargets)
+            .Where(reference => reference.NoteBlock.NoteId == noteId)
+            .ToListAsync(cancellationToken);
         Replace(stored, references.Where(reference => byId.ContainsKey(reference.NoteBlockId)), savedAtUtc,
             // Through the paragraph, so a new paragraph is inserted before its references.
             reference => byId[reference.NoteBlockId].NoteReferences.Add(NewReference(reference, savedAtUtc)));
@@ -280,6 +293,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             var unchanged = current.Where(block => block.RowVersion.AsSpan().SequenceEqual(read[block.Id])).Select(block => block.Id).ToList();
             if (unchanged.Count == 0) return true;
             var stored = await dbContext.NoteReferences
+                .Include(reference => reference.NoteReferenceTargets)
                 .Where(reference => unchanged.Contains(reference.NoteBlockId) && keys.Contains(reference.NormalizedReference))
                 .ToListAsync(cancellationToken);
             var kept = unchanged.ToHashSet();
@@ -300,19 +314,19 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
     public async Task<IReadOnlyList<NoteBlockTarget>> GetTargetsAsync(int noteId, string userId, CancellationToken cancellationToken)
     {
         var visible = VisibleTo(userId);
-        return await dbContext.NoteReferences
+        return await dbContext.NoteReferenceTargets
             .AsNoTracking()
-            .Where(reference => reference.NoteBlock.NoteId == noteId
+            .Where(target => target.NoteReference.NoteBlock.NoteId == noteId
                 && visible.Any(note => note.Id == noteId)
-                && visible.Any(note => note.Id == reference.TargetNoteId && note.ContextId == reference.NoteBlock.Note.ContextId))
-            .Select(reference => new NoteBlockTarget(reference.NoteBlockId, reference.NormalizedReference,
-                new NoteReferenceTarget(reference.TargetNote.Id, reference.TargetNote.Title, reference.TargetNote.NoteType)))
+                && visible.Any(note => note.Id == target.TargetNoteId && note.ContextId == target.NoteReference.NoteBlock.Note.ContextId))
+            .Select(target => new NoteBlockTarget(target.NoteReference.NoteBlockId, target.NoteReference.NormalizedReference,
+                new NoteReferenceTarget(target.TargetNote.Id, target.TargetNote.Title, target.TargetNote.NoteType)))
             .ToListAsync(cancellationToken);
     }
 
-    // The stored references become the wanted ones: the others are removed; a kept one (same paragraph and reference)
-    // takes the text it is now first written with, and a new creation time when it opens another note; the missing ones
-    // are added.
+    // The stored references (read with their notes) become the wanted ones: the others are removed with their notes; a
+    // kept one (same paragraph and reference) takes the text it is now first written with, and its notes become the
+    // wanted ones (a kept note keeps its creation time, a new one gets savedAtUtc); the missing ones are added.
     private void Replace(IEnumerable<NoteReferenceEntity> stored, IEnumerable<NoteBlockReference> wanted, DateTime savedAtUtc,
         Action<NoteBlockReference> add)
     {
@@ -325,12 +339,13 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
                 dbContext.NoteReferences.Remove(entity);
                 continue;
             }
-            if (entity.TargetNoteId != reference.TargetNoteId)
-            {
-                entity.TargetNoteId = reference.TargetNoteId;
-                entity.CreatedAtUtc = savedAtUtc;
-            }
             entity.ReferenceText = reference.ReferenceText;
+            var targetNoteIds = reference.TargetNoteIds.ToHashSet();
+            foreach (var target in entity.NoteReferenceTargets.ToList())
+            {
+                if (!targetNoteIds.Remove(target.TargetNoteId)) dbContext.NoteReferenceTargets.Remove(target);
+            }
+            foreach (var targetNoteId in targetNoteIds) entity.NoteReferenceTargets.Add(NewTarget(targetNoteId, savedAtUtc));
         }
         foreach (var reference in missing.Values) add(reference);
     }
@@ -338,13 +353,16 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
     private static NoteReferenceEntity NewReference(NoteBlockReference reference, DateTime savedAtUtc) => new()
     {
         NoteBlockId = reference.NoteBlockId,
-        TargetNoteId = reference.TargetNoteId,
         ReferenceType = reference.ReferenceType,
         ReferenceNumber = reference.ReferenceNumber,
         ReferenceText = reference.ReferenceText,
         NormalizedReference = reference.NormalizedReference,
-        CreatedAtUtc = savedAtUtc
+        CreatedAtUtc = savedAtUtc,
+        NoteReferenceTargets = reference.TargetNoteIds.Distinct().Select(targetNoteId => NewTarget(targetNoteId, savedAtUtc)).ToList()
     };
+
+    private static NoteReferenceTargetEntity NewTarget(int targetNoteId, DateTime savedAtUtc) =>
+        new() { TargetNoteId = targetNoteId, CreatedAtUtc = savedAtUtc };
 
     // The numbers as their digits are written: a title or a paragraph writing the reference contains them.
     private static List<string> Digits(IReadOnlyCollection<long> numbers) =>

@@ -9,8 +9,6 @@ public partial class NoteReference
 
     public Guid NoteBlockId { get; set; }
 
-    public int TargetNoteId { get; set; }
-
     public string ReferenceType { get; set; } = null!;
 
     public long ReferenceNumber { get; set; }
@@ -23,5 +21,5 @@ public partial class NoteReference
 
     public virtual NoteBlock NoteBlock { get; set; } = null!;
 
-    public virtual Note TargetNote { get; set; } = null!;
+    public virtual ICollection<NoteReferenceTarget> NoteReferenceTargets { get; set; } = new List<NoteReferenceTarget>();
 }

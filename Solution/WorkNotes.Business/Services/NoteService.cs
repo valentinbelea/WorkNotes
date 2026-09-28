@@ -41,7 +41,7 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         var normalized = NoteRules.NormalizeTitle(title);
         var status = await notes.AddAsync(new NewNote(contextId, userId, noteType, normalized, journalDate, NoteVisibilities.Private),
             cancellationToken);
-        // The references its title names can now open it, or have become ambiguous.
+        // The references its title names now open it too.
         if (status == NoteCreateStatus.Created) await references.RefreshAsync(contextId, null, normalized, cancellationToken);
         return status;
     }
@@ -76,7 +76,7 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
 
         // The references of the paragraphs are stored with them, in the same transaction.
         var normalized = NoteRules.NormalizeTitle(title);
-        var resolution = await references.ResolveAsync(userId, document.ContextId, noteId, normalized, paragraphs, cancellationToken);
+        var resolution = await references.ResolveAsync(userId, document.ContextId, noteId, paragraphs, cancellationToken);
         var result = await notes.SaveAsync(
             new NoteChanges(noteId, userId, expectedVersion, normalized, paragraphs, resolution.References, SavedAtUtc()),
             cancellationToken);
@@ -116,10 +116,9 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
         if (note is null) return NoteDeleteStatus.NotFound;
         if (!note.IsOwner) return NoteDeleteStatus.Forbidden;
-        if (!await notes.DeleteAsync(noteId, userId, cancellationToken)) return NoteDeleteStatus.NotFound;
-        // Its references went with it; another note with the same reference in its title may now be the only one.
-        await references.RefreshAsync(note.ContextId, note.Title, null, cancellationToken);
-        return NoteDeleteStatus.Deleted;
+        // The references of the board that opened it no longer do (the deletion takes those rows away): nothing else to
+        // resolve, since a note deleted only takes a target away.
+        return await notes.DeleteAsync(noteId, userId, cancellationToken) ? NoteDeleteStatus.Deleted : NoteDeleteStatus.NotFound;
     }
 
     public async Task<NoteOrderResult> SwapOrderAsync(string userId, int noteId, int targetNoteId, CancellationToken cancellationToken)
@@ -149,7 +148,7 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
     {
         if (resolution.References.Count == 0 || result.Blocks is null) return result;
         var content = paragraphs.ToDictionary(paragraph => paragraph.Id, paragraph => paragraph.Content);
-        var targets = resolution.References.ToDictionary(reference => (reference.NoteBlockId, reference.NormalizedReference), reference => reference.TargetNoteId);
+        var targets = resolution.References.ToDictionary(reference => (reference.NoteBlockId, reference.NormalizedReference), reference => reference.TargetNoteIds);
         return result with
         {
             Blocks = result.Blocks
@@ -157,7 +156,7 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
                     ? block with
                     {
                         Links = NoteReferenceRules.LinksIn(text,
-                            normalized => targets.TryGetValue((block.Id, normalized), out var targetNoteId) ? targetNoteId : null)
+                            normalized => targets.TryGetValue((block.Id, normalized), out var targetNoteIds) ? targetNoteIds : [])
                     }
                     : block)
                 .ToList(),

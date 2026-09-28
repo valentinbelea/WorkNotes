@@ -51,20 +51,21 @@ public static partial class NoteReferenceRules
             .GroupBy(item => item.NormalizedReference, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => (IReadOnlyList<int>)group.Select(item => item.NoteId).ToList(), StringComparer.Ordinal);
 
-    // The note a reference written in noteId opens: the only note whose title has the reference, when it is another
-    // note. None when no note has it, when several have it (the choice would be a guess) or when only noteId has it.
-    public static int? TargetOf(IReadOnlyDictionary<string, IReadOnlyList<int>> notesByTitleReference, string normalizedReference, int noteId) =>
-        notesByTitleReference.TryGetValue(normalizedReference, out var notes) && notes.Count == 1 && notes[0] != noteId ? notes[0] : null;
+    // The notes a reference written in noteId opens: every note whose title has the reference, except noteId itself, in
+    // the order of their ids. None when no other note has it.
+    public static IReadOnlyList<int> TargetsOf(IReadOnlyDictionary<string, IReadOnlyList<int>> notesByTitleReference, string normalizedReference, int noteId) =>
+        notesByTitleReference.TryGetValue(normalizedReference, out var notes) ? notes.Where(id => id != noteId).Order().ToList() : [];
 
-    // Where a paragraph shows links: every reference of its text that targetOf gives a note for, whatever its separator or
-    // case, so all the times a paragraph writes a reference open the same note.
-    public static IReadOnlyList<NoteReferenceLink> LinksIn(string? text, Func<string, int?> targetOf)
+    // Where a paragraph shows links: every reference of its text that targetsOf gives notes for, whatever its separator or
+    // case, so all the times a paragraph writes a reference open the same notes.
+    public static IReadOnlyList<NoteReferenceLink> LinksIn(string? text, Func<string, IReadOnlyList<int>> targetsOf)
     {
-        ArgumentNullException.ThrowIfNull(targetOf);
+        ArgumentNullException.ThrowIfNull(targetsOf);
         var links = new List<NoteReferenceLink>();
         foreach (var match in Find(text))
         {
-            if (targetOf(match.NormalizedReference) is { } targetNoteId) links.Add(new NoteReferenceLink(match.Start, match.Length, targetNoteId));
+            var targetNoteIds = targetsOf(match.NormalizedReference);
+            if (targetNoteIds.Count > 0) links.Add(new NoteReferenceLink(match.Start, match.Length, targetNoteIds));
         }
         return links;
     }

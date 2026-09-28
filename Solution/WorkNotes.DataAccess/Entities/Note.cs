@@ -37,5 +37,5 @@ public partial class Note
 
     public virtual ICollection<NoteBlock> NoteBlocks { get; set; } = new List<NoteBlock>();
 
-    public virtual ICollection<NoteReference> NoteReferences { get; set; } = new List<NoteReference>();
+    public virtual ICollection<NoteReferenceTarget> NoteReferenceTargets { get; set; } = new List<NoteReferenceTarget>();
 }

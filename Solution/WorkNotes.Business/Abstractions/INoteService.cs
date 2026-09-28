@@ -22,7 +22,7 @@ public interface INoteService
     // Only the owner renames a note, from its card; an empty title makes it untitled. The references of the board that
     // name the note by its old or its new title follow.
     Task<NoteRenameResult> RenameAsync(string userId, int noteId, string? title, CancellationToken cancellationToken);
-    // Only the owner deletes a note; its paragraphs are deleted with it. The references that opened it are resolved again.
+    // Only the owner deletes a note; its paragraphs are deleted with it. The references of the board no longer open it.
     Task<NoteDeleteStatus> DeleteAsync(string userId, int noteId, CancellationToken cancellationToken);
     // The owner swaps two of their notes of the same board and month: each takes the other's place.
     // The result has the month's notes in their new order.

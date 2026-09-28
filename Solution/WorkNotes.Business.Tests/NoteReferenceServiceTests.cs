@@ -23,7 +23,7 @@ public sealed class NoteReferenceServiceTests
 
         var resolution = await Resolve(repository, (paragraph, "CR_30080 întâi, apoi CR 30080 și cr-30080."));
 
-        Assert.Equal([new NoteBlockReference(paragraph, 12, NoteReferenceTypes.Cr, 30080, "CR_30080")], resolution.References);
+        Assert.Equal([(paragraph, "CR:30080", "CR_30080", "12")], resolution.References.Select(Stored));
         Assert.Equal([Cr30080], resolution.Targets);
         var read = Assert.Single(repository.CandidatesRead);
         Assert.Equal((Owner, 5), (read.UserId, read.ContextId));
@@ -38,8 +38,8 @@ public sealed class NoteReferenceServiceTests
 
         var resolution = await Resolve(repository, (paragraph, "CR 30080, bug1234 și cr-1234"));
 
-        Assert.Equal([("CR:30080", 12, "CR 30080"), ("BUG:1234", 13, "bug1234"), ("CR:1234", 14, "cr-1234")],
-            resolution.References.Select(reference => (reference.NormalizedReference, reference.TargetNoteId, reference.ReferenceText)));
+        Assert.Equal([(paragraph, "CR:30080", "CR 30080", "12"), (paragraph, "BUG:1234", "bug1234", "13"), (paragraph, "CR:1234", "cr-1234", "14")],
+            resolution.References.Select(Stored));
     }
 
     [Fact]
@@ -50,8 +50,8 @@ public sealed class NoteReferenceServiceTests
 
         var resolution = await Resolve(repository, (paragraph, "Bug 1234 vine din CR 1234"));
 
-        Assert.Equal([(NoteReferenceTypes.Bug, 13), (NoteReferenceTypes.Cr, 14)],
-            resolution.References.Select(reference => (reference.ReferenceType, reference.TargetNoteId)));
+        Assert.Equal([(NoteReferenceTypes.Bug, "13"), (NoteReferenceTypes.Cr, "14")],
+            resolution.References.Select(reference => (reference.ReferenceType, Stored(reference).Notes)));
     }
 
     [Fact]
@@ -67,35 +67,51 @@ public sealed class NoteReferenceServiceTests
     }
 
     [Fact]
-    public async Task AReferenceSeveralNotesHaveInTheirTitleIsNotStored()
+    public async Task AReferenceSeveralNotesHaveInTheirTitleOpensThemAll()
     {
+        var paragraph = Guid.NewGuid();
+        // Note 15 comes first from the data access; the notes are kept in the order of their ids.
+        var repository = new StubRepository { Candidates = { [Owner] = [Test30080, Cr30080] } };
+
+        var resolution = await Resolve(repository, (paragraph, "Vezi CR 30080"));
+
+        Assert.Equal([(paragraph, "CR:30080", "CR 30080", "12,15")], resolution.References.Select(Stored));
+        Assert.Equal([12, 15], resolution.Targets.Select(target => target.Id).Order());
+    }
+
+    [Fact]
+    public async Task TheNoteItselfIsNeverATarget()
+    {
+        var paragraph = Guid.NewGuid();
+        // Notes 12 and 15 have CR 30080 in their title: each of them opens the other one.
         var repository = new StubRepository { Candidates = { [Owner] = [Cr30080, Test30080] } };
 
-        Assert.Empty((await Resolve(repository, (Guid.NewGuid(), "CR 30080"))).References);
+        Assert.Equal(["15"], (await Resolve(repository, (paragraph, "CR 30080"), noteId: 12)).References.Select(reference => Stored(reference).Notes));
+        Assert.Equal(["12"], (await Resolve(repository, (paragraph, "CR 30080"), noteId: 15)).References.Select(reference => Stored(reference).Notes));
     }
 
     [Fact]
-    public async Task TheNoteItselfIsNeverATargetButCountsAmongTheNotesWithTheReference()
+    public async Task TheNoteIsLeftOutWhateverItsStoredTitle()
     {
         var paragraph = Guid.NewGuid();
-        var repository = new StubRepository { Candidates = { [Owner] = [Cr30080] } };
-
-        // Note 12 writes its own CR: nothing to open.
-        Assert.Empty((await Resolve(repository, (paragraph, "CR 30080"), noteId: 12, title: Cr30080.Title)).References);
-        // Note 7 is being saved with the reference in its title too: two notes have it.
-        Assert.Empty((await Resolve(repository, (paragraph, "CR 30080"), noteId: 7, title: "Analiză CR 30080")).References);
-    }
-
-    [Fact]
-    public async Task TheNoteIsReadWithTheTitleItIsSavedWith()
-    {
-        var paragraph = Guid.NewGuid();
-        // As stored, note 7 still has the reference in its title; it is being saved without it.
+        // As stored, note 7 has the reference in its title; whether it keeps it or not, it does not open itself.
         var repository = new StubRepository { Candidates = { [Owner] = [Cr30080, new(7, "CR 30080 vechi", NoteTypes.Journal)] } };
 
-        var resolution = await Resolve(repository, (paragraph, "CR 30080"), noteId: 7, title: "Jurnal");
+        var resolution = await Resolve(repository, (paragraph, "CR 30080"), noteId: 7);
 
-        Assert.Equal(12, Assert.Single(resolution.References).TargetNoteId);
+        Assert.Equal([(paragraph, "CR:30080", "CR 30080", "12")], resolution.References.Select(Stored));
+        Assert.Equal([Cr30080], resolution.Targets);
+    }
+
+    [Fact]
+    public async Task AReferenceOnlyTheNoteItselfHasInItsTitleIsNotStored()
+    {
+        var repository = new StubRepository { Candidates = { [Owner] = [Cr30080] } };
+
+        var resolution = await Resolve(repository, (Guid.NewGuid(), "CR 30080"), noteId: 12);
+
+        Assert.Empty(resolution.References);
+        Assert.Empty(resolution.Targets);
     }
 
     [Fact]
@@ -110,10 +126,10 @@ public sealed class NoteReferenceServiceTests
     }
 
     [Fact]
-    public async Task TheCrsJournalLinksEachCrOrBugWithASingleNote()
+    public async Task TheCrsJournalLinksEachCrOrBugWithItsNotes()
     {
-        // The CRs journal (note 99) lists the work of the board; each CR or bug has its note, except CR 30082 (two notes)
-        // and CR 30083 (none yet).
+        // The CRs journal (note 99) lists the work of the board; each CR or bug has its note, CR 30082 has two and
+        // CR 30083 none yet.
         Guid first = Guid.NewGuid(), second = Guid.NewGuid(), third = Guid.NewGuid();
         var repository = new StubRepository
         {
@@ -132,10 +148,10 @@ public sealed class NoteReferenceServiceTests
             (first, "CR 30080 - export facturi (în lucru)\nCR-30081 raport lunar"),
             (second, "bug_512 rezolvat; cr30082 amânat; CR 30083 nou"),
             (third, "Fără CR-uri aici.")
-        ], noteId: 99, title: "CRs");
+        ], noteId: 99);
 
-        Assert.Equal([(first, "CR:30080", 12), (first, "CR:30081", 16), (second, "BUG:512", 17)],
-            resolution.References.Select(reference => (reference.NoteBlockId, reference.NormalizedReference, reference.TargetNoteId)));
+        Assert.Equal([(first, "CR:30080", "12"), (first, "CR:30081", "16"), (second, "BUG:512", "17"), (second, "CR:30082", "18,19")],
+            resolution.References.Select(reference => (reference.NoteBlockId, reference.NormalizedReference, Stored(reference).Notes)));
         Assert.Equal([30080L, 30081, 512, 30082, 30083], repository.CandidatesRead.Single().Numbers);
     }
 
@@ -147,7 +163,7 @@ public sealed class NoteReferenceServiceTests
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new NoteReferenceService(repository, Time)
-            .ResolveAsync(Owner, 5, 7, null, [new(Guid.NewGuid(), "CR 30080")], cancellation.Token));
+            .ResolveAsync(Owner, 5, 7, [new(Guid.NewGuid(), "CR 30080")], cancellation.Token));
         Assert.Empty(repository.CandidatesRead);
     }
 
@@ -166,7 +182,7 @@ public sealed class NoteReferenceServiceTests
         // CR 30080 is in both titles and stays as it is; bug 1 went away, CR 30081 came.
         var replaced = Assert.Single(repository.Replaced);
         Assert.Equal(["BUG:1", "CR:30081"], replaced.NormalizedReferences.Order());
-        Assert.Equal([new NoteBlockReference(paragraph, 12, NoteReferenceTypes.Cr, 30081, "CR 30081")], replaced.References);
+        Assert.Equal([(paragraph, "CR:30081", "CR 30081", "12")], replaced.References.Select(Stored));
         Assert.Equal(SavedAtUtc, replaced.SavedAtUtc);
         Assert.Equal([1L, 30081], repository.SourcesRead.Single().Numbers.Order());
     }
@@ -187,10 +203,10 @@ public sealed class NoteReferenceServiceTests
     }
 
     [Fact]
-    public async Task ACreatedNoteWithTheReferenceMakesItAmbiguous()
+    public async Task ACreatedNoteWithTheReferenceIsAddedToItsNotes()
     {
         var paragraph = Guid.NewGuid();
-        // Note 15 was just created: now two notes have CR 30080 in their title.
+        // Note 15 was just created: now two notes have CR 30080 in their title, and the reference opens both.
         var repository = new StubRepository { Sources = [Source(paragraph, 7, "Vezi CR 30080")], Candidates = { [Owner] = [Cr30080, Test30080] } };
 
         await Refresh(repository, null, Test30080.Title);
@@ -198,19 +214,19 @@ public sealed class NoteReferenceServiceTests
         var replaced = Assert.Single(repository.Replaced);
         Assert.Equal(["CR:30080"], replaced.NormalizedReferences);
         Assert.Equal([paragraph], replaced.Paragraphs.Select(source => source.NoteBlockId));
-        Assert.Empty(replaced.References);
+        Assert.Equal([(paragraph, "CR:30080", "CR 30080", "12,15")], replaced.References.Select(Stored));
     }
 
     [Fact]
-    public async Task ADeletedNoteLeavesTheOtherNoteWithTheReferenceAsItsTarget()
+    public async Task ATitleThatLosesTheReferenceLeavesItsOtherNotes()
     {
         var paragraph = Guid.NewGuid();
-        // Note 15 was just deleted: only note 12 has CR 30080 in its title now.
+        // Note 15 was "Testare cr-30080" and is now untitled: only note 12 has CR 30080 in its title.
         var repository = new StubRepository { Sources = [Source(paragraph, 7, "Vezi cr_30080")], Candidates = { [Owner] = [Cr30080] } };
 
         await Refresh(repository, Test30080.Title, null);
 
-        Assert.Equal([new NoteBlockReference(paragraph, 12, NoteReferenceTypes.Cr, 30080, "cr_30080")], Assert.Single(repository.Replaced).References);
+        Assert.Equal([(paragraph, "CR:30080", "cr_30080", "12")], Assert.Single(repository.Replaced).References.Select(Stored));
     }
 
     [Fact]
@@ -245,7 +261,8 @@ public sealed class NoteReferenceServiceTests
         await Refresh(repository, null, Cr30080.Title);
 
         Assert.Equal([Owner, Colleague], repository.CandidatesRead.Select(read => read.UserId));
-        Assert.Equal([new NoteBlockReference(colleagues, 12, NoteReferenceTypes.Cr, 30080, "CR 30080")], Assert.Single(repository.Replaced).References);
+        Assert.Equal([(own, "CR:30080", "CR 30080", "12,15"), (colleagues, "CR:30080", "CR 30080", "12")],
+            Assert.Single(repository.Replaced).References.Select(Stored));
     }
 
     [Fact]
@@ -258,7 +275,7 @@ public sealed class NoteReferenceServiceTests
 
         var replaced = Assert.Single(repository.Replaced);
         Assert.Equal(["BUG:1234"], replaced.NormalizedReferences);
-        Assert.Equal([13], replaced.References.Select(reference => reference.TargetNoteId));
+        Assert.Equal(["13"], replaced.References.Select(reference => Stored(reference).Notes));
     }
 
     [Fact]
@@ -285,7 +302,8 @@ public sealed class NoteReferenceServiceTests
 
         await Refresh(repository, null, Cr30080.Title);
 
-        // The second attempt fails as well: the deletion that caused it refreshes the same references.
+        // The second attempt fails as well: the rows stay as they were (a deletion takes its own rows away) until the next
+        // save of a paragraph or of a title.
         Assert.Equal(2, repository.SourcesRead.Count);
         Assert.Equal(2, repository.Replaced.Count);
     }
@@ -306,16 +324,20 @@ public sealed class NoteReferenceServiceTests
     public async Task EveryPlaceAParagraphWritesAStoredReferenceIsALink()
     {
         Guid first = Guid.NewGuid(), second = Guid.NewGuid();
-        var repository = new StubRepository { Targets = [new(first, "CR:30080", Cr30080), new(second, "BUG:1234", Bug1234)] };
+        // CR 30080 of the first paragraph opens notes 15 and 12, bug 1234 of the second note 13.
+        var repository = new StubRepository
+        {
+            Targets = [new(first, "CR:30080", Test30080), new(first, "CR:30080", Cr30080), new(second, "BUG:1234", Bug1234)]
+        };
         var document = Document(("CR 30080; cr-30080 și CR_30080, dar nu bug 30080", first), ("bug1234 și CR 30080", second), ("Fără", Guid.NewGuid()));
 
         var opened = await new NoteReferenceService(repository, Time).WithLinksAsync(document, Colleague, CancellationToken.None);
 
-        Assert.Equal([new NoteReferenceLink(0, 8, 12), new NoteReferenceLink(10, 8, 12), new NoteReferenceLink(22, 8, 12)], opened.Blocks[0].Links);
+        Assert.Equal([(0, 8, "12,15"), (10, 8, "12,15"), (22, 8, "12,15")], opened.Blocks[0].Links!.Select(Shown));
         // In the second paragraph only bug 1234 is stored; its CR 30080 has no link there.
-        Assert.Equal([new NoteReferenceLink(0, 7, 13)], opened.Blocks[1].Links);
+        Assert.Equal([(0, 7, "13")], opened.Blocks[1].Links!.Select(Shown));
         Assert.Empty(opened.Blocks[2].Links!);
-        Assert.Equal([Cr30080, Bug1234], opened.References);
+        Assert.Equal([Cr30080, Bug1234, Test30080], opened.References);
         Assert.Equal((7, Colleague), repository.TargetsRead);
     }
 
@@ -339,14 +361,20 @@ public sealed class NoteReferenceServiceTests
         Assert.Same(document, await new NoteReferenceService(new StubRepository(), Time).WithLinksAsync(document, Owner, CancellationToken.None));
     }
 
-    private static Task<NoteReferenceResolution> Resolve(StubRepository repository, (Guid Id, string Content) paragraph,
-        int noteId = 7, string? title = "Jurnal") =>
-        Resolve(repository, [paragraph], noteId, title);
+    private static Task<NoteReferenceResolution> Resolve(StubRepository repository, (Guid Id, string Content) paragraph, int noteId = 7) =>
+        Resolve(repository, [paragraph], noteId);
 
-    private static Task<NoteReferenceResolution> Resolve(StubRepository repository, (Guid Id, string Content)[] paragraphs,
-        int noteId = 7, string? title = "Jurnal") =>
-        new NoteReferenceService(repository, Time).ResolveAsync(Owner, 5, noteId, title,
+    private static Task<NoteReferenceResolution> Resolve(StubRepository repository, (Guid Id, string Content)[] paragraphs, int noteId = 7) =>
+        new NoteReferenceService(repository, Time).ResolveAsync(Owner, 5, noteId,
             paragraphs.Select(paragraph => new NoteBlockInput(paragraph.Id, paragraph.Content)).ToList(), CancellationToken.None);
+
+    // A stored reference as the tests compare it: its paragraph, reference and text, and its notes in order ("12,15").
+    private static (Guid Paragraph, string Reference, string Text, string Notes) Stored(NoteBlockReference reference) =>
+        (reference.NoteBlockId, reference.NormalizedReference, reference.ReferenceText, string.Join(",", reference.TargetNoteIds));
+
+    // A link as the tests compare it: where it is and the notes it opens, in order.
+    private static (int Start, int Length, string Notes) Shown(NoteReferenceLink link) =>
+        (link.Start, link.Length, string.Join(",", link.TargetNoteIds));
 
     private static Task Refresh(StubRepository repository, string? previousTitle, string? title) =>
         new NoteReferenceService(repository, Time).RefreshAsync(5, previousTitle, title, CancellationToken.None);

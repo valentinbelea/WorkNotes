@@ -5,11 +5,11 @@ namespace WorkNotes.Business.Services;
 
 public sealed class NoteReferenceService(INoteReferenceRepository references, TimeProvider time) : INoteReferenceService
 {
-    // A refresh whose target disappeared meanwhile is read and resolved again, once: the deletion refreshes those
-    // references itself.
+    // A refresh one of whose notes was deleted meanwhile is read and resolved again, once: the deletion itself takes away
+    // the rows that open the deleted note.
     private const int RefreshAttempts = 2;
 
-    public async Task<NoteReferenceResolution> ResolveAsync(string ownerUserId, int contextId, int noteId, string? title,
+    public async Task<NoteReferenceResolution> ResolveAsync(string ownerUserId, int contextId, int noteId,
         IReadOnlyList<NoteBlockInput> paragraphs, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
@@ -23,13 +23,12 @@ public sealed class NoteReferenceService(INoteReferenceRepository references, Ti
 
         var numbers = found.SelectMany(paragraph => paragraph.Matches).Select(match => match.ReferenceNumber).Distinct().ToList();
         var candidates = await references.GetCandidatesAsync(ownerUserId, contextId, numbers, cancellationToken);
-        // The note itself counts with the title it is saved with, not the one it had.
+        // The note itself is never a target, whatever its title.
         var titles = NoteReferenceRules.NotesByTitleReference(candidates
             .Where(candidate => candidate.Id != noteId)
-            .Select(candidate => (candidate.Id, candidate.Title))
-            .Append((noteId, title)));
+            .Select(candidate => (candidate.Id, candidate.Title)));
         var stored = found.SelectMany(paragraph => ReferencesOf(paragraph.Id, noteId, paragraph.Matches, titles)).ToList();
-        var targetIds = stored.Select(reference => reference.TargetNoteId).ToHashSet();
+        var targetIds = stored.SelectMany(reference => reference.TargetNoteIds).ToHashSet();
         return new(stored, candidates.Where(candidate => targetIds.Contains(candidate.Id)).ToList());
     }
 
@@ -74,24 +73,28 @@ public sealed class NoteReferenceService(INoteReferenceRepository references, Ti
         cancellationToken.ThrowIfCancellationRequested();
         var stored = await references.GetTargetsAsync(document.Id, userId, cancellationToken);
         if (stored.Count == 0) return document;
-        var targets = new Dictionary<(Guid, string), NoteReferenceTarget>();
-        foreach (var reference in stored) targets.TryAdd((reference.NoteBlockId, reference.NormalizedReference), reference.Target);
+        // Each stored reference of a paragraph with the notes it opens for the user, in the order of their ids.
+        var targets = stored
+            .GroupBy(reference => (reference.NoteBlockId, reference.NormalizedReference))
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<int>)group.Select(reference => reference.Target.Id).Distinct().Order().ToList());
         var blocks = document.Blocks
             .Select(block => block with
             {
                 Links = NoteReferenceRules.LinksIn(block.Content,
-                    normalized => targets.TryGetValue((block.Id, normalized), out var target) ? target.Id : null)
+                    normalized => targets.TryGetValue((block.Id, normalized), out var targetNoteIds) ? targetNoteIds : [])
             })
             .ToList();
-        var shown = blocks.SelectMany(block => block.Links!).Select(link => link.TargetNoteId).ToHashSet();
+        var shown = blocks.SelectMany(block => block.Links!).SelectMany(link => link.TargetNoteIds).ToHashSet();
         return document with
         {
             Blocks = blocks,
-            References = targets.Values.Where(target => shown.Contains(target.Id)).DistinctBy(target => target.Id).ToList()
+            References = stored.Select(reference => reference.Target).DistinctBy(target => target.Id)
+                .Where(target => shown.Contains(target.Id)).OrderBy(target => target.Id).ToList()
         };
     }
 
-    // One stored reference for each reference of a paragraph that opens a note, with the text it is first written with.
+    // One stored reference for each reference of a paragraph that opens at least one note, with the text it is first
+    // written with and all the notes it opens.
     private static IEnumerable<NoteBlockReference> ReferencesOf(Guid blockId, int noteId, IEnumerable<NoteReferenceMatch> matches,
         IReadOnlyDictionary<string, IReadOnlyList<int>> titles)
     {
@@ -99,8 +102,9 @@ public sealed class NoteReferenceService(INoteReferenceRepository references, Ti
         foreach (var match in matches)
         {
             if (!seen.Add(match.NormalizedReference)) continue;
-            if (NoteReferenceRules.TargetOf(titles, match.NormalizedReference, noteId) is { } targetNoteId)
-                yield return new NoteBlockReference(blockId, targetNoteId, match.ReferenceType, match.ReferenceNumber, match.Text);
+            var targetNoteIds = NoteReferenceRules.TargetsOf(titles, match.NormalizedReference, noteId);
+            if (targetNoteIds.Count > 0)
+                yield return new NoteBlockReference(blockId, match.ReferenceType, match.ReferenceNumber, match.Text, targetNoteIds);
         }
     }
 

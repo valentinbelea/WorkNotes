@@ -102,11 +102,11 @@ function matchParagraphs(state) {
 // Paragraphs without a known id are new and get one now.
 export const identifyParagraphs = state => matchParagraphs(state).map(item => ({ ...item, id: item.id ?? newId() }));
 
-// A paragraph's links (from and to within its text, as the server sends them) in document positions, for a paragraph
-// that starts at from; a link that does not fit the paragraph is left out.
+// A paragraph's links (from and to within its text, as the server sends them, with the notes each opens) in document
+// positions, for a paragraph that starts at from; a link that does not fit the paragraph is left out.
 const linksAt = (from, links, length) => (links ?? [])
     .filter(link => link.from >= 0 && link.to > link.from && link.to <= length)
-    .map(link => ({ from: from + link.from, to: from + link.to, note: link.note }));
+    .map(link => ({ from: from + link.from, to: from + link.to, notes: link.notes }));
 
 // ---- Paragraph under the mouse -----------------------------------------------------------------------------
 
@@ -291,8 +291,8 @@ function createNoteEditor(panel, data, shared) {
         placeholder(texts.placeholder),
         EditorState.phrases.of(shared.phrases),
         EditorView.contentAttributes.of({ "aria-label": texts.content }),
-        // Before the default keys: Ctrl+Enter on a link opens its note.
-        noteReferences({ links: initialLinks, targets: data.references ?? [], open: id => shared.openNote(id) }),
+        // Before the default keys: Ctrl+Enter on a link opens its notes.
+        noteReferences({ links: initialLinks, targets: data.references ?? [], open: ids => shared.openNotes(ids) }),
         keymap.of([...searchKeymap, ...historyKeymap, ...defaultKeymap]),
         EditorView.updateListener.of(update => {
             if (update.docChanged) updateStatus();
@@ -338,8 +338,8 @@ function initializeEditorWindow(dialog, settings) {
         phrases: settings.phrases,
         messages: dialog.querySelector("[data-editor-messages]"),
         token: dialog.querySelector("input[name='__RequestVerificationToken']")?.value ?? "",
-        // A link opens its note in a tab of this window, like a note opened from the board.
-        openNote: id => openNote(String(id))
+        // A link opens its notes in tabs of this window, like notes opened from the board.
+        openNotes: ids => openNotes(ids.map(String))
     };
     const windowPanel = dialog.querySelector("[data-editor-window]");
     const tabList = dialog.querySelector("[data-editor-tabs]");
@@ -422,10 +422,11 @@ function initializeEditorWindow(dialog, settings) {
     }
 
     // A note opened from the board or from a reference: its tab if it is already open, otherwise a new tab fetched from
-    // the server. The other tabs keep everything, unsaved changes included. False when the note could not be opened.
-    async function openNote(id) {
+    // the server. The other tabs keep everything, unsaved changes included. With show false the tab is only added (or
+    // left as it is), hidden behind the active one. False when the note could not be opened.
+    async function openNote(id, { show = true } = {}) {
         if (isMinimized()) restore({ focus: false });
-        if (tabs.has(id)) { activate(id); return true; }
+        if (tabs.has(id)) { if (show) activate(id); return true; }
         try {
             const response = await fetch(`${settings.tabUrl}&note=${encodeURIComponent(id)}`, { headers: { Accept: "text/html" } });
             if (!response.ok) throw new Error(String(response.status));
@@ -434,15 +435,34 @@ function initializeEditorWindow(dialog, settings) {
             const item = fragment.content.querySelector("[data-editor-tab]");
             const panel = fragment.content.querySelector("[data-editor-panel]");
             if (!item || !panel) throw new Error("fragment");
-            if (tabs.has(id)) { activate(id); return true; } // opened twice while loading
+            if (tabs.has(id)) { if (show) activate(id); return true; } // opened twice while loading
+            if (!show) {
+                // Not the selected tab: its panel stays hidden until the tab is chosen.
+                item.querySelector("[data-editor-tab-select]").setAttribute("aria-selected", "false");
+                item.querySelector("[data-editor-tab-select]").tabIndex = -1;
+                panel.hidden = true;
+            }
             tabList.append(item);
             panels.append(panel);
-            activate(addTab(item, panel));
+            const added = addTab(item, panel);
+            if (show) activate(added);
             return true;
         } catch {
             showStatusMessage(shared.messages, "error", shared.texts.openFailed);
             return false;
         }
+    }
+
+    // A reference's notes, in order: each gets its tab (an open note keeps its own), then the first one that opened is
+    // shown. One note is the same as opening it from the board.
+    async function openNotes(ids) {
+        if (ids.length === 1) return openNote(ids[0]);
+        let first = null;
+        for (const id of ids) {
+            if (await openNote(id, { show: false }) && first === null) first = id;
+        }
+        if (first !== null) activate(first);
+        return first !== null;
     }
 
     function minimize() {

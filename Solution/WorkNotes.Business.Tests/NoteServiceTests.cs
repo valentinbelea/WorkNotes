@@ -464,12 +464,13 @@ public sealed class NoteServiceTests
     }
 
     private static readonly NoteReferenceTarget Cr30080 = new(12, "CR 30080 Export facturi", NoteTypes.Article);
+    private static readonly NoteReferenceTarget Test30080 = new(15, "Testare cr-30080", NoteTypes.Journal);
 
     [Fact]
     public async Task TheReferencesResolvedForTheOwnerAreSavedWithTheParagraphs()
     {
         var paragraph = Guid.NewGuid();
-        var resolution = new NoteReferenceResolution([new(paragraph, 12, NoteReferenceTypes.Cr, 30080, "CR 30080")], [Cr30080]);
+        var resolution = new NoteReferenceResolution([new(paragraph, NoteReferenceTypes.Cr, 30080, "CR 30080", [12])], [Cr30080]);
         var notes = new StubNotes(document: Document());
         var references = new StubReferences(resolution);
         var service = new NoteService(notes, new StubContexts(), references, UtcTime);
@@ -478,9 +479,10 @@ public sealed class NoteServiceTests
 
         // The references are read from the text as it is stored, for the note's owner and board.
         var resolved = references.Resolved!.Value;
-        Assert.Equal((User, 5, 7, "Titlu"), (resolved.OwnerUserId, resolved.ContextId, resolved.NoteId, resolved.Title));
+        Assert.Equal((User, 5, 7), (resolved.OwnerUserId, resolved.ContextId, resolved.NoteId));
         Assert.Equal([new NoteBlockInput(paragraph, "Vezi CR 30080")], resolved.Paragraphs);
         Assert.Equal(resolution.References, notes.Saved!.References);
+        Assert.Equal("Titlu", notes.Saved.Title);
         // The title did not change: no other paragraph can name the note differently.
         Assert.Empty(references.Refreshed);
     }
@@ -490,7 +492,8 @@ public sealed class NoteServiceTests
     {
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();
-        var resolution = new NoteReferenceResolution([new(first, 12, NoteReferenceTypes.Cr, 30080, "CR 30080")], [Cr30080]);
+        // CR 30080 opens two notes.
+        var resolution = new NoteReferenceResolution([new(first, NoteReferenceTypes.Cr, 30080, "CR 30080", [12, 15])], [Cr30080, Test30080]);
         var saved = new NoteSaveResult(NoteSaveStatus.Saved, "v2", [new(first, DateTime.UtcNow, DateTime.UtcNow), new(second, DateTime.UtcNow, DateTime.UtcNow)]);
         var notes = new StubNotes(document: Document(), saveResult: saved);
         var service = new NoteService(notes, new StubContexts(), new StubReferences(resolution), UtcTime);
@@ -498,9 +501,11 @@ public sealed class NoteServiceTests
         var result = await service.SaveAsync(User, 7, "v1", "Titlu",
             [new(first, "CR 30080, apoi cr_30080 și bug 30080"), new(second, "CR 30080 fără referință stocată")], CancellationToken.None);
 
-        Assert.Equal([new NoteReferenceLink(0, 8, 12), new NoteReferenceLink(15, 8, 12)], result.Blocks![0].Links);
+        var links = result.Blocks![0].Links!;
+        Assert.Equal([(0, 8), (15, 8)], links.Select(link => (link.Start, link.Length)));
+        Assert.All(links, link => Assert.Equal([12, 15], link.TargetNoteIds));
         Assert.Empty(result.Blocks[1].Links!);
-        Assert.Equal([Cr30080], result.References);
+        Assert.Equal([Cr30080, Test30080], result.References);
     }
 
     [Fact]
@@ -582,18 +587,20 @@ public sealed class NoteServiceTests
     }
 
     [Fact]
-    public async Task ADeletedNoteRefreshesTheReferencesItsTitleNamed()
+    public async Task ADeletedNoteResolvesNoReference()
     {
+        // The deletion takes away the stored rows that open the note; the other notes of those references stay.
         var references = new StubReferences();
         var notes = new StubNotes(summary: Note(7, NoteTypes.Article, September) with { Title = "CR 30080" });
         var service = new NoteService(notes, new StubContexts(), references, UtcTime);
 
         Assert.Equal(NoteDeleteStatus.Deleted, await service.DeleteAsync(User, 7, CancellationToken.None));
-        Assert.Equal([(5, "CR 30080", null)], references.Refreshed);
+        Assert.Equal((7, User), notes.Deleted);
+        Assert.Empty(references.Refreshed);
     }
 
     [Fact]
-    public async Task ANoteThatIsNotDeletedRefreshesNothing()
+    public async Task ANoteThatIsNotDeletedIsNotFound()
     {
         var references = new StubReferences();
         var notes = new StubNotes(summary: Note(7, NoteTypes.Article, September) with { Title = "CR 30080" }, deleted: false);
@@ -699,14 +706,14 @@ public sealed class NoteServiceTests
     // Records what NoteService asks of the references; WithLinksAsync marks the document it was given.
     private sealed class StubReferences(NoteReferenceResolution? resolution = null) : INoteReferenceService
     {
-        public (string OwnerUserId, int ContextId, int NoteId, string? Title, IReadOnlyList<NoteBlockInput> Paragraphs)? Resolved { get; private set; }
+        public (string OwnerUserId, int ContextId, int NoteId, IReadOnlyList<NoteBlockInput> Paragraphs)? Resolved { get; private set; }
         public List<(int ContextId, string? PreviousTitle, string? Title)> Refreshed { get; } = [];
         public (int NoteId, string UserId)? Linked { get; private set; }
 
-        public Task<NoteReferenceResolution> ResolveAsync(string ownerUserId, int contextId, int noteId, string? title,
+        public Task<NoteReferenceResolution> ResolveAsync(string ownerUserId, int contextId, int noteId,
             IReadOnlyList<NoteBlockInput> paragraphs, CancellationToken cancellationToken)
         {
-            Resolved = (ownerUserId, contextId, noteId, title, paragraphs);
+            Resolved = (ownerUserId, contextId, noteId, paragraphs);
             return Task.FromResult(resolution ?? new NoteReferenceResolution([], []));
         }
 

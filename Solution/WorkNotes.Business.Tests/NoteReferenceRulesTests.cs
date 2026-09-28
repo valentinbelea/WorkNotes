@@ -147,16 +147,19 @@ public sealed class NoteReferenceRulesTests
         Assert.Equal([12], NoteReferenceRules.NotesByTitleReference([(12, "CR 30080 (CR-30080)")])["CR:30080"]);
 
     [Fact]
-    public void AReferenceOpensTheOnlyOtherNoteWithItInItsTitle()
+    public void AReferenceOpensEveryOtherNoteWithItInItsTitle()
     {
-        var titles = NoteReferenceRules.NotesByTitleReference([(12, "CR 30080"), (13, "bug 30080"), (14, "CR 512"), (15, "Testare CR 512"), (7, "CR 777")]);
+        var titles = NoteReferenceRules.NotesByTitleReference(
+            [(12, "CR 30080"), (13, "bug 30080"), (15, "Testare CR 512"), (14, "CR 512"), (7, "CR 777 și CR 512")]);
 
-        Assert.Equal(12, NoteReferenceRules.TargetOf(titles, "CR:30080", 7));
-        Assert.Equal(13, NoteReferenceRules.TargetOf(titles, "BUG:30080", 7));
-        // No note, several notes, or only the note itself: no link.
-        Assert.Null(NoteReferenceRules.TargetOf(titles, "CR:9999", 7));
-        Assert.Null(NoteReferenceRules.TargetOf(titles, "CR:512", 7));
-        Assert.Null(NoteReferenceRules.TargetOf(titles, "CR:777", 7));
+        Assert.Equal([12], NoteReferenceRules.TargetsOf(titles, "CR:30080", 7));
+        Assert.Equal([13], NoteReferenceRules.TargetsOf(titles, "BUG:30080", 7));
+        // Several notes: all of them, in the order of their ids; the note itself is never one of them.
+        Assert.Equal([14, 15], NoteReferenceRules.TargetsOf(titles, "CR:512", 7));
+        Assert.Equal([7, 15], NoteReferenceRules.TargetsOf(titles, "CR:512", 14));
+        // No note, or only the note itself: no link.
+        Assert.Empty(NoteReferenceRules.TargetsOf(titles, "CR:9999", 7));
+        Assert.Empty(NoteReferenceRules.TargetsOf(titles, "CR:777", 7));
     }
 
     [Fact]
@@ -164,9 +167,11 @@ public sealed class NoteReferenceRulesTests
     {
         const string text = "CR 30080, cr-30080 și CR_30080; bug 30080 nu.";
 
-        var links = NoteReferenceRules.LinksIn(text, normalized => normalized == "CR:30080" ? 12 : null);
+        var links = NoteReferenceRules.LinksIn(text, normalized => normalized == "CR:30080" ? [12, 15] : []);
 
-        Assert.Equal([new NoteReferenceLink(0, 8, 12), new NoteReferenceLink(10, 8, 12), new NoteReferenceLink(22, 8, 12)], links);
+        Assert.Equal([(0, 8), (10, 8), (22, 8)], links.Select(link => (link.Start, link.Length)));
         Assert.Equal(["CR 30080", "cr-30080", "CR_30080"], links.Select(link => text.Substring(link.Start, link.Length)));
+        // Each place opens all the notes of the reference.
+        Assert.All(links, link => Assert.Equal([12, 15], link.TargetNoteIds));
     }
 }

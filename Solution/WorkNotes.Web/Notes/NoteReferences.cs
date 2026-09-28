@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -20,16 +21,18 @@ public static class NoteReferences
     public static string Label(IStringLocalizer localizer, NoteReferenceTarget target) =>
         localizer["Notes_ReferenceTarget", Title(localizer, target), TypeName(localizer, target.NoteType)].Value;
 
-    // A paragraph's links for note-editor.js: from and to count characters of the paragraph's text.
+    // A paragraph's links for note-editor.js: from and to count characters of the paragraph's text; notes are the notes
+    // the link opens, in order.
     public static IEnumerable<object> Links(IReadOnlyList<NoteReferenceLink>? links) =>
-        (links ?? []).Select(link => new { from = link.Start, to = link.Start + link.Length, note = link.TargetNoteId });
+        (links ?? []).Select(link => new { from = link.Start, to = link.Start + link.Length, notes = link.TargetNoteIds });
 
     // The notes the links open, each with its tooltip.
     public static IEnumerable<object> Targets(IStringLocalizer localizer, IReadOnlyList<NoteReferenceTarget>? targets) =>
         (targets ?? []).Select(target => new { id = target.Id, label = Label(localizer, target) });
 
-    // A paragraph as HTML for reading without JavaScript: the text is encoded; each link is a link to its note
-    // (/?note={id}). Nothing else is added, so the text keeps its own spacing and line breaks.
+    // A paragraph as HTML for reading without JavaScript: the text is encoded; each link is a link to its first note
+    // (/?note={id}), and each other note of the link follows it as a small numbered link (2, 3...), since a link without
+    // JavaScript opens a single note. Nothing else is added, so the text keeps its own spacing and line breaks.
     public static IHtmlContent Html(NoteBlockDetails block, IReadOnlyList<NoteReferenceTarget>? targets, IStringLocalizer localizer, IUrlHelper url)
     {
         var content = new HtmlContentBuilder();
@@ -38,20 +41,35 @@ public static class NoteReferences
         var position = 0;
         foreach (var link in (block.Links ?? []).OrderBy(link => link.Start))
         {
+            var notes = link.TargetNoteIds.Where(known.ContainsKey).Select(id => known[id]).ToList();
             // Links come in text order and never overlap; one that does not fit the text is left out.
-            if (link.Start < position || link.Length <= 0 || link.Start + link.Length > text.Length
-                || !known.TryGetValue(link.TargetNoteId, out var target)) continue;
+            if (link.Start < position || link.Length <= 0 || link.Start + link.Length > text.Length || notes.Count == 0) continue;
             content.Append(text[position..link.Start]);
-            var anchor = new TagBuilder("a");
-            anchor.Attributes["href"] = url.Page("/Index", new { note = link.TargetNoteId });
-            anchor.Attributes["data-note-reference"] = link.TargetNoteId.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            anchor.Attributes["title"] = Label(localizer, target);
-            anchor.AddCssClass("note-reference");
-            anchor.InnerHtml.Append(text.Substring(link.Start, link.Length));
-            content.AppendHtml(anchor);
+            content.AppendHtml(Anchor(notes[0], text.Substring(link.Start, link.Length), localizer, url));
+            for (var index = 1; index < notes.Count; index++)
+            {
+                var more = new TagBuilder("sup");
+                more.AddCssClass("note-reference-more");
+                var anchor = Anchor(notes[index], (index + 1).ToString(CultureInfo.InvariantCulture), localizer, url);
+                // The number alone says nothing: the note's title and type are the link's name.
+                anchor.Attributes["aria-label"] = Label(localizer, notes[index]);
+                more.InnerHtml.AppendHtml(anchor);
+                content.AppendHtml(more);
+            }
             position = link.Start + link.Length;
         }
         content.Append(text[position..]);
         return content;
+    }
+
+    private static TagBuilder Anchor(NoteReferenceTarget target, string text, IStringLocalizer localizer, IUrlHelper url)
+    {
+        var anchor = new TagBuilder("a");
+        anchor.Attributes["href"] = url.Page("/Index", new { note = target.Id });
+        anchor.Attributes["data-note-reference"] = target.Id.ToString(CultureInfo.InvariantCulture);
+        anchor.Attributes["title"] = Label(localizer, target);
+        anchor.AddCssClass("note-reference");
+        anchor.InnerHtml.Append(text);
+        return anchor;
     }
 }
