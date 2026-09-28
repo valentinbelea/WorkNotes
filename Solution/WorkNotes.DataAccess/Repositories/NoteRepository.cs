@@ -207,7 +207,8 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
                 ? new(NoteSaveStatus.Saved, changes.ExpectedVersion, Audit(saved), Utc(note.ModifiedAtUtc))
                 : new(NoteSaveStatus.Conflict);
 
-        await SaveReferencesAsync(note.Id, saved, changes.References, changes.SavedAtUtc, cancellationToken);
+        var workReferenceIds = await WorkReferenceIdsAsync(changes.References, cancellationToken);
+        await SaveReferencesAsync(note.Id, saved, changes.References, workReferenceIds, changes.SavedAtUtc, cancellationToken);
         note.ModifiedAtUtc = changes.SavedAtUtc;
         note.ModifiedByUserId = changes.OwnerUserId;
         // Always update the note row, even when its audit values are unchanged (two saves in the same second):
@@ -234,17 +235,51 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
     // The stored references of the note's paragraphs become those given, saved with the paragraphs. Those of removed
     // paragraphs go with them.
     private async Task SaveReferencesAsync(int noteId, IReadOnlyList<NoteBlockEntity> paragraphs, IReadOnlyList<NoteBlockReference> references,
-        DateTime savedAtUtc, CancellationToken cancellationToken)
+        IReadOnlyDictionary<string, int> workReferenceIds, DateTime savedAtUtc, CancellationToken cancellationToken)
     {
         var byId = paragraphs.ToDictionary(block => block.Id);
         var stored = await dbContext.NoteReferences
             .Include(reference => reference.NoteReferenceTargets)
             .Where(reference => reference.NoteBlock.NoteId == noteId)
             .ToListAsync(cancellationToken);
-        Replace(stored, references.Where(reference => byId.ContainsKey(reference.NoteBlockId)), savedAtUtc,
+        Replace(stored, references.Where(reference => byId.ContainsKey(reference.NoteBlockId)), workReferenceIds, savedAtUtc,
             // Through the paragraph, so a new paragraph is inserted before its references.
-            reference => byId[reference.NoteBlockId].NoteReferences.Add(NewReference(reference, savedAtUtc)));
+            reference => byId[reference.NoteBlockId].NoteReferences.Add(NewReference(reference, workReferenceIds, savedAtUtc)));
     }
+
+    // The ids of the references in dbo.WorkReferences, which has every stored reference once, by its type and number: a
+    // reference is added there the first time a paragraph stores it, and keeps its row (and id) when no paragraph writes
+    // it any more. A row is added by SQL, not through the change tracker, with UPDLOCK and HOLDLOCK, so two saves adding
+    // the same reference at once add it once; a row added for a save that then fails stays, as a known reference. The
+    // missing ones are added in the order of their keys, so two transactions adding the same ones lock them in the same
+    // order (no deadlock).
+    private async Task<IReadOnlyDictionary<string, int>> WorkReferenceIdsAsync(IEnumerable<NoteBlockReference> references,
+        CancellationToken cancellationToken)
+    {
+        var wanted = references.DistinctBy(reference => reference.NormalizedReference, StringComparer.Ordinal).ToList();
+        if (wanted.Count == 0) return new Dictionary<string, int>(StringComparer.Ordinal);
+        var keys = wanted.Select(reference => reference.NormalizedReference).ToList();
+        var ids = await ReadWorkReferenceIdsAsync(keys, cancellationToken);
+        var missing = wanted.Where(reference => !ids.ContainsKey(reference.NormalizedReference)).ToList();
+        if (missing.Count == 0) return ids;
+        foreach (var reference in missing.OrderBy(reference => reference.NormalizedReference, StringComparer.Ordinal))
+        {
+            await dbContext.Database.ExecuteSqlAsync($"""
+                INSERT INTO [dbo].[WorkReferences] ([ReferenceType], [ReferenceNumber], [NormalizedReference])
+                SELECT {reference.ReferenceType}, {reference.ReferenceNumber}, {reference.NormalizedReference}
+                WHERE NOT EXISTS (SELECT 1 FROM [dbo].[WorkReferences] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [ReferenceType] = {reference.ReferenceType} AND [ReferenceNumber] = {reference.ReferenceNumber})
+                """, cancellationToken);
+        }
+        return await ReadWorkReferenceIdsAsync(keys, cancellationToken);
+    }
+
+    private Task<Dictionary<string, int>> ReadWorkReferenceIdsAsync(List<string> normalizedReferences, CancellationToken cancellationToken) =>
+        dbContext.WorkReferences
+            .AsNoTracking()
+            .Where(reference => normalizedReferences.Contains(reference.NormalizedReference))
+            .Select(reference => new { reference.NormalizedReference, reference.Id })
+            .ToDictionaryAsync(reference => reference.NormalizedReference, reference => reference.Id, StringComparer.Ordinal, cancellationToken);
 
     public async Task<IReadOnlyList<NoteReferenceTarget>> GetCandidatesAsync(string userId, int contextId, IReadOnlyCollection<long> numbers,
         CancellationToken cancellationToken)
@@ -297,8 +332,10 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
                 .Where(reference => unchanged.Contains(reference.NoteBlockId) && keys.Contains(reference.NormalizedReference))
                 .ToListAsync(cancellationToken);
             var kept = unchanged.ToHashSet();
-            Replace(stored, references.Where(reference => kept.Contains(reference.NoteBlockId) && keys.Contains(reference.NormalizedReference)),
-                savedAtUtc, reference => dbContext.NoteReferences.Add(NewReference(reference, savedAtUtc)));
+            var wanted = references.Where(reference => kept.Contains(reference.NoteBlockId) && keys.Contains(reference.NormalizedReference)).ToList();
+            var workReferenceIds = await WorkReferenceIdsAsync(wanted, cancellationToken);
+            Replace(stored, wanted, workReferenceIds, savedAtUtc,
+                reference => dbContext.NoteReferences.Add(NewReference(reference, workReferenceIds, savedAtUtc)));
             await dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return true;
@@ -326,9 +363,10 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
 
     // The stored references (read with their notes) become the wanted ones: the others are removed with their notes; a
     // kept one (same paragraph and reference) takes the text it is now first written with, and its notes become the
-    // wanted ones (a kept note keeps its creation time, a new one gets savedAtUtc); the missing ones are added.
-    private void Replace(IEnumerable<NoteReferenceEntity> stored, IEnumerable<NoteBlockReference> wanted, DateTime savedAtUtc,
-        Action<NoteBlockReference> add)
+    // wanted ones (a kept note keeps its creation time, a new one gets savedAtUtc); the missing ones are added. Each has
+    // the id of its reference in dbo.WorkReferences.
+    private void Replace(IEnumerable<NoteReferenceEntity> stored, IEnumerable<NoteBlockReference> wanted,
+        IReadOnlyDictionary<string, int> workReferenceIds, DateTime savedAtUtc, Action<NoteBlockReference> add)
     {
         var missing = new Dictionary<(Guid, string), NoteBlockReference>();
         foreach (var reference in wanted) missing.TryAdd((reference.NoteBlockId, reference.NormalizedReference), reference);
@@ -340,6 +378,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
                 continue;
             }
             entity.ReferenceText = reference.ReferenceText;
+            entity.WorkReferenceId = workReferenceIds[reference.NormalizedReference];
             var targetNoteIds = reference.TargetNoteIds.ToHashSet();
             foreach (var target in entity.NoteReferenceTargets.ToList())
             {
@@ -350,9 +389,11 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         foreach (var reference in missing.Values) add(reference);
     }
 
-    private static NoteReferenceEntity NewReference(NoteBlockReference reference, DateTime savedAtUtc) => new()
+    private static NoteReferenceEntity NewReference(NoteBlockReference reference, IReadOnlyDictionary<string, int> workReferenceIds,
+        DateTime savedAtUtc) => new()
     {
         NoteBlockId = reference.NoteBlockId,
+        WorkReferenceId = workReferenceIds[reference.NormalizedReference],
         ReferenceType = reference.ReferenceType,
         ReferenceNumber = reference.ReferenceNumber,
         ReferenceText = reference.ReferenceText,

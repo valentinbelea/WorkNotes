@@ -19,7 +19,11 @@ public partial class NoteReference
 
     public DateTime CreatedAtUtc { get; set; }
 
+    public int WorkReferenceId { get; set; }
+
     public virtual NoteBlock NoteBlock { get; set; } = null!;
 
     public virtual ICollection<NoteReferenceTarget> NoteReferenceTargets { get; set; } = new List<NoteReferenceTarget>();
+
+    public virtual WorkReference WorkReference { get; set; } = null!;
 }

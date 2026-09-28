@@ -26,6 +26,8 @@ public partial class WorkNotesDbContext : DbContext
 
     public virtual DbSet<WorkContext> WorkContexts { get; set; }
 
+    public virtual DbSet<WorkReference> WorkReferences { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ContextMember>(entity =>
@@ -106,6 +108,8 @@ public partial class WorkNotesDbContext : DbContext
         {
             entity.HasIndex(e => e.NormalizedReference, "IX_NoteReferences_NormalizedReference");
 
+            entity.HasIndex(e => e.WorkReferenceId, "IX_NoteReferences_WorkReferenceId");
+
             entity.HasIndex(e => new { e.NoteBlockId, e.NormalizedReference }, "UX_NoteReferences_NoteBlockId_NormalizedReference").IsUnique();
 
             entity.Property(e => e.CreatedAtUtc)
@@ -116,6 +120,10 @@ public partial class WorkNotesDbContext : DbContext
             entity.Property(e => e.ReferenceType).HasMaxLength(20);
 
             entity.HasOne(d => d.NoteBlock).WithMany(p => p.NoteReferences).HasForeignKey(d => d.NoteBlockId);
+
+            entity.HasOne(d => d.WorkReference).WithMany(p => p.NoteReferences)
+                .HasForeignKey(d => d.WorkReferenceId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<NoteReferenceTarget>(entity =>
@@ -141,6 +149,19 @@ public partial class WorkNotesDbContext : DbContext
 
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Name).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<WorkReference>(entity =>
+        {
+            entity.HasIndex(e => e.NormalizedReference, "UX_WorkReferences_NormalizedReference").IsUnique();
+
+            entity.HasIndex(e => new { e.ReferenceType, e.ReferenceNumber }, "UX_WorkReferences_ReferenceType_ReferenceNumber").IsUnique();
+
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_WorkReferences_CreatedAtUtc");
+            entity.Property(e => e.NormalizedReference).HasMaxLength(30);
+            entity.Property(e => e.ReferenceType).HasMaxLength(20);
         });
 
         OnModelCreatingPartial(modelBuilder);

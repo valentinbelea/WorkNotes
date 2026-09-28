@@ -12,9 +12,10 @@ public interface INoteRepository
     Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken);
     // Applies the changes to a note owned by changes.OwnerUserId: kept paragraphs keep id and creation audit,
     // changed ones get a new modification audit, missing ones are removed with their stored references. In the same
-    // transaction the stored references of its paragraphs become changes.References, each with its notes: those no longer
-    // there go, new ones are added, the others stay (with their creation time). Conflict when the version is stale, or
-    // when a note a reference opens was deleted meanwhile (nothing is saved).
+    // transaction the stored references of its paragraphs become changes.References, each with its notes and with the id
+    // of its reference in the catalog of references (added there the first time): those no longer there go, new ones are
+    // added, the others stay (with their creation time). Conflict when the version is stale, or when a note a reference
+    // opens was deleted meanwhile (nothing is saved).
     Task<NoteSaveResult> SaveAsync(NoteChanges changes, CancellationToken cancellationToken);
     // One card of the board, when the user may see the note (same rule as the board).
     Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken);
