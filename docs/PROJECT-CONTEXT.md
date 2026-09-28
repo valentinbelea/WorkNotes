@@ -19,7 +19,7 @@ WorkNotes este un caiet de lucru pentru munca de zi cu zi pe proiecte: jurnalul 
 ## Evidența CR-urilor și a bugurilor
 
 - Astăzi, un CR sau un bug se documentează într-un articol (de exemplu articolul „CR 30042”), iar jurnalele îl menționează în text.
-- Planificat: catalogul de referințe de lucru pe context (`WorkReferences`, tipurile `CR` și `Bug`) și asocierea lor cu notele și paragrafele, pentru căutarea tuturor explicațiilor după codul CR-ului ([DOMAIN-MODEL.md](DOMAIN-MODEL.md#entități-planificate)).
+- Planificat: pagina catalogului de referințe de lucru (`WorkReferences`, tipurile `CR` și `BUG`; tabela există din PR #4, comună tuturor contextelor) și asocierea referințelor cu notele și paragrafele, pentru căutarea tuturor explicațiilor după codul CR-ului ([DOMAIN-MODEL.md](DOMAIN-MODEL.md#entități-planificate)).
 - În dezvoltare (PR #4): referințe interne între note — un CR sau un bug scris într-un paragraf (`CR 30080`, `CR-30080`, `bug_1234`…) deschide notele aceluiași context care îl au în titlu (de exemplu `CR_30080` din jurnalul „CRs” către articolul „CR 30080 Export facturi”); când mai multe note au CR-ul în titlu, le deschide pe toate.
 
 ## Branch-uri, versiuni și publish-uri

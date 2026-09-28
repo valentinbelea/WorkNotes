@@ -18,7 +18,7 @@ Utilizator ──membru (Owner / Member)──► Context de lucru ──conțin
 | Notă | implementată | `NoteSummary`, `NoteDocument`, `NewNote`, `NoteRules`, `NoteTypes`, `NoteVisibilities` | `Notes` |
 | Paragraf (bloc) | implementată | `NoteBlockDetails`, `NoteBlockInput`, `NoteBlockAudit` | `NoteBlocks` |
 | Versiunea bazei | implementată | `ApplicationVersionService` | `DatabaseVersion` |
-| Referință internă între note | în dezvoltare (PR #4) | `NoteReferenceRules`, `NoteReferenceTypes`, `NoteReferenceMatch`, `NoteBlockReference`, `INoteReferenceService` (PR #4) | `NoteReferences`, `NoteReferenceTargets` (PR #4) |
+| Referință internă între note | în dezvoltare (PR #4) | `NoteReferenceRules`, `NoteReferenceTypes`, `NoteReferenceMatch`, `NoteBlockReference`, `INoteReferenceService` (PR #4) | `NoteReferences`, `NoteReferenceTargets`, `WorkReferences` (PR #4) |
 | Referință de lucru, legătură, platformă și modulele ulterioare | planificate | — | — |
 
 Tabla nu este o entitate: este afișarea notelor unui context, grupate pe luni.
@@ -123,6 +123,7 @@ Jurnalul păstrează cronologia, iar articolul adună explicațiile; codul CR-ul
 - Normalizarea: tipul (`CR`, `BUG`, constantele `NoteReferenceTypes`), numărul (fără zerourile de la început) și forma normalizată `CR:30080` / `BUG:1234`, după care se compară referințele; textul original (`CR_30080`) se păstrează. `CR 1234` și `bug 1234` sunt referințe diferite.
 - Notele destinație: titlurile notelor se citesc cu aceleași reguli. O referință dintr-un paragraf deschide toate notele contextului care au referința în titlu, dintre cele pe care proprietarul notei paragrafului le poate vedea (ale lui sau partajate cu contextul), nearhivate, în afară de nota paragrafului: una, două sau mai multe, în ordinea ID-urilor. Fără nicio altă notă, referința rămâne text (fără destinație, inclusiv când numai nota însăși o are în titlu). Contextul rămâne granița de acces.
 - Stocarea: câte un rând în `NoteReferences` pentru fiecare paragraf și referință normalizată cu cel puțin o notă, oricâte apariții ar avea referința în paragraf; rândul păstrează textul primei apariții. Notele pe care le deschide sunt în `NoteReferenceTargets`, câte un rând pe notă (o legătură 1–M). Textul paragrafului nu se modifică niciodată pentru a conține linkul.
+- Catalogul referințelor (`WorkReferences`): fiecare referință stocată apare o singură dată, după tip și număr (cheia unică), cu ID-ul ei; rândul din `NoteReferences` are ID-ul lângă textul referinței (`WorkReferenceId`). O referință intră în catalog prima dată când un paragraf o stochează și rămâne acolo, cu același ID, și după ce niciun paragraf nu o mai scrie. Catalogul este comun tuturor contextelor (conține numai tipul și numărul); referințele fără nicio notă destinație și cele scrise numai în titluri nu intră în el.
 - Actualizarea: salvarea unei note scrie referințele paragrafelor ei, cu notele lor, în aceeași tranzacție cu paragrafele (cele ale paragrafelor șterse dispar, cele noi se adaugă, cele valabile rămân cu data creării). Schimbarea titlului unei note și crearea unei note cu titlu recalculează, în context, referințele pentru formele normalizate pe care titlul le-a câștigat sau le-a pierdut: o notă nouă cu `CR 30080` în titlu se adaugă la notele referinței, iar una care pierde CR-ul din titlu dispare dintre ele. Ștergerea unei note destinație elimină rândurile care o deschideau, iar o referință rămasă fără nicio notă dispare; paragrafele își păstrează textul.
 - Afișarea: fiecare loc din paragraf în care este scrisă o referință stocată, oricare i-ar fi forma, este un link către notele ei pe care cititorul le poate vedea; un click le deschide pe toate. Pozițiile se calculează din text la fiecare afișare, nu se stochează.
 
@@ -132,7 +133,7 @@ Din planul inițial; nu au cod, tabele sau interfață:
 
 | Entitate / tabelă | Rol |
 | --- | --- |
-| Referință de lucru (`WorkReferences`) | Catalogul de CR-uri și buguri dintr-un sistem extern, pe context: `Id`, `ContextId`, `ReferenceType` (`CR`, `Bug`), `Code` (text), `Title` și `ExternalUrl` opționale, audit; unic pe `ContextId + ReferenceType + Code`. URL-urile nu se deduc din cod. |
+| Referință de lucru (`WorkReferences`) | Planul inițial: catalogul de CR-uri și buguri dintr-un sistem extern, pe context (`ContextId`, `Code` text, unic pe `ContextId + ReferenceType + Code`). Din PR #4 catalogul există (`Id`, `ReferenceType`, `ReferenceNumber`, forma normalizată), comun tuturor contextelor, cu cheia unică tip + număr cerută de utilizator; rămân planificate `Title` și `ExternalUrl` opționale și auditul. URL-urile nu se deduc din cod. |
 | `NoteWorkReferences` | O notă (de obicei un articol) ↔ una sau mai multe referințe |
 | `NoteBlockWorkReferences` | Un paragraf ↔ referințele relevante pentru el |
 | Legătură (`NoteLinks`) | URL extern pe notă sau pe paragraf: `NoteId`, `NoteBlockId` opțional, `Url`, `Label` |

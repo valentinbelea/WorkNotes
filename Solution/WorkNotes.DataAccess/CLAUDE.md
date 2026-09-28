@@ -4,7 +4,7 @@ Proiectul de persistență: EF Core pe SQL Server, repository-uri și implementa
 
 ## Conținut
 
-- `Context/WorkNotesDbContext.cs` și `Entities/{DatabaseVersion, WorkContext, ContextMember, Note, NoteBlock}.cs` (cu PR #4 și `NoteReference.cs`, `NoteReferenceTarget.cs`) — generate prin scaffolding; `--force` le suprascrie.
+- `Context/WorkNotesDbContext.cs` și `Entities/{DatabaseVersion, WorkContext, ContextMember, Note, NoteBlock}.cs` (cu PR #4 și `NoteReference.cs`, `NoteReferenceTarget.cs`, `WorkReference.cs`) — generate prin scaffolding; `--force` le suprascrie.
 - `Context/AccountsDbContext.cs` și `Entities/ApplicationUser.cs` — scrise manual (Identity).
 - `Repositories/` — implementările interfețelor din `WorkNotes.Business/Abstractions`.
 - `Identity/` — `IdentityAccountService` (contractele de cont, peste `UserManager` / `SignInManager`) și `AccountClaimsPrincipalFactory`.
@@ -19,6 +19,6 @@ Proiectul de persistență: EF Core pe SQL Server, repository-uri și implementa
 - Citirile folosesc `AsNoTracking` și proiecții în modele Business; entitățile nu ies din proiect. Pentru nume identice folosiți alias-uri (`using NoteEntity = WorkNotes.DataAccess.Entities.Note;`).
 - Toate apelurile EF sunt asincrone și primesc `CancellationToken`; nu există operații concurente pe același DbContext.
 - Erorile SQL așteptate se traduc în coduri de stare: 2601/2627 (unicitate), 547 (cheie externă), `DbUpdateConcurrencyException` (conflict); după eșec, entitatea se detașează sau `ChangeTracker` se golește. Celelalte excepții se propagă.
-- Concurența notelor se face prin `RowVersion` (token Base64 de 8 octeți): salvarea setează valoarea originală și actualizează mereu rândul notei; schimbul ordinii este un singur `UPDATE` condiționat de versiunile ambelor note. `[Order]` se scrie mereu între paranteze drepte în SQL-ul scris manual; ordinea minimă se citește cu `UPDLOCK, HOLDLOCK`, în tranzacție.
+- Concurența notelor se face prin `RowVersion` (token Base64 de 8 octeți): salvarea setează valoarea originală și actualizează mereu rândul notei; schimbul ordinii este un singur `UPDATE` condiționat de versiunile ambelor note. `[Order]` se scrie mereu între paranteze drepte în SQL-ul scris manual; ordinea minimă se citește cu `UPDLOCK, HOLDLOCK`, în tranzacție. PR #4: catalogul `WorkReferences` primește rânduri numai prin `INSERT … WHERE NOT EXISTS` cu `UPDLOCK, HOLDLOCK`, în ordinea formei normalizate; rândurile lui nu se modifică și nu se șterg, iar `NoteReferences.WorkReferenceId` se scrie la fiecare referință stocată.
 - Valorile `datetime2` citite primesc `DateTimeKind.Utc`; `ModifiedAtUtc` egal cu crearea înseamnă notă nemodificată.
 - Lifetime-urile rămân scoped; connection string-ul vine numai din parametrul lui `AddDataAccess`, niciodată din cod.

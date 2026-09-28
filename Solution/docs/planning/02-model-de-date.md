@@ -24,7 +24,10 @@ Abordarea este **Database First**: schema se scrie în scripturi SQL explicite, 
 | 002_CreateNoteReferences | Tabela `NoteReferences` a modelului anterior (nota sursă, nota destinație, numărul); înlocuită de 004 |
 | 003_InsertNoteReferences | Datele tabelei modelului anterior, din textul existent; înlocuit de 004 |
 | 004_ReplaceNoteReferences | Legăturile vechi din text redevin numere; tabela `NoteReferences` pe paragraf, cu cheile și indexurile ei; reindexarea tuturor paragrafelor și listele referințelor fără destinație și ambigue |
-| 005_CreateNoteReferenceTargets | Tabela `NoteReferenceTargets` (notele fiecărei referințe, una sau mai multe); nota fiecărui rând din 004 mutată în ea și coloana `NoteReferences.TargetNoteId` eliminată; reindexarea tuturor paragrafelor și listele referințelor fără notă și cu mai multe note |
+| 005_CreateNoteReferenceTargets | Tabela `NoteReferenceTargets` (notele fiecărei referințe, una sau mai multe); nota fiecărui rând din 004 mutată în ea și coloana `NoteReferences.TargetNoteId` eliminată; reindexarea tuturor paragrafelor și listele referințelor fără notă și cu mai multe note; nu se mai rulează după 008 |
+| 006_CreateWorkReferences | Catalogul `WorkReferences`: fiecare referință, tipul și numărul, o singură dată, cu ID propriu |
+| 007_InsertWorkReferences | Datele catalogului: fiecare tip și număr stocat în `NoteReferences` |
+| 008_UpdateNoteReferencesWorkReferenceId | Coloana `NoteReferences.WorkReferenceId`, completată după tip și număr, obligatorie, cu cheia externă și indexul |
 
 ## Tabele realizate
 
@@ -75,6 +78,7 @@ Textul notei există numai în `NoteBlocks` (nicio copie în `Notes`). Limite: m
 | `ReferenceText` | textul primei apariții în paragraf, ca scris (`CR_30080`) |
 | `NormalizedReference` | `CR:30080` / `BUG:1234`, după care se compară referințele |
 | `CreatedAtUtc` | data la care paragraful a primit referința |
+| `WorkReferenceId` | referința din catalogul `WorkReferences` (fără cascadă) |
 
 Câte un rând pentru fiecare paragraf și referință cu cel puțin o notă (`UX_NoteReferences_NoteBlockId_NormalizedReference`), oricâte apariții ar avea referința în paragraf. Destinațiile sunt toate notele contextului, vizibile proprietarului paragrafului și nearhivate, cu aceeași referință în titlu, în afară de nota paragrafului; fără nicio altă notă, nu există rând. Rândurile se scriu la salvarea notei, în tranzacția paragrafelor, și se recalculează la schimbarea titlului și la crearea unei note; ștergerea unei note își scoate rândurile. `IX_NoteReferences_NormalizedReference` servește căutarea paragrafelor care scriu o referință.
 
@@ -86,6 +90,17 @@ Câte un rând pentru fiecare paragraf și referință cu cel puțin o notă (`U
 | `CreatedAtUtc` | data la care referința a primit nota |
 
 Câte un rând pentru fiecare referință și notă (cheia primară `NoteReferenceId` + `TargetNoteId`). `IX_NoteReferenceTargets_TargetNoteId` servește ștergerea destinației și lista viitoare „Referințe către această notă”.
+
+### WorkReferences
+| Coloană | Rol |
+| --- | --- |
+| `Id` | identitate: ID-ul referinței |
+| `ReferenceType` | `CR` / `BUG` |
+| `ReferenceNumber` | numărul, bigint, fără zerourile de la început |
+| `NormalizedReference` | `CR:30080` / `BUG:1234` |
+| `CreatedAtUtc` | data la care referința a intrat în catalog |
+
+Fiecare referință stocată o singură dată: cheia unică este tipul și numărul (`UX_WorkReferences_ReferenceType_ReferenceNumber`), iar forma normalizată este unică și ea. Catalogul este comun tuturor contextelor; o referință intră în el prima dată când un paragraf o stochează și rămâne, cu același ID, și când niciun paragraf nu o mai scrie.
 
 ## Regulile paragrafelor (confirmate și implementate în editor)
 
@@ -102,7 +117,7 @@ Câte un rând pentru fiecare referință și notă (cheia primară `NoteReferen
 
 | Tabelă | Rol |
 | --- | --- |
-| `WorkReferences` | Catalog de referințe: `Id`, `ContextId`, `ReferenceType` (`CR`, `Bug`), `Code` (text), `Title` și `ExternalUrl` opționale, audit. Unic pe `ContextId + ReferenceType + Code`. URL-urile nu se deduc din cod. |
+| `WorkReferences` | Planul inițial: catalog pe context (`ContextId`, `Code` text, unic pe `ContextId + ReferenceType + Code`). Realizat în PR #4 comun tuturor contextelor, unic pe tip + număr (tabela de mai sus); rămân planificate `Title` și `ExternalUrl` opționale și auditul. URL-urile nu se deduc din cod. |
 | `NoteWorkReferences` | O notă (de obicei un articol) ↔ una sau mai multe referințe |
 | `NoteBlockWorkReferences` | Un paragraf ↔ referințele relevante pentru el |
 | `NoteLinks` | Legături externe: `NoteId`, `NoteBlockId` opțional, `Url`, `Label` |

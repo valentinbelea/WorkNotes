@@ -2,7 +2,7 @@
 
 ## Pașii rămași din planul inițial
 
-1. **WorkReferences**: catalogul de CR-uri și buguri pe context (unic pe `ContextId + ReferenceType + Code`), cu pagina lui.
+1. **WorkReferences**: pagina catalogului de CR-uri și buguri, cu titlul și URL-ul extern ale unei referințe; catalogul există din PR #4, comun tuturor contextelor (unic pe tip + număr).
 2. **Asocieri**: `NoteWorkReferences` (notă ↔ referințe) și `NoteBlockWorkReferences` (paragraf ↔ referințe); căutarea tuturor explicațiilor după codul CR-ului.
 3. **NoteLinks**: legături externe pe notă sau paragraf.
 4. **Platforme** și `NotePlatforms`, dacă intră în prima interfață.
@@ -32,7 +32,7 @@
 - Două note cu aceeași valoare `Order` (posibil numai prin inserări directe în SQL) nu își schimbă locurile prin drag-and-drop; tabla le ordonează după date.
 - Tooltipul unui link (titlul destinației) și linkurile unei note deschise se actualizează la următoarea deschidere sau salvare a notei, nu imediat după redenumirea destinației în alt tab sau în altă fereastră.
 - O referință nou scrisă sau lipită devine link abia după salvare; textul scris într-un link sau lângă el îl ascunde până la salvare; Ctrl+Z nu readuce un link înainte de salvare.
-- Referințele fără destinație nu au niciun semn în editor; le listează `005_CreateNoteReferenceTargets.sql`, rulat din nou.
+- Referințele fără destinație nu au niciun semn în editor; le listează `005_CreateNoteReferenceTargets.sql`, rulat din nou, dar numai înainte de `008`.
 - O referință cu multe note deschide tot atâtea taburi; fără JavaScript, linkul deschide numai prima notă, iar celelalte au câte un link numerotat.
 - Recalcularea după schimbarea unui titlu, crearea sau ștergerea unei note este o tranzacție separată de operație: două operații simultane pe aceeași referință sau o cerere întreruptă între ele pot lăsa o legătură învechită până la următoarea salvare.
 - Schimbarea vizibilității, arhivarea și ieșirea unui membru din context nu recalculează legăturile (nu au încă interfață).

@@ -11,7 +11,7 @@ Regulile obligatorii (Database First, fără migrări, scripturi versionate, apl
 ## Strategia EF Core
 
 - Database First: schema este scrisă în scripturi SQL; clasele EF sunt generate din baza existentă prin reverse engineering. Nu există migrări EF, snapshot-uri sau tabele de istoric, iar aplicația nu creează schema la pornire.
-- `WorkNotesDbContext` și entitățile `ContextMember`, `DatabaseVersion`, `Note`, `NoteBlock`, `WorkContext` sunt generate prin scaffolding; PR #4 adaugă `NoteReference` și `NoteReferenceTarget`.
+- `WorkNotesDbContext` și entitățile `ContextMember`, `DatabaseVersion`, `Note`, `NoteBlock`, `WorkContext` sunt generate prin scaffolding; PR #4 adaugă `NoteReference`, `NoteReferenceTarget` și `WorkReference`.
 - `AccountsDbContext` (`IdentityUserContext<ApplicationUser>`) și `ApplicationUser` sunt scrise manual și mapează `Users`, `AspNetUserClaims`, `AspNetUserLogins`, `AspNetUserTokens`, păstrând integrarea standard Identity; mapările se actualizează manual după modificarea SQL și nu se regenerează prin scaffolding.
 - Cheile externe către `Users` există numai în SQL: `Users` aparține `AccountsDbContext`, iar scaffolding-ul contextului principal le omite (mesaj informativ).
 
@@ -19,13 +19,13 @@ Regenerarea după modificarea schemei, din folderul `Solution`:
 
 ```powershell
 dotnet tool restore
-dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --table dbo.ContextMembers --table dbo.Notes --table dbo.NoteBlocks --table dbo.NoteReferences --table dbo.NoteReferenceTargets --no-onconfiguring --force
+dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --table dbo.ContextMembers --table dbo.Notes --table dbo.NoteBlocks --table dbo.NoteReferences --table dbo.NoteReferenceTargets --table dbo.WorkReferences --no-onconfiguring --force
 dotnet build WorkNotes.sln
 dotnet test WorkNotes.sln --no-build --no-restore
 ```
 
 - Comanda folosește Web pentru pornire și citirea configurației, dar generează fișierele numai în DataAccess. `--no-onconfiguring` păstrează conexiunea în configurație, fără să o scrie în clasele generate; `Program.cs` transmite connection string-ul extensiei `AddDataAccess`, care înregistrează DbContext-urile și providerul SQL Server.
-- `--force` suprascrie `Context/WorkNotesDbContext.cs` și `Entities/DatabaseVersion.cs`, `WorkContext.cs`, `ContextMember.cs`, `Note.cs`, `NoteBlock.cs` (și, cu PR #4, `NoteReference.cs` și `NoteReferenceTarget.cs`) din DataAccess. `--table dbo.NoteReferences` și `--table dbo.NoteReferenceTargets` vin cu PR #4: pe o bază fără tabelele lor, scaffolding-ul doar avertizează că nu le găsește. `NoteReferenceTargets` are, pe lângă cele două chei, coloana `CreatedAtUtc`, deci scaffolding-ul o generează ca entitate (`NoteReferenceTarget`), nu ca legătură many-to-many fără clasă. Extensiile scrise manual se pun în fișiere partial separate (contextul are `OnModelCreatingPartial`). Pentru tabele noi extindeți lista `--table`, astfel încât regenerarea să includă toate entitățile necesare.
+- `--force` suprascrie `Context/WorkNotesDbContext.cs` și `Entities/DatabaseVersion.cs`, `WorkContext.cs`, `ContextMember.cs`, `Note.cs`, `NoteBlock.cs` (și, cu PR #4, `NoteReference.cs`, `NoteReferenceTarget.cs` și `WorkReference.cs`) din DataAccess. `--table dbo.NoteReferences`, `--table dbo.NoteReferenceTargets` și `--table dbo.WorkReferences` vin cu PR #4: pe o bază fără tabelele lor, scaffolding-ul doar avertizează că nu le găsește. `NoteReferenceTargets` are, pe lângă cele două chei, coloana `CreatedAtUtc`, deci scaffolding-ul o generează ca entitate (`NoteReferenceTarget`), nu ca legătură many-to-many fără clasă. Extensiile scrise manual se pun în fișiere partial separate (contextul are `OnModelCreatingPartial`). Pentru tabele noi extindeți lista `--table`, astfel încât regenerarea să includă toate entitățile necesare.
 - Scaffolding-ul scrie fișierele cu CRLF (și BOM); repository-ul folosește LF.
 - Scaffolding-ul are nevoie de o bază la care s-au aplicat toate scripturile; comanda nu modifică baza.
 - Documentație externă: [EF Core SQL Server](https://learn.microsoft.com/en-us/ef/core/providers/sql-server/), [comenzile EF Core, inclusiv dbcontext scaffold](https://learn.microsoft.com/en-us/ef/core/cli/dotnet).
@@ -114,6 +114,7 @@ Referințele interne: câte un rând pentru fiecare paragraf și referință CR/
 | `ReferenceText` | nvarchar(100) NOT NULL | textul primei apariții în paragraf, ca scris (`CR_30080`); cel mult 71 de caractere (`BUG`, 50 de spații, 18 cifre) |
 | `NormalizedReference` | nvarchar(30) NOT NULL | `CR:30080`, `BUG:1234`; `CK_NoteReferences_NormalizedReference` îl leagă de tip și număr |
 | `CreatedAtUtc` | datetime2(0) NOT NULL | implicit `SYSUTCDATETIME()`; data la care paragraful a primit referința (prima ei notă) |
+| `WorkReferenceId` | int NOT NULL | referința din catalog (`WorkReferences`), cu tipul și numărul rândului; cheie externă fără cascadă (adăugată de `008_UpdateNoteReferencesWorkReferenceId.sql`) |
 
 Textul paragrafului nu conține linkul: editorul îl desenează din aceste rânduri. `002_CreateNoteReferences.sql` (tabela veche: `SourceNoteId`, `TargetNoteId`, `DisplayText`, cu legătura păstrată în text ca `[[note:{id}|{număr}]]`) și `003_InsertNoteReferences.sql` rămân așa cum au fost aplicate; `004` elimină tabela veche și transformă legăturile vechi din text înapoi în numărul pe care îl afișau ([Scripts/README.md](../Scripts/README.md)).
 
@@ -129,11 +130,26 @@ Notele pe care le deschide o referință: câte un rând pentru fiecare referin�
 
 Cheia primară `PK_NoteReferenceTargets` este `NoteReferenceId` + `TargetNoteId`: o notă apare o singură dată la o referință, iar cheia servește și citirea notelor unei referințe. `005` a mutat aici nota fiecărui rând din `004`, cu data lui.
 
+### WorkReferences (PR #4, neintegrat în `main`)
+
+Catalogul referințelor: fiecare CR sau bug o singură dată, după tip și număr, cu ID-ul lui, oricum ar fi scris în paragrafe (`CR_30080`, `cr-30080`). Fiecare rând din `NoteReferences` are ID-ul referinței lui (`WorkReferenceId`), lângă textul ei. Tabela este creată de `version_0.02/006_CreateWorkReferences.sql` și completată de `007_InsertWorkReferences.sql` cu referințele stocate până atunci; aplicația adaugă o referință prima dată când un paragraf o stochează.
+
+| Coloană | Tip | Note |
+| --- | --- | --- |
+| `Id` | int IDENTITY | `PK_WorkReferences`; ID-ul referinței |
+| `ReferenceType` | nvarchar(20) NOT NULL | `CR` / `BUG` (`CK_WorkReferences_ReferenceType`, constantele `NoteReferenceTypes`) |
+| `ReferenceNumber` | bigint NOT NULL | numărul, fără zerourile de la început (`CK_WorkReferences_ReferenceNumber`: 0 până la 18 cifre) |
+| `NormalizedReference` | nvarchar(30) NOT NULL | `CR:30080`, `BUG:1234`; `CK_WorkReferences_NormalizedReference` îl leagă de tip și număr |
+| `CreatedAtUtc` | datetime2(0) NOT NULL | implicit `SYSUTCDATETIME()`; data la care referința a intrat în catalog |
+
+Cheia unică este tipul și numărul (`UX_WorkReferences_ReferenceType_ReferenceNumber`); `UX_WorkReferences_NormalizedReference` este aceeași cheie în forma după care aplicația caută referințele. Catalogul este comun tuturor contextelor: un rând conține numai tipul și numărul. Un rând rămâne și când niciun paragraf nu mai scrie referința, deci o referință își păstrează ID-ul. Referințele scrise numai în titluri sau fără nicio notă destinație nu au rând în `NoteReferences` și nici în catalog.
+
 ## Relații
 
 ```text
 Users 1──* ContextMembers *──1 WorkContexts 1──* Notes 1──* NoteBlocks
 NoteBlocks 1──* NoteReferences 1──* NoteReferenceTargets *──1 Notes  (PR #4: paragraful → referința → fiecare notă destinație, TargetNoteId)
+WorkReferences 1──* NoteReferences  (PR #4: referința din catalog, WorkReferenceId)
 Users 1──* Notes       (OwnerUserId, CreatedByUserId, ModifiedByUserId)
 Users 1──* NoteBlocks  (CreatedByUserId, ModifiedByUserId)
 Users 1──* AspNetUserClaims / AspNetUserLogins / AspNetUserTokens
@@ -155,8 +171,9 @@ Relațiile se fac prin chei externe explicite; modelul planificat păstrează ac
 | `ContextMembers` | `ContextId`, `UserId` | `IX_ContextMembers_UserId` |
 | `Notes` | `Id` | `IX_Notes_ContextId_CreatedAtUtc` (`ContextId`, `CreatedAtUtc DESC`), `IX_Notes_ContextId_Order` (`ContextId`, `[Order]`) |
 | `NoteBlocks` | `Id` | `IX_NoteBlocks_NoteId_Position` |
-| `NoteReferences` (PR #4) | `Id` | `UX_NoteReferences_NoteBlockId_NormalizedReference` (unic: un rând pe paragraf și referință; servește și căutarea după `NoteBlockId`), `IX_NoteReferences_NormalizedReference` |
+| `NoteReferences` (PR #4) | `Id` | `UX_NoteReferences_NoteBlockId_NormalizedReference` (unic: un rând pe paragraf și referință; servește și căutarea după `NoteBlockId`), `IX_NoteReferences_NormalizedReference`, `IX_NoteReferences_WorkReferenceId` (paragrafele care stochează o referință) |
 | `NoteReferenceTargets` (PR #4) | `NoteReferenceId`, `TargetNoteId` | `IX_NoteReferenceTargets_TargetNoteId` (rândurile care deschid o notă, pentru ștergerea ei) |
+| `WorkReferences` (PR #4) | `Id` | `UX_WorkReferences_ReferenceType_ReferenceNumber` (unic: cheia referinței), `UX_WorkReferences_NormalizedReference` (unic: aceeași cheie, pentru căutare) |
 
 Indexul unic `UX_Notes_DailyJournal` (un jurnal pe proprietar, context și zi), creat de `006_CreateNotes.sql`, a fost eliminat de `007_AllowSeveralJournalsPerDay.sql`: sunt permise mai multe jurnale pe zi.
 
@@ -179,7 +196,8 @@ Indexul unic `UX_Notes_DailyJournal` (un jurnal pe proprietar, context și zi), 
 | --- | --- |
 | Ștergerea unui context | Refuzată dacă are note: `FK_Notes_WorkContexts_ContextId` nu are cascadă, iar eroarea 547 devine `WorkContextDeleteStatus.InUse` („Contextul are note și nu poate fi șters.”). Fără note, membrii se șterg în cascadă. |
 | Ștergerea unei note | Ștergere fizică (`ExecuteDeleteAsync`), numai de proprietar; paragrafele se șterg în cascadă. Nu există ștergere logică; `ArchivedAtUtc` nu are interfață. Cu PR #4, în aceeași tranzacție serializabilă: întâi se șterg referințele pentru care nota era singura notă (cu rândurile lor din `NoteReferenceTargets`, în cascadă), apoi rândurile `NoteReferenceTargets` care o deschid din celelalte referințe (`FK_NoteReferenceTargets_Notes_TargetNoteId` nu poate avea cascadă: ar fi a doua cale de cascadă din `Notes`), apoi nota, cu paragrafele, referințele lor și notele acestora în cascadă. Nu urmează nicio recalculare: o notă ștearsă doar scoate o destinație. |
-| Ștergerea unui paragraf (PR #4) | Rândurile lui din `NoteReferences` și din `NoteReferenceTargets` se șterg în cascadă (`FK_NoteReferences_NoteBlocks_NoteBlockId`, `FK_NoteReferenceTargets_NoteReferences_NoteReferenceId`); notele destinație rămân. |
+| Ștergerea unui paragraf (PR #4) | Rândurile lui din `NoteReferences` și din `NoteReferenceTargets` se șterg în cascadă (`FK_NoteReferences_NoteBlocks_NoteBlockId`, `FK_NoteReferenceTargets_NoteReferences_NoteReferenceId`); notele destinație și referințele din `WorkReferences` rămân. |
+| Ștergerea unei referințe din catalog (PR #4) | Nu există în aplicație: rândurile din `WorkReferences` rămân și după ce niciun paragraf nu le mai stochează; `FK_NoteReferences_WorkReferences_WorkReferenceId` nu are cascadă și refuză ștergerea unei referințe stocate. |
 | Eliminarea unui membru | Șterge numai apartenența cu rolul `Member`; proprietarul nu poate fi eliminat. |
 | Ștergerea unui utilizator | Nu există în aplicație. În SQL, apartenențele și tabelele `AspNetUser*` se șterg în cascadă, dar cheile externe din `Notes` și `NoteBlocks` către `Users` nu au cascadă și blochează ștergerea unui utilizator care are note sau paragrafe. |
 
@@ -190,7 +208,8 @@ Indexul unic `UX_Notes_DailyJournal` (un jurnal pe proprietar, context și zi), 
 - `NoteBlocks.RowVersion` este configurat ca token de concurență; verificarea documentului se face prin versiunea notei.
 - O notă nouă primește `MIN([Order]) - 1` din contextul ei, citit cu `UPDLOCK, HOLDLOCK` în aceeași tranzacție, deci notele create simultan primesc valori diferite.
 - Indexul unic pe `WorkContexts.Name`, cheia primară din `ContextMembers` și indexul unic pe `NormalizedEmail` protejează salvările concurente; scripturile de versiune inserează cu `UPDLOCK, HOLDLOCK`.
-- PR #4: referințele unei note, cu notele lor, se scriu în aceeași tranzacție cu paragrafele ei, sub verificarea `RowVersion` a notei; o notă destinație ștearsă între timp face salvarea să răspundă `Conflict` (eroarea 547), fără să scrie nimic. Recalcularea după schimbarea unui titlu sau crearea unei note este o tranzacție separată, făcută după ce operația s-a salvat: scrie numai paragrafele al căror `NoteBlocks.RowVersion` este cel citit (un paragraf salvat între timp și-a primit referințele de la salvare) și reia citirea o dată dacă o destinație a fost ștearsă între timp. Două operații simultane pe aceeași referință, în același context, pot lăsa o legătură învechită până la următoarea salvare a paragrafului sau a titlului ori până la o nouă rulare a `005_CreateNoteReferenceTargets.sql`; la fel o cerere întreruptă între operație și recalculare.
+- PR #4: o referință nouă intră în `WorkReferences` înainte de salvarea paragrafelor, printr-un `INSERT … WHERE NOT EXISTS` cu `UPDLOCK, HOLDLOCK`, astfel încât două salvări simultane o adaugă o singură dată; dacă salvarea eșuează apoi, rândul rămâne în catalog.
+- PR #4: referințele unei note, cu notele lor și cu ID-urile din catalog, se scriu în aceeași tranzacție cu paragrafele ei, sub verificarea `RowVersion` a notei; o notă destinație ștearsă între timp face salvarea să răspundă `Conflict` (eroarea 547), fără să scrie nimic. Recalcularea după schimbarea unui titlu sau crearea unei note este o tranzacție separată, făcută după ce operația s-a salvat: scrie numai paragrafele al căror `NoteBlocks.RowVersion` este cel citit (un paragraf salvat între timp și-a primit referințele de la salvare) și reia citirea o dată dacă o destinație a fost ștearsă între timp. Două operații simultane pe aceeași referință, în același context, pot lăsa o legătură învechită până la următoarea salvare a paragrafului sau a titlului (înainte de `008`, și până la o nouă rulare a `005_CreateNoteReferenceTargets.sql`, care după `008` nu se mai rulează); la fel o cerere întreruptă între operație și recalculare.
 
 ## Scripturile și actualizarea bazei
 
@@ -198,5 +217,5 @@ Schema se modifică numai prin scripturi noi, idempotente, în folderul versiuni
 
 ## În dezvoltare și planificat
 
-- PR #4 (branch `main_task_02`, neintegrat în `main`) adaugă tabelele `NoteReferences` ([mai sus](#notereferences-pr-4-neintegrat-în-main)) și `NoteReferenceTargets` ([mai sus](#notereferencetargets-pr-4-neintegrat-în-main)) prin `Scripts/version_0.02/002_CreateNoteReferences.sql`, `003_InsertNoteReferences.sql` (modelul vechi, păstrate așa cum au fost aplicate), `004_ReplaceNoteReferences.sql` (referințele pe paragraf, cu o singură notă) și `005_CreateNoteReferenceTargets.sql` (modelul actual: una sau mai multe note pe referință). Marcajele „PR #4” din acest document dispar la integrarea PR-ului.
-- Tabelele planificate din planul inițial (`WorkReferences`, `NoteWorkReferences`, `NoteBlockWorkReferences`, `NoteLinks`, `NotePlatforms` și ulterior `NoteClients`, `NoteProjects`, `NoteBranches`, `NoteEvents`, `NoteReleases`, `NotePublishes`) sunt descrise în [DOMAIN-MODEL.md](DOMAIN-MODEL.md#entități-planificate).
+- PR #4 (branch `main_task_02`, neintegrat în `main`) adaugă tabelele `NoteReferences` ([mai sus](#notereferences-pr-4-neintegrat-în-main)) și `NoteReferenceTargets` ([mai sus](#notereferencetargets-pr-4-neintegrat-în-main)) prin `Scripts/version_0.02/002_CreateNoteReferences.sql`, `003_InsertNoteReferences.sql` (modelul vechi, păstrate așa cum au fost aplicate), `004_ReplaceNoteReferences.sql` (referințele pe paragraf, cu o singură notă), `005_CreateNoteReferenceTargets.sql` (una sau mai multe note pe referință) și `006_CreateWorkReferences.sql`–`008_UpdateNoteReferencesWorkReferenceId.sql` (catalogul referințelor și cheia lui în `NoteReferences`). Tabela `WorkReferences` este descrisă [mai sus](#workreferences-pr-4-neintegrat-în-main). Marcajele „PR #4” din acest document dispar la integrarea PR-ului.
+- Tabelele planificate din planul inițial (`NoteWorkReferences`, `NoteBlockWorkReferences`, `NoteLinks`, `NotePlatforms` și ulterior `NoteClients`, `NoteProjects`, `NoteBranches`, `NoteEvents`, `NoteReleases`, `NotePublishes`), precum și titlul și URL-ul extern planificate pentru `WorkReferences`, sunt descrise în [DOMAIN-MODEL.md](DOMAIN-MODEL.md#entități-planificate).

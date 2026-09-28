@@ -17,7 +17,7 @@ Rezumatul funcționalităților lucrate până acum; detaliile sunt în secțiun
 - **Dashboard**: o tablă pentru fiecare context, aleasă din lista cu bordură întreruptă (la focus bordura devine verde plin); subtitlul „Spațiul meu” din header.
 - **Note pe tablă**: post-it-uri galbene (jurnal) și salvie (articol), cu bandă adezivă în culoarea hârtiei și înclinări deterministe; grupate pe luni după ultima modificare (`ISNULL(modificare, creare)`); în fiecare lună, ordinea aleasă de proprietar (`Order`), schimbată prin drag-and-drop, cu cardul prins de bandă (version_0.02); în header data creării (stânga) și a ultimei modificări (dreapta), pe același rând; previzualizarea primelor paragrafe; titlul redenumit pe loc; ștergere cu confirmare; „Notă nouă” direct pe tablă, cu switch jurnal/articol; mai multe jurnale pe zi.
 - **Editorul de note** (CodeMirror 6): se deschide peste tablă; paragrafe cu identitate și audit propriu (bara de informații); căutare/înlocuire, undo/redo, Ctrl+S; detectarea salvărilor concurente; header cu sigla WN, taburile notelor deschise, Minimizează și Închide; acțiunile în footerul fiecărei note; minimizare în stânga-jos fără pierderea modificărilor; mai multe note deschise simultan, în taburi independente.
-- **Referințe interne între note** (version_0.02): un CR sau un bug scris în text (`CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `bug_1234`…) este link către notele tablei care îl au în titlu (una sau mai multe); la click se deschid toate, în taburile editorului; relațiile, pe paragraf, sunt păstrate în `dbo.NoteReferences`, cu notele fiecărei referințe în `dbo.NoteReferenceTargets`, și se recalculează automat; conținutul existent se reindexează cu scripturile `version_0.02\004_ReplaceNoteReferences.sql` și `005_CreateNoteReferenceTargets.sql`.
+- **Referințe interne între note** (version_0.02): un CR sau un bug scris în text (`CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `bug_1234`…) este link către notele tablei care îl au în titlu (una sau mai multe); la click se deschid toate, în taburile editorului; relațiile, pe paragraf, sunt păstrate în `dbo.NoteReferences`, cu notele fiecărei referințe în `dbo.NoteReferenceTargets` și cu ID-ul fiecărei referințe din catalogul `dbo.WorkReferences` (fiecare CR sau bug o singură dată), și se recalculează automat; conținutul existent se reindexează cu scripturile `version_0.02\004_ReplaceNoteReferences.sql` și `005_CreateNoteReferenceTargets.sql`, iar catalogul se completează cu `006`–`008`.
 - **Mesaje de salvare**: succes, avertisment și eroare, fixe sus pe centru, cu buton de închidere, până le închide utilizatorul (și în dialoguri, deasupra overlay-ului).
 - **Sigla WN**: în fereastra editorului (maximizat și minimizat) și ca favicon (`logo-wn.svg`, `favicon.ico`).
 - **Localizare** ro/en/pl pentru toate textele; design „Hârtie & salvie”; funcționare de bază și fără JavaScript.
@@ -155,15 +155,22 @@ Textul notei nu se schimbă: editorul (`wwwroot/js/note-references.js`) deseneaz
 
 Relațiile sunt păstrate în `dbo.NoteReferences`: câte un rând pentru fiecare paragraf și referință cu cel puțin o notă (paragraful, tipul, numărul, textul primei apariții, forma normalizată, data creării), oricâte apariții ar avea referința în paragraf; notele pe care le deschide sunt în `dbo.NoteReferenceTargets`, câte un rând pe notă (referința, nota, data la care referința a primit-o). `INoteReferenceService` le calculează: la salvarea unei note, în aceeași tranzacție cu paragrafele (cele nevalabile se șterg, cele noi se adaugă, cele valabile rămân; ștergerea unui paragraf îi șterge rândurile prin cascadă); la schimbarea titlului unei note și la crearea unei note, pentru referințele pe care titlul le-a câștigat sau le-a pierdut, în tot contextul. Ștergerea unei destinații șterge întâi referințele pentru care era singura notă, apoi rândurile care o indică din celelalte, apoi nota (tranzacție serializabilă); textul surselor rămâne. Indexul `IX_NoteReferenceTargets_TargetNoteId` pregătește lista viitoare „Referințe către această notă”.
 
+Fiecare referință stocată, tipul și numărul, este o singură dată în catalogul `dbo.WorkReferences` (cheia unică tip + număr, cu ID propriu și forma normalizată), comun tuturor contextelor; rândul din `NoteReferences` are ID-ul ei lângă text (`WorkReferenceId`). Aplicația adaugă o referință în catalog prima dată când un paragraf o stochează; rândurile catalogului nu se modifică și nu se șterg, deci o referință își păstrează ID-ul.
+
 #### Tranziția și reindexarea conținutului existent
 
 `version_0.02\004_ReplaceNoteReferences.sql` înlocuiește modelul anterior (legătura păstrată în text ca `[[note:{id}|{număr}]]`, tabela cu nota sursă și numărul, sugestiile din editor și comanda `create-note-references`, eliminate): transformă legăturile vechi din text înapoi în numărul pe care îl afișau, fără să schimbe auditul; șterge tabela veche și creează tabela nouă; citește toate paragrafele care pot avea referințe, inclusiv jurnalul „CRs”, și face rândurile. Apoi afișează rezumatul, referințele fără destinație, pe cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele transformate. Cu `@Save = 0` nu salvează nimic. Rulat din nou, schimbă numai ce nu mai corespunde și listează starea curentă. `002_CreateNoteReferences.sql` și `003_InsertNoteReferences.sql` rămân nemodificate și nu se mai rulează după `004`.
 
 `version_0.02\005_CreateNoteReferenceTargets.sql` trece la mai multe note pe referință: creează `dbo.NoteReferenceTargets`, mută în ea nota fiecărui rând din `004`, elimină coloana `NoteReferences.TargetNoteId` și reindexează conținutul, astfel încât o referință pe care mai multe note o au în titlu (fără link până acum) le deschide pe toate. Afișează rezumatul, referințele fără notă, pe cele cu mai multe note (cu fiecare notă) și jurnalul „CRs”; cu `@Save = 0` nu salvează nimic. Rulat din nou, schimbă numai ce nu mai corespunde; `004` nu se mai rulează după el.
 
+`version_0.02\006_CreateWorkReferences.sql` creează catalogul `dbo.WorkReferences`, `007_InsertWorkReferences.sql` adaugă în el, o singură dată, fiecare tip și număr stocat în `NoteReferences`, iar `008_UpdateNoteReferencesWorkReferenceId.sql` adaugă coloana `NoteReferences.WorkReferenceId`, o completează după tip și număr și o face obligatorie, cu cheia externă și indexul. `007` și `008` au și ele `@Save`; toate trei se pot rula din nou. După `008`, `005` nu se mai rulează; `005`–`008` se aplică împreună, cu aplicația oprită, înaintea codului care le folosește.
+
 ```powershell
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\004_ReplaceNoteReferences.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\005_CreateNoteReferenceTargets.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\006_CreateWorkReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\007_InsertWorkReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\008_UpdateNoteReferencesWorkReferenceId.sql'
 ```
 
 ## Modulul de conturi — version_0.01
@@ -271,7 +278,10 @@ E:\GitRepository\Vali\WorkNotes\       # Rădăcina Git
         ├── 002_CreateNoteReferences.sql
         ├── 003_InsertNoteReferences.sql
         ├── 004_ReplaceNoteReferences.sql
-        └── 005_CreateNoteReferenceTargets.sql
+        ├── 005_CreateNoteReferenceTargets.sql
+        ├── 006_CreateWorkReferences.sql
+        ├── 007_InsertWorkReferences.sql
+        └── 008_UpdateNoteReferencesWorkReferenceId.sql
 ```
 
 Folderele `Scripts` și `Solution` fac parte din același repository Git. Comenzile dotnet se rulează din `Solution`, iar scripturile se referă de acolo ca `..\Scripts\version_0.0x\...`.
@@ -316,6 +326,9 @@ Baza `WorkNotes.db` trebuie să existe pe instanța SQL Server. Execută scriptu
 12. `version_0.02\003_InsertNoteReferences.sql` (modelul anterior, date): completează tabela veche din textul notelor existente.
 13. `version_0.02\004_ReplaceNoteReferences.sql`: transformă legăturile vechi din text înapoi în număr, înlocuiește tabela cu `dbo.NoteReferences` pe paragraf (cheile externe către `NoteBlocks`, cu cascadă, și către `Notes`, indexul unic pe paragraf și referință, indexurile pe destinație și pe forma normalizată), reindexează toate paragrafele și listează referințele fără destinație, cele ambigue și jurnalul „CRs”. Pe o bază la care `002` și `003` au fost aplicate se rulează numai `004`; după `004`, `002` și `003` nu se mai rulează.
 14. `version_0.02\005_CreateNoteReferenceTargets.sql`: creează `dbo.NoteReferenceTargets` (referința → fiecare notă pe care o deschide; cheile externe către `NoteReferences`, cu cascadă, și către `Notes`, fără cascadă; indexul pe `TargetNoteId`), mută în ea nota fiecărui rând din `004`, elimină `NoteReferences.TargetNoteId` și reindexează toate paragrafele, cu toate notele fiecărei referințe; listează referințele fără notă, cele cu mai multe note și jurnalul „CRs”. După `005`, `004` nu se mai rulează.
+15. `version_0.02\006_CreateWorkReferences.sql`: creează catalogul `dbo.WorkReferences` (ID-ul, tipul, numărul, forma normalizată; indexurile unice pe tip + număr și pe forma normalizată), dacă lipsește.
+16. `version_0.02\007_InsertWorkReferences.sql` (date): adaugă în catalog, o singură dată, fiecare tip și număr din `dbo.NoteReferences` care lipsește; listează referințele adăugate.
+17. `version_0.02\008_UpdateNoteReferencesWorkReferenceId.sql`: adaugă `NoteReferences.WorkReferenceId`, adaugă întâi în catalog referințele stocate care lipsesc, completează coloana după tip și număr, o face obligatorie și adaugă cheia externă (fără cascadă) și indexul. După `008`, `005` nu se mai rulează.
 
 Alternativ, dacă `sqlcmd` este instalat:
 
@@ -334,9 +347,12 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\003_InsertNoteReferences.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\004_ReplaceNoteReferences.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\005_CreateNoteReferenceTargets.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\006_CreateWorkReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\007_InsertWorkReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\008_UpdateNoteReferencesWorkReferenceId.sql'
 ```
 
-Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate; excepție cerută explicit: `004_ReplaceNoteReferences.sql` șterge și recreează `dbo.NoteReferences`, ale cărei rânduri se refac din text și titluri; `005_CreateNoteReferenceTargets.sql` îi mută coloana `TargetNoteId` în tabela nouă `dbo.NoteReferenceTargets`. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
+Scripturile de creare păstrează tabelele și datele existente. Modificările ulterioare ale structurii se fac prin scripturi ALTER dedicate; excepție cerută explicit: `004_ReplaceNoteReferences.sql` șterge și recreează `dbo.NoteReferences`, ale cărei rânduri se refac din text și titluri; `005_CreateNoteReferenceTargets.sql` îi mută coloana `TargetNoteId` în tabela nouă `dbo.NoteReferenceTargets`; `008_UpdateNoteReferencesWorkReferenceId.sql` îi adaugă coloana `WorkReferenceId`, cu `ALTER TABLE`. La inserare, tranzacția, blocarea verificării și cheia primară previn duplicatele, inclusiv la executări concurente.
 
 ## Actualizarea modelului EF — Database First
 
@@ -344,14 +360,14 @@ După modificarea schemei prin SQL, regenerează clasele din baza de date:
 
 ```powershell
 dotnet tool restore
-dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --table dbo.ContextMembers --table dbo.Notes --table dbo.NoteBlocks --table dbo.NoteReferences --table dbo.NoteReferenceTargets --no-onconfiguring --force
+dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --table dbo.ContextMembers --table dbo.Notes --table dbo.NoteBlocks --table dbo.NoteReferences --table dbo.NoteReferenceTargets --table dbo.WorkReferences --no-onconfiguring --force
 dotnet build WorkNotes.sln
 dotnet test WorkNotes.sln --no-build --no-restore
 ```
 
 Comanda folosește Web pentru pornire și citirea configurației, dar generează fișierele numai în DataAccess. `--no-onconfiguring` păstrează conexiunea în configurație, fără să o scrie în clasele generate. Program.cs transmite connection string-ul extensiei AddDataAccess; această extensie înregistrează DbContext și providerul SQL Server.
 
-`--force` suprascrie fișierele generate `WorkNotes.DataAccess/Context/WorkNotesDbContext.cs`, `WorkNotes.DataAccess/Entities/DatabaseVersion.cs`, `WorkNotes.DataAccess/Entities/WorkContext.cs`, `WorkNotes.DataAccess/Entities/ContextMember.cs` `WorkNotes.DataAccess/Entities/Note.cs`, `WorkNotes.DataAccess/Entities/NoteBlock.cs`, `WorkNotes.DataAccess/Entities/NoteReference.cs` și `WorkNotes.DataAccess/Entities/NoteReferenceTarget.cs`. Scaffolding-ul scrie fișierele cu CRLF; repository-ul folosește LF. Extensiile scrise manual se pun în fișiere partial separate. Pentru tabele viitoare, extinde lista de opțiuni `--table` astfel încât regenerarea contextului să includă toate entitățile necesare.
+`--force` suprascrie fișierele generate `WorkNotes.DataAccess/Context/WorkNotesDbContext.cs`, `WorkNotes.DataAccess/Entities/DatabaseVersion.cs`, `WorkNotes.DataAccess/Entities/WorkContext.cs`, `WorkNotes.DataAccess/Entities/ContextMember.cs` `WorkNotes.DataAccess/Entities/Note.cs`, `WorkNotes.DataAccess/Entities/NoteBlock.cs`, `WorkNotes.DataAccess/Entities/NoteReference.cs`, `WorkNotes.DataAccess/Entities/NoteReferenceTarget.cs` și `WorkNotes.DataAccess/Entities/WorkReference.cs`. Scaffolding-ul scrie fișierele cu CRLF; repository-ul folosește LF. Extensiile scrise manual se pun în fișiere partial separate. Pentru tabele viitoare, extinde lista de opțiuni `--table` astfel încât regenerarea contextului să includă toate entitățile necesare.
 
 Pachetul EF Core Design este referit cu PrivateAssets=all în DataAccess și în Web (startup project), exclusiv pentru tooling. Providerul SQL Server este referit direct de DataAccess. Business nu are pachete EF. Instrumentul local dotnet-ef este păstrat pentru scaffolding. Niciun context nu folosește migrări EF sau istoric de migrări. Aplicația nu creează sau modifică schema și nu inserează versiuni la pornire.
 

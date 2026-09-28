@@ -23,7 +23,10 @@ Scripts/
     ├── 002_CreateNoteReferences.sql      # PR #4; înlocuit de 004
     ├── 003_InsertNoteReferences.sql      # PR #4; înlocuit de 004
     ├── 004_ReplaceNoteReferences.sql     # PR #4; completat de 005
-    └── 005_CreateNoteReferenceTargets.sql # PR #4
+    ├── 005_CreateNoteReferenceTargets.sql # PR #4
+    ├── 006_CreateWorkReferences.sql      # PR #4
+    ├── 007_InsertWorkReferences.sql      # PR #4
+    └── 008_UpdateNoteReferencesWorkReferenceId.sql # PR #4
 ```
 
 ## Convenții de denumire
@@ -53,6 +56,9 @@ Baza `WorkNotes.db` trebuie să existe. Se aplică întâi `version_0.01`, apoi 
 | 12 | `version_0.02/003_InsertNoteReferences.sql` | PR #4, modelul vechi, script de date: inserează în tabela veche rândurile pentru numerele din paragrafe aflate în titlul altor note |
 | 13 | `version_0.02/004_ReplaceNoteReferences.sql` | PR #4: transformă legăturile vechi `[[note:{id}\|{număr}]]` din text înapoi în numărul lor, înlocuiește tabela veche cu `dbo.NoteReferences` (paragraf → notă destinație, cu tipul, numărul, textul și forma normalizată a referinței CR/bug), apoi citește toate paragrafele și titlurile și face rândurile; afișează referințele fără destinație, pe cele ambigue și jurnalul „CRs” |
 | 14 | `version_0.02/005_CreateNoteReferenceTargets.sql` | PR #4: creează `dbo.NoteReferenceTargets` (referința → fiecare notă pe care o deschide, cheia primară `NoteReferenceId` + `TargetNoteId`), mută în ea nota fiecărui rând din `004` și elimină `NoteReferences.TargetNoteId`, cu cheia și indexul ei; apoi reindexează toate paragrafele: o referință deschide toate notele contextului care o au în titlu, în afară de nota paragrafului; afișează referințele fără notă, pe cele cu mai multe note (cu fiecare notă) și jurnalul „CRs” |
+| 15 | `version_0.02/006_CreateWorkReferences.sql` | PR #4: creează `dbo.WorkReferences`, catalogul referințelor (`Id`; tipul și numărul, cheia unică `UX_WorkReferences_ReferenceType_ReferenceNumber`; forma normalizată, unică), dacă lipsește |
+| 16 | `version_0.02/007_InsertWorkReferences.sql` | PR #4, script de date: adaugă în catalog, o singură dată, fiecare tip și număr din `dbo.NoteReferences` care lipsește; afișează referințele adăugate |
+| 17 | `version_0.02/008_UpdateNoteReferencesWorkReferenceId.sql` | PR #4: adaugă `dbo.NoteReferences.WorkReferenceId`, adaugă întâi în catalog referințele stocate care lipsesc, completează cheia pentru fiecare rând după tip și număr, apoi o face obligatorie, cu cheia externă `FK_NoteReferences_WorkReferences_WorkReferenceId` și indexul `IX_NoteReferences_WorkReferenceId` |
 
 Comentariul din antetul `006_CreateNotes.sql` („A Journal is daily: one per owner, context and date”) descrie regula inițială, înlocuită de `007_AllowSeveralJournalsPerDay.sql`; scriptul livrat nu se modifică.
 
@@ -75,9 +81,12 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\003_InsertNoteReferences.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\004_ReplaceNoteReferences.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\005_CreateNoteReferenceTargets.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\006_CreateWorkReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\007_InsertWorkReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\008_UpdateNoteReferencesWorkReferenceId.sql'
 ```
 
-Pe o bază la care `002` și `003` au fost deja aplicate se rulează numai `004` și `005`; pe una la care și `004` a fost aplicat, numai `005`. `005` afișează rezultatele sub formă de liste (rezumatul, referințele fără notă, cele cu mai multe note, cu fiecare notă, și jurnalul „CRs”), ca `004`. `004` afișează rezultatele sub formă de liste (în SSMS, în fila Results; cu `sqlcmd`, în consolă): rezumatul, referințele fără destinație, cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele ale căror legături vechi au devenit text. Cu `DECLARE @Save bit = 0;` în loc de `1`, `004` și `005` nu salvează nimic, nici tabelele: listele arată ce ar face.
+Pe o bază la care `002` și `003` au fost deja aplicate se rulează numai `004`–`008`; pe una la care și `004` a fost aplicat, `005`–`008`. Scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea versiunii de cod care le folosește: codul PR #4 scrie `WorkReferenceId` la fiecare referință stocată, iar codul anterior nu îl scrie, deci după `008` nu mai poate salva o referință nouă (și nici nu citește catalogul). `005` afișează rezultatele sub formă de liste (rezumatul, referințele fără notă, cele cu mai multe note, cu fiecare notă, și jurnalul „CRs”), ca `004`. `004` afișează rezultatele sub formă de liste (în SSMS, în fila Results; cu `sqlcmd`, în consolă): rezumatul, referințele fără destinație, cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele ale căror legături vechi au devenit text. Cu `DECLARE @Save bit = 0;` în loc de `1`, `004`, `005`, `007` și `008` nu salvează nimic, nici tabelele sau coloana: listele arată ce ar face. `007` și `008` încep prin a verifica existența `dbo.WorkReferences` și se opresc cu un mesaj dacă `006` nu a fost aplicat.
 
 `-E` folosește Windows Authentication, `-C` acceptă certificatul serverului (ca `TrustServerCertificate=True` din configurația locală), iar `-b` oprește execuția la prima eroare. Identitatea care rulează scripturile are nevoie de drepturi de modificare a schemei.
 
@@ -96,7 +105,7 @@ Toate scripturile pot fi executate repetat fără să schimbe rezultatul și pă
 - scripturile folosesc `SET XACT_ABORT ON` și, cu excepția `000_CreateDatabaseVersion.sql`, o tranzacție `BEGIN TRANSACTION … COMMIT TRANSACTION`;
 - instrucțiunile care trebuie compilate după apariția unei coloane sau indexurile filtrate sunt rulate prin `EXEC(N'…')`;
 - fiecare script începe cu `USE [WorkNotes.db];`: numele bazei este fix (punctul deschis despre celelalte medii este în [docs/DATABASE.md](../docs/DATABASE.md#sql-server-și-baza));
-- PR #4: `002_CreateNoteReferences.sql` și `003_InsertNoteReferences.sql` au fost înlocuite de `004_ReplaceNoteReferences.sql` la cererea explicită a utilizatorului (tabela `NoteReferences` ștearsă și recreată cu altă structură). Ele rămân nemodificate, pentru că au fost aplicate, dar după `004` nu se mai rulează: `002` s-ar opri la indexul vechi (coloanele lui nu mai există), fără schimbări, iar `003` citește coloane care nu mai există. După `005`, nici `004` nu se mai rulează: coloana `NoteReferences.TargetNoteId`, pe care o folosește, nu mai există, iar o nouă rulare se oprește cu o eroare, fără nicio schimbare (tranzacția este anulată). `005` începe prin a verifica structura din `004` și se oprește cu un mesaj dacă `004` nu a fost aplicat. `005` se poate rula oricând din nou: schimbă numai ce nu mai corespunde textului și titlurilor și afișează din nou listele.
+- PR #4: `002_CreateNoteReferences.sql` și `003_InsertNoteReferences.sql` au fost înlocuite de `004_ReplaceNoteReferences.sql` la cererea explicită a utilizatorului (tabela `NoteReferences` ștearsă și recreată cu altă structură). Ele rămân nemodificate, pentru că au fost aplicate, dar după `004` nu se mai rulează: `002` s-ar opri la indexul vechi (coloanele lui nu mai există), fără schimbări, iar `003` citește coloane care nu mai există. După `005`, nici `004` nu se mai rulează: coloana `NoteReferences.TargetNoteId`, pe care o folosește, nu mai există, iar o nouă rulare se oprește cu o eroare, fără nicio schimbare (tranzacția este anulată). `005` începe prin a verifica structura din `004` și se oprește cu un mesaj dacă `004` nu a fost aplicat. `005` se putea rula din nou până la `008`: după `008`, rândurile pe care le inserează nu au `WorkReferenceId`, deci o nouă rulare se oprește cu o eroare, fără nicio schimbare. `006`, `007` și `008` se pot rula oricând din nou: adaugă numai ce lipsește.
 
 Schimbările de structură folosesc scripturi `ALTER` dedicate; nu se șterg tabele sau date pentru a rezolva o incompatibilitate fără solicitare explicită.
 
@@ -127,16 +136,25 @@ SELECT COL_LENGTH(N'dbo.Notes', N'Order') AS [OrderColumnLength];
 -- Indexurile notelor: IX_Notes_ContextId_CreatedAtUtc și IX_Notes_ContextId_Order; UX_Notes_DailyJournal nu mai există
 SELECT [name] FROM sys.indexes WHERE [object_id] = OBJECT_ID(N'dbo.Notes') AND [name] IS NOT NULL;
 
--- PR #4, după 005: coloanele NoteReferences (Id, NoteBlockId, ReferenceType, ReferenceNumber, ReferenceText,
--- NormalizedReference, CreatedAtUtc), fără SourceNoteId, DisplayText și TargetNoteId
-SELECT [name] FROM sys.columns WHERE [object_id] = OBJECT_ID(N'dbo.NoteReferences') ORDER BY [column_id];
--- PK_NoteReferences, UX_NoteReferences_NoteBlockId_NormalizedReference, IX_NoteReferences_NormalizedReference
+-- PR #4, după 008: coloanele NoteReferences (Id, NoteBlockId, ReferenceType, ReferenceNumber, ReferenceText,
+-- NormalizedReference, CreatedAtUtc, WorkReferenceId), fără SourceNoteId, DisplayText și TargetNoteId
+SELECT [name], [is_nullable] FROM sys.columns WHERE [object_id] = OBJECT_ID(N'dbo.NoteReferences') ORDER BY [column_id];
+-- PK_NoteReferences, UX_NoteReferences_NoteBlockId_NormalizedReference, IX_NoteReferences_NormalizedReference,
+-- IX_NoteReferences_WorkReferenceId
 SELECT [name] FROM sys.indexes WHERE [object_id] = OBJECT_ID(N'dbo.NoteReferences') AND [name] IS NOT NULL;
+-- PK_WorkReferences, UX_WorkReferences_ReferenceType_ReferenceNumber, UX_WorkReferences_NormalizedReference
+SELECT [name] FROM sys.indexes WHERE [object_id] = OBJECT_ID(N'dbo.WorkReferences') AND [name] IS NOT NULL;
 -- PK_NoteReferenceTargets, IX_NoteReferenceTargets_TargetNoteId
 SELECT [name] FROM sys.indexes WHERE [object_id] = OBJECT_ID(N'dbo.NoteReferenceTargets') AND [name] IS NOT NULL;
 -- Fiecare referință are cel puțin o notă (rezultat 0)
 SELECT COUNT(*) AS [ReferencesWithoutNotes] FROM [dbo].[NoteReferences] AS r
 WHERE NOT EXISTS (SELECT 1 FROM [dbo].[NoteReferenceTargets] AS t WHERE t.[NoteReferenceId] = r.[Id]);
+-- PR #4, după 008: fiecare rând are referința lui din catalog, cu același tip și număr (rezultat 0)
+SELECT COUNT(*) AS [RowsNotMatchingTheCatalog] FROM [dbo].[NoteReferences] AS r
+JOIN [dbo].[WorkReferences] AS w ON w.[Id] = r.[WorkReferenceId]
+WHERE w.[ReferenceType] <> r.[ReferenceType] OR w.[ReferenceNumber] <> r.[ReferenceNumber];
+-- Catalogul: fiecare tip și număr o singură dată
+SELECT [Id], [NormalizedReference] FROM [dbo].[WorkReferences] ORDER BY [ReferenceType], [ReferenceNumber];
 -- Nicio legătură veche rămasă în text
 SELECT COUNT(*) AS [OldLinks] FROM [dbo].[NoteBlocks] WHERE CHARINDEX(N'[[note:', [Content]) > 0;
 ```
