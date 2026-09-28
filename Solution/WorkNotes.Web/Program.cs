@@ -11,8 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 // With create-note-references the application runs that maintenance command instead of the site.
 var createNoteReferences = NoteReferenceBackfillCommand.IsRequested(args);
 if (createNoteReferences)
-    // The command's report is its output; the SQL of every query is not.
-    builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+    // The command's report is its output: the framework's information logs (the SQL of every query) are left out.
+    builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
 
 builder.Services.AddLocalization();
 builder.Services.Configure<RequestLocalizationOptions>(LocalizationConfiguration.Configure);
