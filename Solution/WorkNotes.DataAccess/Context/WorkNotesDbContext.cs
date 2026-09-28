@@ -24,6 +24,8 @@ public partial class WorkNotesDbContext : DbContext
 
     public virtual DbSet<NoteReferenceTarget> NoteReferenceTargets { get; set; }
 
+    public virtual DbSet<ReferenceType> ReferenceTypes { get; set; }
+
     public virtual DbSet<WorkContext> WorkContexts { get; set; }
 
     public virtual DbSet<WorkReference> WorkReferences { get; set; }
@@ -121,6 +123,10 @@ public partial class WorkNotesDbContext : DbContext
 
             entity.HasOne(d => d.NoteBlock).WithMany(p => p.NoteReferences).HasForeignKey(d => d.NoteBlockId);
 
+            entity.HasOne(d => d.ReferenceTypeNavigation).WithMany(p => p.NoteReferences)
+                .HasForeignKey(d => d.ReferenceType)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
             entity.HasOne(d => d.WorkReference).WithMany(p => p.NoteReferences)
                 .HasForeignKey(d => d.WorkReferenceId)
                 .OnDelete(DeleteBehavior.ClientSetNull);
@@ -143,6 +149,16 @@ public partial class WorkNotesDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
+        modelBuilder.Entity<ReferenceType>(entity =>
+        {
+            entity.HasKey(e => e.Code);
+
+            entity.Property(e => e.Code).HasMaxLength(20);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_ReferenceTypes_CreatedAtUtc");
+        });
+
         modelBuilder.Entity<WorkContext>(entity =>
         {
             entity.HasIndex(e => e.Name, "UX_WorkContexts_Name").IsUnique();
@@ -162,6 +178,10 @@ public partial class WorkNotesDbContext : DbContext
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_WorkReferences_CreatedAtUtc");
             entity.Property(e => e.NormalizedReference).HasMaxLength(30);
             entity.Property(e => e.ReferenceType).HasMaxLength(20);
+
+            entity.HasOne(d => d.ReferenceTypeNavigation).WithMany(p => p.WorkReferences)
+                .HasForeignKey(d => d.ReferenceType)
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         OnModelCreatingPartial(modelBuilder);

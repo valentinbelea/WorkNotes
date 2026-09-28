@@ -4,6 +4,9 @@ namespace WorkNotes.Business.Tests;
 
 public sealed class NoteReferenceRulesTests
 {
+    // The types 010_InsertReferenceTypes.sql configures.
+    private static readonly NoteReferenceParser Parser = new(["CR", "BUG"]);
+
     [Theory]
     [InlineData("CR 30080", "CR", 30080)]
     [InlineData("CR-30080", "CR", 30080)]
@@ -21,7 +24,7 @@ public sealed class NoteReferenceRulesTests
     [InlineData("bUg30042", "BUG", 30042)]
     public void EveryWrittenFormIsOneReference(string text, string type, long number)
     {
-        var match = Assert.Single(NoteReferenceRules.Find(text));
+        var match = Assert.Single(Parser.Find(text));
 
         // The text keeps the separator and the case it was written with; type and number are normalized.
         Assert.Equal((0, text, type, number), (match.Start, match.Text, match.ReferenceType, match.ReferenceNumber));
@@ -33,13 +36,13 @@ public sealed class NoteReferenceRulesTests
     [InlineData("CR 30080")]
     [InlineData("bug   30042")]
     public void SeveralSpacesAndNoBreakSpacesSeparateTheTypeFromTheNumber(string text) =>
-        Assert.Equal(text, Assert.Single(NoteReferenceRules.Find(text)).Text);
+        Assert.Equal(text, Assert.Single(Parser.Find(text)).Text);
 
     [Fact]
     public void AtMostFiftySpacesSeparateTheTypeFromTheNumber()
     {
-        Assert.Single(NoteReferenceRules.Find("CR" + new string(' ', NoteReferenceRules.MaxSeparatorLength) + "30080"));
-        Assert.Empty(NoteReferenceRules.Find("CR" + new string(' ', NoteReferenceRules.MaxSeparatorLength + 1) + "30080"));
+        Assert.Single(Parser.Find("CR" + new string(' ', NoteReferenceRules.MaxSeparatorLength) + "30080"));
+        Assert.Empty(Parser.Find("CR" + new string(' ', NoteReferenceRules.MaxSeparatorLength + 1) + "30080"));
     }
 
     [Fact]
@@ -47,11 +50,9 @@ public sealed class NoteReferenceRulesTests
     {
         var longest = "CR " + new string('9', NoteReferenceRules.MaxNumberLength);
 
-        Assert.Equal(999_999_999_999_999_999, Assert.Single(NoteReferenceRules.Find(longest)).ReferenceNumber);
-        Assert.Equal(NoteReferenceRules.MaxTextLength,
-            Assert.Single(NoteReferenceRules.Find("BUG" + new string(' ', NoteReferenceRules.MaxSeparatorLength) + new string('9', NoteReferenceRules.MaxNumberLength))).Length);
+        Assert.Equal(999_999_999_999_999_999, Assert.Single(Parser.Find(longest)).ReferenceNumber);
         // A longer number is not cut to fit: it is no reference.
-        Assert.Empty(NoteReferenceRules.Find(longest + "9"));
+        Assert.Empty(Parser.Find(longest + "9"));
     }
 
     [Theory]
@@ -80,7 +81,7 @@ public sealed class NoteReferenceRulesTests
     [InlineData("ＣＲ 30080")]
     [InlineData("CR ３００８０")]
     public void OnlyAWholeTypeAndAWholeNumberMakeAReference(string text) =>
-        Assert.Empty(NoteReferenceRules.Find(text));
+        Assert.Empty(Parser.Find(text));
 
     [Theory]
     [InlineData("(CR-30080)", "CR-30080")]
@@ -90,12 +91,12 @@ public sealed class NoteReferenceRulesTests
     [InlineData("„CR 30080”", "CR 30080")]
     [InlineData("CR 30080-2", "CR 30080")]
     public void PunctuationAroundAReferenceIsNotPartOfIt(string text, string reference) =>
-        Assert.Equal(reference, Assert.Single(NoteReferenceRules.Find(text)).Text);
+        Assert.Equal(reference, Assert.Single(Parser.Find(text)).Text);
 
     [Fact]
     public void LeadingZerosAreNotPartOfTheNumber()
     {
-        var match = Assert.Single(NoteReferenceRules.Find("CR 030080"));
+        var match = Assert.Single(Parser.Find("CR 030080"));
 
         Assert.Equal(("CR 030080", "CR:30080"), (match.Text, match.NormalizedReference));
     }
@@ -103,7 +104,7 @@ public sealed class NoteReferenceRulesTests
     [Fact]
     public void EveryReferenceOfATextIsFoundInOrder()
     {
-        var matches = NoteReferenceRules.Find("CR 30080 și bug_30080, apoi Cr-30081 și iar CR30080.");
+        var matches = Parser.Find("CR 30080 și bug_30080, apoi Cr-30081 și iar CR30080.");
 
         Assert.Equal([(0, "CR 30080", "CR:30080"), (12, "bug_30080", "BUG:30080"), (28, "Cr-30081", "CR:30081"), (44, "CR30080", "CR:30080")],
             matches.Select(match => (match.Start, match.Text, match.NormalizedReference)));
@@ -112,7 +113,7 @@ public sealed class NoteReferenceRulesTests
     [Fact]
     public void ACrAndABugWithTheSameNumberAreDifferentReferences()
     {
-        var matches = NoteReferenceRules.Find("CR 1234 / bug 1234");
+        var matches = Parser.Find("CR 1234 / bug 1234");
 
         Assert.Equal(["CR:1234", "BUG:1234"], matches.Select(match => match.NormalizedReference));
     }
@@ -122,12 +123,12 @@ public sealed class NoteReferenceRulesTests
     [InlineData("")]
     [InlineData("Fără referințe: 30080, CRs, bug-uri.")]
     public void TextWithoutReferencesHasNone(string? text) =>
-        Assert.Empty(NoteReferenceRules.Find(text));
+        Assert.Empty(Parser.Find(text));
 
     [Fact]
     public void TitlesNameTheReferencesTheyHave()
     {
-        var titles = NoteReferenceRules.NotesByTitleReference(
+        var titles = NoteReferenceRules.NotesByTitleReference(Parser,
         [
             (12, "CR 30080 Export facturi"),
             (13, "Rezolvare Bug-1234"),
@@ -144,12 +145,12 @@ public sealed class NoteReferenceRulesTests
 
     [Fact]
     public void ATitleWritingAReferenceTwiceNamesItOnce() =>
-        Assert.Equal([12], NoteReferenceRules.NotesByTitleReference([(12, "CR 30080 (CR-30080)")])["CR:30080"]);
+        Assert.Equal([12], NoteReferenceRules.NotesByTitleReference(Parser, [(12, "CR 30080 (CR-30080)")])["CR:30080"]);
 
     [Fact]
     public void AReferenceOpensEveryOtherNoteWithItInItsTitle()
     {
-        var titles = NoteReferenceRules.NotesByTitleReference(
+        var titles = NoteReferenceRules.NotesByTitleReference(Parser,
             [(12, "CR 30080"), (13, "bug 30080"), (15, "Testare CR 512"), (14, "CR 512"), (7, "CR 777 și CR 512")]);
 
         Assert.Equal([12], NoteReferenceRules.TargetsOf(titles, "CR:30080", 7));
@@ -167,7 +168,7 @@ public sealed class NoteReferenceRulesTests
     {
         const string text = "CR 30080, cr-30080 și CR_30080; bug 30080 nu.";
 
-        var links = NoteReferenceRules.LinksIn(text, normalized => normalized == "CR:30080" ? [12, 15] : []);
+        var links = NoteReferenceRules.LinksIn(Parser.Find(text), normalized => normalized == "CR:30080" ? [12, 15] : []);
 
         Assert.Equal([(0, 8), (10, 8), (22, 8)], links.Select(link => (link.Start, link.Length)));
         Assert.Equal(["CR 30080", "cr-30080", "CR_30080"], links.Select(link => text.Substring(link.Start, link.Length)));

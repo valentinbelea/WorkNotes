@@ -14,6 +14,8 @@ public sealed class NoteReferenceServiceTests
     private static readonly NoteReferenceTarget Bug1234 = new(13, "Rezolvare Bug-1234", NoteTypes.Article);
     private static readonly NoteReferenceTarget Cr1234 = new(14, "CR_1234 raport", NoteTypes.Journal);
     private static readonly NoteReferenceTarget Test30080 = new(15, "Testare cr-30080", NoteTypes.Journal);
+    // The types 010_InsertReferenceTypes.sql configures.
+    private static readonly StubTypes Types = new("CR", "BUG");
 
     [Fact]
     public async Task AReferenceWithASingleTargetIsStoredOnceWithTheTextItIsFirstWrittenWith()
@@ -50,7 +52,7 @@ public sealed class NoteReferenceServiceTests
 
         var resolution = await Resolve(repository, (paragraph, "Bug 1234 vine din CR 1234"));
 
-        Assert.Equal([(NoteReferenceTypes.Bug, "13"), (NoteReferenceTypes.Cr, "14")],
+        Assert.Equal([("BUG", "13"), ("CR", "14")],
             resolution.References.Select(reference => (reference.ReferenceType, Stored(reference).Notes)));
     }
 
@@ -156,15 +158,75 @@ public sealed class NoteReferenceServiceTests
     }
 
     [Fact]
+    public async Task TheResolutionShowsWhereTheSavedParagraphsLinkTheirReferences()
+    {
+        Guid first = Guid.NewGuid(), second = Guid.NewGuid();
+        var repository = new StubRepository { Candidates = { [Owner] = [Cr30080, Test30080] } };
+
+        var resolution = await Resolve(repository,
+            [(first, "CR 30080, apoi cr_30080 și bug 30080"), (second, "Fără referințe"), (Guid.NewGuid(), "CR 99999 fără notă")]);
+
+        // Every place the first paragraph writes CR 30080 opens its two notes; bug 30080 has none, and the paragraphs
+        // without a link are left out.
+        Assert.Equal([first], resolution.Links.Keys);
+        Assert.Equal([(0, 8, "12,15"), (15, 8, "12,15")], resolution.Links[first].Select(Shown));
+    }
+
+    [Fact]
+    public async Task TheConfiguredTypesAreTheReferencesResolved()
+    {
+        var paragraph = Guid.NewGuid();
+        var repository = new StubRepository { Candidates = { [Owner] = [new(30, "TASK-12 migrare", NoteTypes.Article), Cr30080, Bug1234] } };
+
+        // TASK is configured, BUG is not (any more): bug 1234 is plain text.
+        var resolution = await new NoteReferenceService(repository, new StubTypes("CR", "TASK"), Time).ResolveAsync(Owner, 5, 7,
+            [new(paragraph, "task 12, CR 30080 și bug 1234")], CancellationToken.None);
+
+        Assert.Equal([(paragraph, "TASK:12", "task 12", "30"), (paragraph, "CR:30080", "CR 30080", "12")], resolution.References.Select(Stored));
+        Assert.Equal([12L, 30080], repository.CandidatesRead.Single().Numbers.Order());
+    }
+
+    [Fact]
+    public async Task ATitleIsReadWithTheConfiguredTypes()
+    {
+        var paragraph = Guid.NewGuid();
+        var repository = new StubRepository
+        {
+            Sources = [Source(paragraph, 7, "Vezi TASK 12")],
+            Candidates = { [Owner] = [new(30, "TASK 12 migrare", NoteTypes.Article)] }
+        };
+
+        await new NoteReferenceService(repository, new StubTypes("CR", "TASK"), Time).RefreshAsync(5, null, "TASK 12 migrare", CancellationToken.None);
+
+        Assert.Equal([(paragraph, "TASK:12", "TASK 12", "30")], Assert.Single(repository.Replaced).References.Select(Stored));
+    }
+
+    [Fact]
+    public async Task AStoredReferenceOfATypeNoLongerConfiguredShowsNoLink()
+    {
+        var paragraph = Guid.NewGuid();
+        var repository = new StubRepository { Targets = [new(paragraph, "BUG:1234", Bug1234), new(paragraph, "CR:30080", Cr30080)] };
+
+        var opened = await new NoteReferenceService(repository, new StubTypes("CR"), Time)
+            .WithLinksAsync(Document(("bug 1234 și CR 30080", paragraph)), Owner, CancellationToken.None);
+
+        Assert.Equal([(12, 8, "12")], opened.Blocks[0].Links!.Select(Shown));
+        Assert.Equal([Cr30080], opened.References);
+    }
+
+    [Fact]
     public async Task ResolvingStopsBeforeTheDataAccessWhenCancelled()
     {
         var repository = new StubRepository();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new NoteReferenceService(repository, Time)
+        var types = new StubTypes("CR", "BUG");
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new NoteReferenceService(repository, types, Time)
             .ResolveAsync(Owner, 5, 7, [new(Guid.NewGuid(), "CR 30080")], cancellation.Token));
         Assert.Empty(repository.CandidatesRead);
+        Assert.Equal(0, types.Reads);
     }
 
     [Fact]
@@ -316,7 +378,7 @@ public sealed class NoteReferenceServiceTests
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            new NoteReferenceService(repository, Time).RefreshAsync(5, null, "CR 30080", cancellation.Token));
+            new NoteReferenceService(repository, Types, Time).RefreshAsync(5, null, "CR 30080", cancellation.Token));
         Assert.Empty(repository.SourcesRead);
     }
 
@@ -331,7 +393,7 @@ public sealed class NoteReferenceServiceTests
         };
         var document = Document(("CR 30080; cr-30080 și CR_30080, dar nu bug 30080", first), ("bug1234 și CR 30080", second), ("Fără", Guid.NewGuid()));
 
-        var opened = await new NoteReferenceService(repository, Time).WithLinksAsync(document, Colleague, CancellationToken.None);
+        var opened = await new NoteReferenceService(repository, Types, Time).WithLinksAsync(document, Colleague, CancellationToken.None);
 
         Assert.Equal([(0, 8, "12,15"), (10, 8, "12,15"), (22, 8, "12,15")], opened.Blocks[0].Links!.Select(Shown));
         // In the second paragraph only bug 1234 is stored; its CR 30080 has no link there.
@@ -347,7 +409,7 @@ public sealed class NoteReferenceServiceTests
         var paragraph = Guid.NewGuid();
         var repository = new StubRepository { Targets = [new(paragraph, "CR:30080", Cr30080)] };
 
-        var opened = await new NoteReferenceService(repository, Time).WithLinksAsync(Document(("CR 30081", paragraph)), Owner, CancellationToken.None);
+        var opened = await new NoteReferenceService(repository, Types, Time).WithLinksAsync(Document(("CR 30081", paragraph)), Owner, CancellationToken.None);
 
         Assert.Empty(opened.Blocks[0].Links!);
         Assert.Empty(opened.References!);
@@ -358,14 +420,14 @@ public sealed class NoteReferenceServiceTests
     {
         var document = Document(("CR 30080", Guid.NewGuid()));
 
-        Assert.Same(document, await new NoteReferenceService(new StubRepository(), Time).WithLinksAsync(document, Owner, CancellationToken.None));
+        Assert.Same(document, await new NoteReferenceService(new StubRepository(), Types, Time).WithLinksAsync(document, Owner, CancellationToken.None));
     }
 
     private static Task<NoteReferenceResolution> Resolve(StubRepository repository, (Guid Id, string Content) paragraph, int noteId = 7) =>
         Resolve(repository, [paragraph], noteId);
 
     private static Task<NoteReferenceResolution> Resolve(StubRepository repository, (Guid Id, string Content)[] paragraphs, int noteId = 7) =>
-        new NoteReferenceService(repository, Time).ResolveAsync(Owner, 5, noteId,
+        new NoteReferenceService(repository, Types, Time).ResolveAsync(Owner, 5, noteId,
             paragraphs.Select(paragraph => new NoteBlockInput(paragraph.Id, paragraph.Content)).ToList(), CancellationToken.None);
 
     // A stored reference as the tests compare it: its paragraph, reference and text, and its notes in order ("12,15").
@@ -377,7 +439,7 @@ public sealed class NoteReferenceServiceTests
         (link.Start, link.Length, string.Join(",", link.TargetNoteIds));
 
     private static Task Refresh(StubRepository repository, string? previousTitle, string? title) =>
-        new NoteReferenceService(repository, Time).RefreshAsync(5, previousTitle, title, CancellationToken.None);
+        new NoteReferenceService(repository, Types, Time).RefreshAsync(5, previousTitle, title, CancellationToken.None);
 
     private static NoteReferenceSource Source(Guid id, int noteId, string content, string owner = Owner) =>
         new(id, noteId, owner, content, $"version-{id}");
@@ -392,6 +454,20 @@ public sealed class NoteReferenceServiceTests
     private sealed class FixedTime(DateTimeOffset utcNow) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => utcNow;
+    }
+
+    // The configured types, as ReferenceTypeService gives them.
+    private sealed class StubTypes(params string[] types) : IReferenceTypeService
+    {
+        private readonly NoteReferenceParser parser = new(types);
+
+        public int Reads { get; private set; }
+
+        public Task<NoteReferenceParser> GetParserAsync(CancellationToken cancellationToken)
+        {
+            Reads++;
+            return Task.FromResult(parser);
+        }
     }
 
     // Board 5. Like the data access, candidates and paragraphs are those whose text has one of the numbers' digits.

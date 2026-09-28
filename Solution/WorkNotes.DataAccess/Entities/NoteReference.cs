@@ -25,5 +25,7 @@ public partial class NoteReference
 
     public virtual ICollection<NoteReferenceTarget> NoteReferenceTargets { get; set; } = new List<NoteReferenceTarget>();
 
+    public virtual ReferenceType ReferenceTypeNavigation { get; set; } = null!;
+
     public virtual WorkReference WorkReference { get; set; } = null!;
 }

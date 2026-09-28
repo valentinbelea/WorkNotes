@@ -3,7 +3,8 @@ using WorkNotes.Business.Models;
 
 namespace WorkNotes.Business.Services;
 
-public sealed class NoteReferenceService(INoteReferenceRepository references, TimeProvider time) : INoteReferenceService
+public sealed class NoteReferenceService(INoteReferenceRepository references, IReferenceTypeService types, TimeProvider time)
+    : INoteReferenceService
 {
     // A refresh one of whose notes was deleted meanwhile is read and resolved again, once: the deletion itself takes away
     // the rows that open the deleted note.
@@ -15,28 +16,37 @@ public sealed class NoteReferenceService(INoteReferenceRepository references, Ti
         ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         ArgumentNullException.ThrowIfNull(paragraphs);
         cancellationToken.ThrowIfCancellationRequested();
+        var parser = await types.GetParserAsync(cancellationToken);
         var found = paragraphs
-            .Select(paragraph => (paragraph.Id, Matches: NoteReferenceRules.Find(paragraph.Content)))
+            .Select(paragraph => (paragraph.Id, Matches: parser.Find(paragraph.Content)))
             .Where(paragraph => paragraph.Matches.Count > 0)
             .ToList();
-        if (found.Count == 0) return new([], []);
+        if (found.Count == 0) return new([], [], new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>>());
 
         var numbers = found.SelectMany(paragraph => paragraph.Matches).Select(match => match.ReferenceNumber).Distinct().ToList();
         var candidates = await references.GetCandidatesAsync(ownerUserId, contextId, numbers, cancellationToken);
         // The note itself is never a target, whatever its title.
-        var titles = NoteReferenceRules.NotesByTitleReference(candidates
+        var titles = NoteReferenceRules.NotesByTitleReference(parser, candidates
             .Where(candidate => candidate.Id != noteId)
             .Select(candidate => (candidate.Id, candidate.Title)));
         var stored = found.SelectMany(paragraph => ReferencesOf(paragraph.Id, noteId, paragraph.Matches, titles)).ToList();
         var targetIds = stored.SelectMany(reference => reference.TargetNoteIds).ToHashSet();
-        return new(stored, candidates.Where(candidate => targetIds.Contains(candidate.Id)).ToList());
+        // Where the saved text shows them: every place a paragraph writes one of its stored references.
+        var targets = stored.ToDictionary(reference => (reference.NoteBlockId, reference.NormalizedReference), reference => reference.TargetNoteIds);
+        var links = found
+            .Select(paragraph => (paragraph.Id, Links: NoteReferenceRules.LinksIn(paragraph.Matches,
+                normalized => targets.TryGetValue((paragraph.Id, normalized), out var targetNoteIds) ? targetNoteIds : [])))
+            .Where(paragraph => paragraph.Links.Count > 0)
+            .ToDictionary(paragraph => paragraph.Id, paragraph => paragraph.Links);
+        return new(stored, candidates.Where(candidate => targetIds.Contains(candidate.Id)).ToList(), links);
     }
 
     public async Task RefreshAsync(int contextId, string? previousTitle, string? title, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var before = NoteReferenceRules.Find(previousTitle);
-        var after = NoteReferenceRules.Find(title);
+        var parser = await types.GetParserAsync(cancellationToken);
+        var before = parser.Find(previousTitle);
+        var after = parser.Find(title);
         // A reference both titles have keeps its notes: only the others can change where they lead.
         var changed = before.ExceptBy(after.Select(match => match.NormalizedReference), match => match.NormalizedReference)
             .Concat(after.ExceptBy(before.Select(match => match.NormalizedReference), match => match.NormalizedReference))
@@ -55,10 +65,10 @@ public sealed class NoteReferenceService(INoteReferenceRepository references, Ti
             foreach (var owner in paragraphs.GroupBy(paragraph => paragraph.OwnerUserId, StringComparer.Ordinal))
             {
                 var candidates = await references.GetCandidatesAsync(owner.Key, contextId, numbers, cancellationToken);
-                var titles = NoteReferenceRules.NotesByTitleReference(candidates.Select(candidate => (candidate.Id, candidate.Title)));
+                var titles = NoteReferenceRules.NotesByTitleReference(parser, candidates.Select(candidate => (candidate.Id, candidate.Title)));
                 foreach (var paragraph in owner)
                 {
-                    var matches = NoteReferenceRules.Find(paragraph.Content).Where(match => keys.Contains(match.NormalizedReference));
+                    var matches = parser.Find(paragraph.Content).Where(match => keys.Contains(match.NormalizedReference));
                     stored.AddRange(ReferencesOf(paragraph.NoteBlockId, paragraph.NoteId, matches, titles));
                 }
             }
@@ -73,6 +83,7 @@ public sealed class NoteReferenceService(INoteReferenceRepository references, Ti
         cancellationToken.ThrowIfCancellationRequested();
         var stored = await references.GetTargetsAsync(document.Id, userId, cancellationToken);
         if (stored.Count == 0) return document;
+        var parser = await types.GetParserAsync(cancellationToken);
         // Each stored reference of a paragraph with the notes it opens for the user, in the order of their ids.
         var targets = stored
             .GroupBy(reference => (reference.NoteBlockId, reference.NormalizedReference))
@@ -80,7 +91,7 @@ public sealed class NoteReferenceService(INoteReferenceRepository references, Ti
         var blocks = document.Blocks
             .Select(block => block with
             {
-                Links = NoteReferenceRules.LinksIn(block.Content,
+                Links = NoteReferenceRules.LinksIn(parser.Find(block.Content),
                     normalized => targets.TryGetValue((block.Id, normalized), out var targetNoteIds) ? targetNoteIds : [])
             })
             .ToList();

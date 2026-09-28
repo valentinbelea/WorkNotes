@@ -83,7 +83,7 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (result.Status != NoteSaveStatus.Saved) return result;
         // Other paragraphs of the board may name the note by its old or its new title.
         if (normalized != document.Title) await references.RefreshAsync(document.ContextId, document.Title, normalized, cancellationToken);
-        return WithLinks(result, paragraphs, resolution);
+        return WithLinks(result, resolution);
     }
 
     public Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken)
@@ -143,22 +143,15 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         return new(NoteOrderStatus.Saved, noteIds, versions);
     }
 
-    // Where each saved paragraph shows its links now, for the editor: the references just stored with it.
-    private static NoteSaveResult WithLinks(NoteSaveResult result, IReadOnlyList<NoteBlockInput> paragraphs, NoteReferenceResolution resolution)
+    // Where each saved paragraph shows its links now, for the editor: those of the references just stored with it, as
+    // the resolution found them in its text.
+    private static NoteSaveResult WithLinks(NoteSaveResult result, NoteReferenceResolution resolution)
     {
         if (resolution.References.Count == 0 || result.Blocks is null) return result;
-        var content = paragraphs.ToDictionary(paragraph => paragraph.Id, paragraph => paragraph.Content);
-        var targets = resolution.References.ToDictionary(reference => (reference.NoteBlockId, reference.NormalizedReference), reference => reference.TargetNoteIds);
         return result with
         {
             Blocks = result.Blocks
-                .Select(block => content.TryGetValue(block.Id, out var text)
-                    ? block with
-                    {
-                        Links = NoteReferenceRules.LinksIn(text,
-                            normalized => targets.TryGetValue((block.Id, normalized), out var targetNoteIds) ? targetNoteIds : [])
-                    }
-                    : block)
+                .Select(block => block with { Links = resolution.Links.TryGetValue(block.Id, out var links) ? links : [] })
                 .ToList(),
             References = resolution.Targets
         };

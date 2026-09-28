@@ -470,7 +470,8 @@ public sealed class NoteServiceTests
     public async Task TheReferencesResolvedForTheOwnerAreSavedWithTheParagraphs()
     {
         var paragraph = Guid.NewGuid();
-        var resolution = new NoteReferenceResolution([new(paragraph, NoteReferenceTypes.Cr, 30080, "CR 30080", [12])], [Cr30080]);
+        var resolution = new NoteReferenceResolution([new(paragraph, "CR", 30080, "CR 30080", [12])], [Cr30080],
+            new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>> { [paragraph] = [new(5, 8, [12])] });
         var notes = new StubNotes(document: Document());
         var references = new StubReferences(resolution);
         var service = new NoteService(notes, new StubContexts(), references, UtcTime);
@@ -488,12 +489,14 @@ public sealed class NoteServiceTests
     }
 
     [Fact]
-    public async Task ASavedParagraphShowsALinkWhereverItWritesAStoredReference()
+    public async Task EachSavedParagraphShowsTheLinksItsReferencesWereResolvedWith()
     {
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();
-        // CR 30080 opens two notes.
-        var resolution = new NoteReferenceResolution([new(first, NoteReferenceTypes.Cr, 30080, "CR 30080", [12, 15])], [Cr30080, Test30080]);
+        // CR 30080 opens two notes, in the two places the first paragraph writes it.
+        IReadOnlyList<NoteReferenceLink> links = [new(0, 8, [12, 15]), new(15, 8, [12, 15])];
+        var resolution = new NoteReferenceResolution([new(first, "CR", 30080, "CR 30080", [12, 15])], [Cr30080, Test30080],
+            new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>> { [first] = links });
         var saved = new NoteSaveResult(NoteSaveStatus.Saved, "v2", [new(first, DateTime.UtcNow, DateTime.UtcNow), new(second, DateTime.UtcNow, DateTime.UtcNow)]);
         var notes = new StubNotes(document: Document(), saveResult: saved);
         var service = new NoteService(notes, new StubContexts(), new StubReferences(resolution), UtcTime);
@@ -501,9 +504,7 @@ public sealed class NoteServiceTests
         var result = await service.SaveAsync(User, 7, "v1", "Titlu",
             [new(first, "CR 30080, apoi cr_30080 și bug 30080"), new(second, "CR 30080 fără referință stocată")], CancellationToken.None);
 
-        var links = result.Blocks![0].Links!;
-        Assert.Equal([(0, 8), (15, 8)], links.Select(link => (link.Start, link.Length)));
-        Assert.All(links, link => Assert.Equal([12, 15], link.TargetNoteIds));
+        Assert.Same(links, result.Blocks![0].Links);
         Assert.Empty(result.Blocks[1].Links!);
         Assert.Equal([Cr30080, Test30080], result.References);
     }
@@ -714,7 +715,7 @@ public sealed class NoteServiceTests
             IReadOnlyList<NoteBlockInput> paragraphs, CancellationToken cancellationToken)
         {
             Resolved = (ownerUserId, contextId, noteId, paragraphs);
-            return Task.FromResult(resolution ?? new NoteReferenceResolution([], []));
+            return Task.FromResult(resolution ?? new NoteReferenceResolution([], [], new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>>()));
         }
 
         public Task RefreshAsync(int contextId, string? previousTitle, string? title, CancellationToken cancellationToken)

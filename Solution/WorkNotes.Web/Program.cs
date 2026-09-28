@@ -38,6 +38,8 @@ builder.Services.AddScoped<IWorkContextService, WorkContextService>();
 builder.Services.AddScoped<IContextMemberService, ContextMemberService>();
 builder.Services.AddScoped<INoteService, NoteService>();
 builder.Services.AddScoped<INoteReferenceService, NoteReferenceService>();
+builder.Services.AddSingleton<ReferenceTypeCache>();
+builder.Services.AddScoped<IReferenceTypeService, ReferenceTypeService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDataAccess(builder.Configuration.GetConnectionString("WorkNotes")
     ?? throw new InvalidOperationException("ConnectionStrings:WorkNotes is required."));
