@@ -23,8 +23,7 @@ public sealed class NoteReferenceBackfillServiceTests
         var results = await RunAsync(notes, save: true);
 
         var saved = Assert.Single(notes.Saves);
-        Assert.Equal(7, saved.NoteId);
-        Assert.Equal("version-7", saved.ExpectedVersion);
+        Assert.Equal((7, Owner, "version-7"), (saved.NoteId, saved.OwnerUserId, saved.ExpectedVersion));
         // Only the changed paragraph is saved, under its id.
         Assert.Equal([new NoteBlockInput(first, "Am lucrat la [[note:12|30080]], apoi la [[note:12|30080]].")], saved.Paragraphs);
         Assert.Equal([new NoteReferenceInput(12, "30080")], saved.References);
@@ -145,7 +144,7 @@ public sealed class NoteReferenceBackfillServiceTests
         Assert.Equal([(7, Owner), (8, Owner), (9, "user-2"), (10, Owner)], notes.DocumentsRead);
         Assert.Equal([NoteReferenceBackfillStatus.Linked, NoteReferenceBackfillStatus.Linked, NoteReferenceBackfillStatus.Unchanged,
             NoteReferenceBackfillStatus.Unchanged], results.Select(result => result.Status));
-        Assert.Equal([7, 8], notes.Saves.Select(save => save.NoteId));
+        Assert.Equal([(7, Owner), (8, Owner)], notes.Saves.Select(save => (save.NoteId, save.OwnerUserId)));
     }
 
     [Fact]
@@ -191,7 +190,7 @@ public sealed class NoteReferenceBackfillServiceTests
         new(id, 5, "TopDev", NoteTypes.Journal, title, NoteVisibilities.Private, true, SavedAtUtc, SavedAtUtc, $"version-{id}",
             blocks.Select(block => new NoteBlockDetails(block.Id, block.Content, SavedAtUtc, SavedAtUtc)).ToList());
 
-    private sealed record Save(int NoteId, string ExpectedVersion, IReadOnlyList<NoteBlockInput> Paragraphs,
+    private sealed record Save(int NoteId, string OwnerUserId, string ExpectedVersion, IReadOnlyList<NoteBlockInput> Paragraphs,
         IReadOnlyList<NoteReferenceInput> References, DateTime SavedAtUtc);
 
     private sealed class FixedTime(DateTimeOffset utcNow) : TimeProvider
@@ -229,10 +228,10 @@ public sealed class NoteReferenceBackfillServiceTests
             return Task.FromResult(documents.FirstOrDefault(document => document.Id == noteId));
         }
 
-        public Task<bool> SaveReferencesAsync(int noteId, string expectedVersion, IReadOnlyList<NoteBlockInput> paragraphs,
+        public Task<bool> SaveReferencesAsync(int noteId, string ownerUserId, string expectedVersion, IReadOnlyList<NoteBlockInput> paragraphs,
             IReadOnlyList<NoteReferenceInput> references, DateTime savedAtUtc, CancellationToken cancellationToken)
         {
-            Saves.Add(new Save(noteId, expectedVersion, paragraphs, references, savedAtUtc));
+            Saves.Add(new Save(noteId, ownerUserId, expectedVersion, paragraphs, references, savedAtUtc));
             return Task.FromResult(SaveSucceeds);
         }
     }

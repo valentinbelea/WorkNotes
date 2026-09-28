@@ -242,7 +242,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<NoteReferenceSource>> GetReferenceSourcesAsync(CancellationToken cancellationToken) =>
-        // The notes their owner sees on the board and saves: not archived, in a context the owner belongs to.
+        // VisibleTo for each note's own owner: not archived, in a context the owner belongs to.
         await dbContext.Notes
             .AsNoTracking()
             .Where(note => note.ArchivedAtUtc == null && note.Context.ContextMembers.Any(member => member.UserId == note.OwnerUserId))
@@ -260,7 +260,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             .Select(note => new NoteReferenceTarget(note.Id, note.Title, note.NoteType))
             .ToListAsync(cancellationToken);
 
-    public async Task<bool> SaveReferencesAsync(int noteId, string expectedVersion, IReadOnlyList<NoteBlockInput> paragraphs,
+    public async Task<bool> SaveReferencesAsync(int noteId, string ownerUserId, string expectedVersion, IReadOnlyList<NoteBlockInput> paragraphs,
         IReadOnlyList<NoteReferenceInput> references, DateTime savedAtUtc, CancellationToken cancellationToken)
     {
         if (!TryReadVersion(expectedVersion, out var version)) return false;
@@ -270,7 +270,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         try
         {
             var current = await dbContext.Notes
-                .Where(note => note.Id == noteId && note.ArchivedAtUtc == null)
+                .Where(note => note.Id == noteId && note.OwnerUserId == ownerUserId && note.ArchivedAtUtc == null)
                 .Select(note => note.RowVersion)
                 .SingleOrDefaultAsync(cancellationToken);
             if (current is null || !current.AsSpan().SequenceEqual(version)) return false;

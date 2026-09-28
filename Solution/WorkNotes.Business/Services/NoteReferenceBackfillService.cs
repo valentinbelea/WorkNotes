@@ -23,13 +23,14 @@ public sealed class NoteReferenceBackfillService(INoteReferenceBackfillRepositor
                 var document = await notes.GetDocumentAsync(source.NoteId, source.OwnerUserId, cancellationToken);
                 // Deleted, archived or no longer the owner's since the list was read.
                 if (document is null || !document.IsOwner) continue;
-                yield return await CreateReferencesAsync(document, targets, candidates, save, cancellationToken);
+                yield return await CreateReferencesAsync(document, source.OwnerUserId, targets, candidates, save, cancellationToken);
             }
         }
     }
 
-    private async Task<NoteReferenceBackfillNote> CreateReferencesAsync(NoteDocument document, IReadOnlyList<NoteReferenceTarget> targets,
-        Dictionary<string, IReadOnlyList<NoteReferenceTarget>> candidates, bool save, CancellationToken cancellationToken)
+    private async Task<NoteReferenceBackfillNote> CreateReferencesAsync(NoteDocument document, string ownerUserId,
+        IReadOnlyList<NoteReferenceTarget> targets, Dictionary<string, IReadOnlyList<NoteReferenceTarget>> candidates, bool save,
+        CancellationToken cancellationToken)
     {
         var matches = new List<NoteReferenceBackfillMatch>();
         // The other notes of the board with the number whole in their title, as the editor would offer them. Only a
@@ -61,7 +62,7 @@ public sealed class NoteReferenceBackfillService(INoteReferenceBackfillRepositor
             var references = NoteReferenceRules.Find(paragraphs.Select(paragraph => paragraph.Content))
                 .Where(reference => valid.Contains(reference.TargetNoteId))
                 .ToList();
-            if (!await notes.SaveReferencesAsync(document.Id, document.Version, changed, references, SavedAtUtc(), cancellationToken))
+            if (!await notes.SaveReferencesAsync(document.Id, ownerUserId, document.Version, changed, references, SavedAtUtc(), cancellationToken))
                 status = NoteReferenceBackfillStatus.Conflict;
         }
         return new NoteReferenceBackfillNote(document.Id, document.Title, status, matches);
