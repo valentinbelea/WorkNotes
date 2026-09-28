@@ -12,6 +12,8 @@ public sealed class NoteReferenceBackfillServiceTests
     private static readonly NoteReferenceTarget Cr30080 = new(12, "CR 30080 Export facturi", NoteTypes.Article);
     private static readonly NoteReferenceTarget Test30080 = new(13, "Testare CR-30080", NoteTypes.Journal);
     private static readonly NoteReferenceTarget Release512 = new(14, "Release 512", NoteTypes.Article);
+    private static readonly NoteReferenceTarget Bug30080 = new(15, "Bug 30080 regresie la export", NoteTypes.Article);
+    private static readonly NoteReferenceTarget Journal30080 = new(16, "Jurnal: CR 30080 în producție", NoteTypes.Journal);
 
     [Fact]
     public async Task ANumberInTheTitleOfExactlyOneOtherNoteBecomesAReference()
@@ -32,20 +34,61 @@ public sealed class NoteReferenceBackfillServiceTests
         Assert.Equal((7, "Jurnal", NoteReferenceBackfillStatus.Linked), (result.NoteId, result.Title, result.Status));
         var match = Assert.Single(result.Matches);
         Assert.Equal(("30080", 2), (match.Number, match.Count));
-        Assert.Equal([Cr30080], match.Targets);
+        Assert.Equal([Cr30080], match.Candidates);
+        Assert.Equal(Cr30080, match.Target);
     }
 
     [Fact]
-    public async Task ANumberSeveralNotesHaveIsLeftForTheOwnerToChoose()
+    public async Task AmongSeveralNotesTheOnlyArticleIsTheTarget()
     {
-        var notes = new StubNotes([Cr30080, Test30080], Document(7, null, ("Vezi 30080", Guid.NewGuid())));
+        // The CR is documented in its article; the journals only mention it in their titles.
+        var notes = new StubNotes([Cr30080, Test30080, Journal30080], Document(7, null, ("Vezi 30080", Guid.NewGuid())));
+
+        var result = Assert.Single(await RunAsync(notes, save: true));
+
+        Assert.Equal(NoteReferenceBackfillStatus.Linked, result.Status);
+        var saved = Assert.Single(notes.Saves);
+        Assert.Equal("Vezi [[note:12|30080]]", Assert.Single(saved.Paragraphs).Content);
+        Assert.Equal([new NoteReferenceInput(12, "30080")], saved.References);
+        var match = Assert.Single(result.Matches);
+        Assert.Equal([Cr30080, Test30080, Journal30080], match.Candidates);
+        Assert.Equal(Cr30080, match.Target);
+    }
+
+    [Fact]
+    public async Task SeveralArticlesLeaveTheNumberForTheOwnerToChoose()
+    {
+        var notes = new StubNotes([Cr30080, Bug30080, Test30080], Document(7, null, ("Vezi 30080", Guid.NewGuid())));
 
         var result = Assert.Single(await RunAsync(notes, save: true));
 
         Assert.Empty(notes.Saves);
         Assert.Equal(NoteReferenceBackfillStatus.Unchanged, result.Status);
         var match = Assert.Single(result.Matches);
-        Assert.Equal([Cr30080, Test30080], match.Targets);
+        Assert.Equal([Cr30080, Bug30080, Test30080], match.Candidates);
+        Assert.Null(match.Target);
+    }
+
+    [Fact]
+    public async Task SeveralJournalsLeaveTheNumberForTheOwnerToChoose()
+    {
+        var notes = new StubNotes([Test30080, Journal30080], Document(7, null, ("Vezi 30080", Guid.NewGuid())));
+
+        var result = Assert.Single(await RunAsync(notes, save: true));
+
+        Assert.Empty(notes.Saves);
+        Assert.Null(Assert.Single(result.Matches).Target);
+    }
+
+    [Fact]
+    public async Task ASingleJournalIsATargetToo()
+    {
+        var notes = new StubNotes([Test30080], Document(7, null, ("Vezi 30080", Guid.NewGuid())));
+
+        var result = Assert.Single(await RunAsync(notes, save: true));
+
+        Assert.Equal(NoteReferenceBackfillStatus.Linked, result.Status);
+        Assert.Equal([new NoteReferenceInput(13, "30080")], Assert.Single(notes.Saves).References);
     }
 
     [Fact]
@@ -132,8 +175,8 @@ public sealed class NoteReferenceBackfillServiceTests
             TargetsByBoard =
             {
                 [(Owner, 5)] = [Cr30080],
-                // user-2 may see two notes with the number on the same board.
-                [("user-2", 5)] = [Cr30080, Test30080],
+                // user-2 may see two articles with the number on the same board.
+                [("user-2", 5)] = [Cr30080, Bug30080],
                 [(Owner, 6)] = []
             }
         };

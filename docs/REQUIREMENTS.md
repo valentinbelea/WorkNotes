@@ -77,7 +77,7 @@ Statusurile sunt stabilite după codul de pe `main` (commit `504c01e`, 2026-09-2
 ## Referințe interne între note
 
 - [~] Referințe dintr-o notă către altă notă a aceluiași context, create dintr-un număr prezent în titlul destinației, deschise în editor și în previzualizarea cardurilor — implementate în PR #4 (branch `main_task_02`), neintegrate în `main`.
-- [~] Crearea referințelor în notele existente, o singură dată, cu comanda `create-note-references`: numai numerele pe care exact o altă notă vizibilă a contextului le are în titlu; fără `--save` doar arată schimbările — implementată în PR #4, neintegrată în `main`.
+- [~] Crearea referințelor în notele existente, o singură dată, cu comanda `create-note-references`: numai numerele pe care exact o altă notă vizibilă a contextului le are în titlu sau, dintre mai multe astfel de note, cu un singur articol; fără `--save` doar arată schimbările — implementată în PR #4, neintegrată în `main`.
 - [ ] Lista „Referințe către această notă” (backlog-ul PR #4).
 - [ ] Catalogul de referințe de lucru CR/bug pe context (`WorkReferences`) și asocierile cu notele și paragrafele (`NoteWorkReferences`, `NoteBlockWorkReferences`), cu căutarea explicațiilor după codul CR-ului.
 - [ ] Legături externe pe notă sau pe paragraf (`NoteLinks`).

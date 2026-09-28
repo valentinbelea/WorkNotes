@@ -31,20 +31,22 @@ public sealed class NoteReferenceBackfillCommand(INoteReferenceBackfillService b
                 await output.WriteLineAsync($"Note {note.NoteId} {Quoted(note.Title)}");
                 foreach (var match in note.Matches)
                 {
-                    if (match.Targets.Count == 1)
+                    if (match.Target is { } target)
                     {
-                        await output.WriteLineAsync($"  {match.Number} -> note {match.Targets[0].Id} {Quoted(match.Targets[0].Title)}{Times(match.Count)}");
+                        await output.WriteLineAsync($"  {match.Number} -> note {target.Id} {Quoted(target.Title)}{Times(match.Count)}"
+                            + (match.Candidates.Count > 1 ? $", the only article among notes {Ids(match.Candidates)}" : ""));
                         continue;
                     }
                     leftAsTheyAre++;
-                    await output.WriteLineAsync(
-                        $"  {match.Number}{Times(match.Count)}: left as it is, notes {string.Join(", ", match.Targets.Select(target => target.Id))} all have it in their title");
+                    var articles = match.Candidates.Count(candidate => candidate.NoteType == NoteTypes.Article);
+                    await output.WriteLineAsync($"  {match.Number}{Times(match.Count)}: left as it is, notes {Ids(match.Candidates)} have it in their title, "
+                        + (articles == 0 ? "none of them an article" : $"{articles} of them articles"));
                 }
                 switch (note.Status)
                 {
                     case NoteReferenceBackfillStatus.Linked:
                         notesLinked++;
-                        var linked = note.Matches.Where(match => match.Targets.Count == 1).ToList();
+                        var linked = note.Matches.Where(match => match.Target is not null).ToList();
                         references += linked.Count;
                         places += linked.Sum(match => match.Count);
                         break;
@@ -65,11 +67,13 @@ public sealed class NoteReferenceBackfillCommand(INoteReferenceBackfillService b
             return 1;
         }
         await output.WriteLineAsync($"Notes read: {notesRead}. {(save ? "Notes changed" : "Notes to change")}: {notesLinked}, with {references} references in {places} places. "
-            + $"Numbers left as they are because several notes have them: {leftAsTheyAre}. Notes not saved: {notSaved}.");
+            + $"Numbers left as they are (several notes, not exactly one article): {leftAsTheyAre}. Notes not saved: {notSaved}.");
         return 0;
     }
 
     private static string Quoted(string? title) => title is null ? "(untitled)" : $"\"{title}\"";
 
     private static string Times(int count) => count > 1 ? $" (x{count})" : "";
+
+    private static string Ids(IEnumerable<NoteReferenceTarget> notes) => string.Join(", ", notes.Select(note => note.Id));
 }
