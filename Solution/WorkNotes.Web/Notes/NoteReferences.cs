@@ -30,6 +30,40 @@ public static class NoteReferences
     public static IEnumerable<object> Targets(IStringLocalizer localizer, IReadOnlyList<NoteReferenceTarget>? targets) =>
         (targets ?? []).Select(target => new { id = target.Id, label = Label(localizer, target) });
 
+    // One entry of the references drawer: a reference of the note, named by its type and number (CR 30080), and the
+    // notes it opens.
+    public sealed record ListEntry(string Label, IReadOnlyList<NoteReferenceTarget> Notes);
+
+    // The references drawer of a note: each reference its paragraphs show as a link, once, in the order it first appears
+    // in the text, with all the notes its links open (in the order of their ids) among the notes given. The paragraphs'
+    // links come in document order.
+    public static IReadOnlyList<ListEntry> List(IEnumerable<IReadOnlyList<NoteReferenceLink>?> paragraphs, IReadOnlyList<NoteReferenceTarget>? targets)
+    {
+        var known = (targets ?? []).ToDictionary(target => target.Id);
+        var entries = new List<(string Label, SortedSet<int> Notes)>();
+        var byReference = new Dictionary<string, SortedSet<int>>(StringComparer.Ordinal);
+        foreach (var links in paragraphs)
+        {
+            foreach (var link in (links ?? []).OrderBy(link => link.Start))
+            {
+                if (!byReference.TryGetValue(link.NormalizedReference, out var notes))
+                {
+                    byReference[link.NormalizedReference] = notes = [];
+                    entries.Add(($"{link.ReferenceType} {link.ReferenceNumber.ToString(CultureInfo.InvariantCulture)}", notes));
+                }
+                notes.UnionWith(link.TargetNoteIds.Where(known.ContainsKey));
+            }
+        }
+        return entries
+            .Where(entry => entry.Notes.Count > 0)
+            .Select(entry => new ListEntry(entry.Label, entry.Notes.Select(id => known[id]).ToList()))
+            .ToList();
+    }
+
+    // The references drawer in the answer of a save: each entry's name and the ids of its notes.
+    public static IEnumerable<object> ListData(IReadOnlyList<ListEntry> entries) =>
+        entries.Select(entry => new { label = entry.Label, notes = entry.Notes.Select(target => target.Id) });
+
     // A paragraph as HTML for reading without JavaScript: the text is encoded; each link is a link to its first note
     // (/?note={id}), and each other note of the link follows it as a small numbered link (2, 3...), since a link without
     // JavaScript opens a single note. Nothing else is added, so the text keeps its own spacing and line breaks.

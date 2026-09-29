@@ -123,7 +123,9 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                     // Where the saved text shows links now, so the editor draws them without reloading the note.
                     links = NoteReferences.Links(block.Links)
                 }),
-                references = NoteReferences.Targets(localizer, result.References)
+                references = NoteReferences.Targets(localizer, result.References),
+                // The references drawer of the saved text: each reference once, with the notes it opens.
+                referenceList = NoteReferences.ListData(NoteReferences.List((result.Blocks ?? []).Select(block => block.Links), result.References))
             }),
             NoteSaveStatus.Conflict => EditorFailure(StatusCodes.Status409Conflict, "Editor_Conflict"),
             NoteSaveStatus.Forbidden => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),

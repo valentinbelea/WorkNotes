@@ -171,4 +171,7 @@
 <data name="Notes_ReorderInvalidTarget" xml:space="preserve"><value>A note can only swap places with another note of the same month.</value></data>
 <data name="Notes_ReorderConflict" xml:space="preserve"><value>The notes changed in the meantime and the order was not saved. Reload the page.</value></data>
 <data name="Notes_ReferenceTarget" xml:space="preserve"><value>“{0}” ({1})</value></data>
+<data name="Editor_References" xml:space="preserve"><value>References</value></data>
+<data name="Editor_ReferencesHelp" xml:space="preserve"><value>The references in this note and the notes they open. The list is updated when the note is saved.</value></data>
+<data name="Editor_ReferencesEmpty" xml:space="preserve"><value>This note has no references to other notes.</value></data>
 </root>

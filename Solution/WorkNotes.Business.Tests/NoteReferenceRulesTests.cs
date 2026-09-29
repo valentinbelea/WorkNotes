@@ -172,7 +172,8 @@ public sealed class NoteReferenceRulesTests
 
         Assert.Equal([(0, 8), (10, 8), (22, 8)], links.Select(link => (link.Start, link.Length)));
         Assert.Equal(["CR 30080", "cr-30080", "CR_30080"], links.Select(link => text.Substring(link.Start, link.Length)));
-        // Each place opens all the notes of the reference.
+        // Each place is the same reference, whatever its form, and opens all the notes of the reference.
+        Assert.All(links, link => Assert.Equal(("CR", 30080L, "CR:30080"), (link.ReferenceType, link.ReferenceNumber, link.NormalizedReference)));
         Assert.All(links, link => Assert.Equal([12, 15], link.TargetNoteIds));
     }
 }

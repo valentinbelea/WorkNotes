@@ -5,6 +5,7 @@
     var note = Model;
     var title = note.Title ?? L["Notes_Untitled"].Value;
     var typeName = note.NoteType == NoteTypes.Article ? L["NoteType_Article"].Value : L["NoteType_Journal"].Value;
+    var referenceList = NoteReferences.List(note.Blocks.Select(block => block.Links), note.References);
     // The note's own data; the texts shared by all tabs are in the dialog (#note-editor-data).
     var noteData = new
     {
@@ -41,15 +42,57 @@
     {
         <h2 id="note-@note.Id-title" class="note-sheet__title">@title</h2>
     }
-    @* The editor container has its own scroll; the dialog and the board behind it do not move. *@
-    <div class="note-sheet__editor" data-note-editor>
-        <noscript>
-            <p class="field-error">@L["Editor_NoScript"]</p>
-            @foreach (var block in note.Blocks)
-            {
-                <p class="note-sheet__paragraph">@NoteReferences.Html(block, note.References, L, Url)</p>
-            }
-        </noscript>
+    <div class="note-sheet__body">
+        @* The editor container has its own scroll; the dialog and the board behind it do not move. *@
+        <div class="note-sheet__editor" data-note-editor>
+            <noscript>
+                <p class="field-error">@L["Editor_NoScript"]</p>
+                @foreach (var block in note.Blocks)
+                {
+                    <p class="note-sheet__paragraph">@NoteReferences.Html(block, note.References, L, Url)</p>
+                }
+            </noscript>
+        </div>
+        @* The drawer of the note's references, beside the text: each reference of the text that is a link, once, with the
+           notes it opens. A details element, so it opens and closes without JavaScript, and its links go to the notes'
+           pages (/?note={id}). With JavaScript a click opens them in the editor's tabs instead, the drawer stays open or
+           closed in every tab, and the list follows each save (from the templates below). *@
+        <details class="note-references" data-editor-references>
+            <summary class="note-references__toggle">
+                <svg class="note-references__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 6.5 9 12l5.5 5.5" /></svg>
+                <span class="note-references__label">@L["Editor_References"]</span>
+                <span class="note-references__count@(referenceList.Count == 0 ? " note-references__count--none" : "")" data-references-count>@referenceList.Count</span>
+            </summary>
+            <div class="note-references__content">
+                <p class="note-references__help">@L["Editor_ReferencesHelp"]</p>
+                <p class="note-references__empty" data-references-empty hidden="@(referenceList.Count > 0)">@L["Editor_ReferencesEmpty"]</p>
+                <ul class="note-references__list" data-references-list>
+                    @foreach (var entry in referenceList)
+                    {
+                        <li class="note-references__item">
+                            <a class="note-references__reference" href="@Url.Page("/Index", new { note = entry.Notes[0].Id })"
+                               data-note-reference="@string.Join(" ", entry.Notes.Select(target => target.Id))"
+                               title="@string.Join("\n", entry.Notes.Select(target => NoteReferences.Label(L, target)))">@entry.Label</a>
+                            <ul class="note-references__notes">
+                                @foreach (var target in entry.Notes)
+                                {
+                                    <li><a class="note-references__note" href="@Url.Page("/Index", new { note = target.Id })" data-note-reference="@target.Id">@NoteReferences.Label(L, target)</a></li>
+                                }
+                            </ul>
+                        </li>
+                    }
+                </ul>
+                <template data-references-entry>
+                    <li class="note-references__item">
+                        <a class="note-references__reference" data-references-reference></a>
+                        <ul class="note-references__notes" data-references-notes></ul>
+                    </li>
+                </template>
+                <template data-references-note>
+                    <li><a class="note-references__note" data-references-target></a></li>
+                </template>
+            </div>
+        </details>
     </div>
     <div class="note-editor-footer">
         @* Info bar: when the paragraph under the mouse (or at the cursor) was created and last changed.

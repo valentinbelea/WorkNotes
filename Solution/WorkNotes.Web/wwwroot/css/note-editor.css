@@ -38,12 +38,17 @@
 /* The sheet has the colour of the note type, like its card on the board. */
 .postit-panel.note-sheet--journal { --postit-color: var(--wn-note-paper); --postit-tape: url("../images/postit-tape.svg"); }
 .postit-panel.note-sheet--article { --postit-color: var(--wn-note-sage); --postit-tape: url("../images/postit-tape-sage.svg"); }
+/* Selections on the yellow sheet of a journal (its title, the text read without JavaScript) use the selection green: the
+   note yellow other paper panels use would not show on it. */
+.postit-panel.note-sheet--journal ::selection { background: var(--wn-selection); }
 .note-sheet__title { flex: none; width: 100%; margin: 0; padding: .25rem 0; border: 0; border-bottom: 1px dashed var(--wn-input-border); border-radius: 0; color: var(--wn-text); background: transparent; font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 650; line-height: 1.25; }
 h2.note-sheet__title { margin: 0; border-bottom: 0; font-size: clamp(1.4rem, 2.6vw, 1.9rem); }
 .note-sheet__title::placeholder { color: var(--wn-muted); font-weight: 500; }
 input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid var(--wn-primary); }
-/* The editor fills the space left in the dialog and scrolls on its own. */
-.note-sheet__editor { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: auto; }
+/* The editor fills the space left in the dialog and scrolls on its own. Its selection is green on the yellow sheet of a
+   journal and yellow on the sage sheet of an article, where the green would hardly show. */
+.note-sheet__editor { --editor-selection: var(--wn-selection); display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: auto; }
+.note-sheet--article .note-sheet__editor { --editor-selection: var(--wn-note-paper); }
 .note-sheet__paragraph { white-space: pre-wrap; }
 .note-sheet__editor .cm-editor { flex: 1 1 auto; min-height: 0; border-radius: var(--wn-radius); color: var(--wn-text); background: rgb(255 255 255 / 45%); font-size: 1rem; }
 .note-sheet__editor .cm-editor.cm-focused { outline: 2px solid var(--wn-primary); outline-offset: 2px; }
@@ -55,8 +60,11 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 .note-sheet__editor .cm-editor .cm-hoveredParagraph { background: rgb(36 58 54 / 5%); box-shadow: inset 3px 0 var(--wn-input-border); }
 /* Active line: the "rând activ" style of the palette. */
 .note-sheet__editor .cm-editor .cm-activeLine { background: var(--wn-active-line); box-shadow: inset 3px 0 var(--wn-primary); }
+/* CodeMirror draws the selection in a layer under the lines (drawSelection), so a line's own background would hide it:
+   while text is selected, the active line and the hovered paragraph keep only their bar on the left. */
 .note-sheet__editor .cm-editor .cm-selectionLayer .cm-selectionBackground,
-.note-sheet__editor .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground { background: var(--wn-selection); }
+.note-sheet__editor .cm-editor.cm-focused .cm-selectionLayer .cm-selectionBackground { background: var(--editor-selection); }
+.note-sheet__editor .cm-editor:has(.cm-selectionBackground) :is(.cm-activeLine, .cm-hoveredParagraph) { background: transparent; }
 .note-sheet__editor .cm-editor .cm-selectionMatch { background: rgb(245 223 147 / 55%); }
 .note-sheet__editor .cm-editor .cm-searchMatch { background: var(--wn-highlight); outline: 1px solid rgb(153 111 26 / 35%); }
 .note-sheet__editor .cm-editor .cm-searchMatch-selected { background: #efc95c; }
@@ -75,6 +83,46 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 .note-sheet__editor .cm-editor .cm-note-reference:hover { color: var(--wn-primary-hover); text-decoration-thickness: 2px; }
 @media (forced-colors: active) {
     .note-sheet__editor .cm-editor .cm-note-reference { color: LinkText; }
+}
+/* The text and, beside it on the right, the drawer of the note's references (_NoteEditorTabPanel). */
+.note-sheet__body { display: flex; flex: 1 1 auto; gap: .75rem; min-height: 0; }
+.note-sheet__body > .note-sheet__editor { min-width: 0; }
+/* The references drawer: closed, a narrow strip beside the text, with its name written downwards and the number of
+   references; open, a column with each reference once and the notes it opens, which scrolls on its own. Its paper is the
+   sheet's colour lightened as under the text, but opaque, so the list passes under its sticky header. */
+.note-references { flex: none; width: 3rem; min-height: 0; overflow: auto; border-radius: var(--wn-radius); background: color-mix(in srgb, var(--postit-color, var(--wn-note-paper)) 55%, var(--wn-surface)); scrollbar-width: thin; }
+.note-references[open] { width: clamp(14rem, 30%, 22rem); }
+.note-references__toggle { position: sticky; top: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: .6rem; min-height: 44px; padding: .75rem .25rem; border-radius: var(--wn-radius); color: var(--wn-muted); background: inherit; font-size: .875rem; font-weight: 650; list-style: none; cursor: pointer; }
+.note-references__toggle::-webkit-details-marker { display: none; }
+.note-references__toggle:hover { color: var(--wn-text); background-image: linear-gradient(rgb(36 58 54 / 8%), rgb(36 58 54 / 8%)); }
+/* Inside the drawer's scroll, the focus ring is drawn within the toggle, where it cannot be cut off. */
+.note-references__toggle:focus-visible { outline-offset: -3px; }
+.note-references:not([open]) > .note-references__toggle { height: 100%; }
+.note-references:not([open]) .note-references__label { writing-mode: vertical-rl; }
+.note-references[open] > .note-references__toggle { flex-direction: row; padding: .6rem .75rem; border-bottom: 1px dashed var(--wn-input-border); border-radius: var(--wn-radius) var(--wn-radius) 0 0; color: var(--wn-text); }
+.note-references__icon { flex: none; width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.note-references[open] .note-references__icon { transform: rotate(180deg); }
+.note-references__count { display: inline-grid; place-items: center; min-width: 1.6rem; height: 1.6rem; padding: 0 .4rem; border-radius: 999px; color: var(--wn-on-primary); background: var(--wn-primary); font-size: .75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.note-references__count--none { color: var(--wn-muted); background: rgb(36 58 54 / 10%); }
+.note-references__content { padding: .75rem .9rem 1rem; }
+.note-references__help { margin: 0 0 .75rem; color: var(--wn-muted); font-size: .8rem; }
+.note-references__empty { margin: 0; color: var(--wn-muted); font-size: .875rem; }
+.note-references__list { display: grid; gap: .9rem; margin: 0; padding: 0; list-style: none; }
+.note-references__reference { font-weight: 700; }
+.note-references__notes { display: grid; gap: .3rem; margin: .3rem 0 0; padding: 0 0 0 .75rem; border-inline-start: 2px solid rgb(36 58 54 / 15%); list-style: none; font-size: .875rem; }
+.note-references__note { overflow-wrap: anywhere; }
+/* On a narrow window the drawer goes under the text, as a bar that opens downwards. */
+@media (max-width: 700px) {
+    .note-sheet__body { flex-direction: column; }
+    .note-references, .note-references[open] { width: auto; }
+    .note-references[open] { flex: 0 1 auto; max-height: 45%; }
+    .note-references:not([open]) > .note-references__toggle { height: auto; flex-direction: row; }
+    .note-references:not([open]) .note-references__label { writing-mode: horizontal-tb; }
+    .note-references__icon { transform: rotate(-90deg); }
+    .note-references[open] .note-references__icon { transform: rotate(90deg); }
+}
+@media (forced-colors: active) {
+    .note-references, .note-references__count { border: 1px solid CanvasText; }
 }
 /* Info bar under the editor: audit of the paragraph under the mouse (or at the cursor), then the shortcuts. */
 .note-editor-info { display: flex; flex: none; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1.5rem; padding-top: .6rem; border-top: 1px dashed var(--wn-input-border); color: var(--wn-muted); font-size: .8rem; }
@@ -96,4 +144,8 @@ body:has(.note-editor-dialog--minimized) .site-main { padding-bottom: 8rem; }
 @media (forced-colors: active) {
     .note-sheet__editor .cm-editor { border: 1px solid CanvasText; }
     .note-sheet__editor .cm-editor .cm-activeLine, .note-sheet__editor .cm-editor .cm-hoveredParagraph { outline: 1px solid Highlight; }
+    /* The drawn selection would be forced to the background colour: a light mix of the system highlight keeps the text
+       readable over it. */
+    .note-sheet__editor, .note-sheet--article .note-sheet__editor { --editor-selection: color-mix(in srgb, Highlight 40%, Canvas); }
+    .note-sheet__editor .cm-editor .cm-selectionLayer .cm-selectionBackground { forced-color-adjust: none; }
 }

@@ -56,7 +56,8 @@ public static class NoteReferenceRules
         foreach (var match in matches)
         {
             var targetNoteIds = targetsOf(match.NormalizedReference);
-            if (targetNoteIds.Count > 0) links.Add(new NoteReferenceLink(match.Start, match.Length, targetNoteIds));
+            if (targetNoteIds.Count > 0)
+                links.Add(new NoteReferenceLink(match.Start, match.Length, match.ReferenceType, match.ReferenceNumber, targetNoteIds));
         }
         return links;
     }

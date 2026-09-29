@@ -9,7 +9,7 @@ import {
     search, searchKeymap, highlightSelectionMatches
 } from "../lib/codemirror/codemirror.js";
 import { showStatusMessage } from "./status-messages.js";
-import { noteReferences, setLinks } from "./note-references.js";
+import { noteReferences, setLinks, referenceDrawer } from "./note-references.js";
 
 // ---- Paragraphs of a document ------------------------------------------------------------------------------
 
@@ -159,6 +159,9 @@ function createNoteEditor(panel, data, shared) {
     const saveButton = panel.querySelector("[data-editor-save]");
     const titleInput = panel.querySelector("[data-editor-title]");
     const messages = shared.messages;
+    const drawerElement = panel.querySelector("[data-editor-references]");
+    // The drawer of the note's references: its links open notes in the tabs, and each save brings its list.
+    const drawer = drawerElement ? referenceDrawer(drawerElement, { open: ids => shared.openNotes(ids), noteUrl: shared.noteUrl }) : null;
 
     // Audit texts (as stored, and with unsaved changes) and last saved content of each stored paragraph, by id.
     const auditById = new Map(data.blocks.map(block => [block.id, block]));
@@ -250,7 +253,9 @@ function createNoteEditor(panel, data, shared) {
             savedContentById.clear();
             for (const block of body.blocks ?? []) auditById.set(block.id, block);
             for (const block of blocks) savedContentById.set(block.id, block.content);
-            showSavedLinks(body);
+            const labels = new Map((body.references ?? []).map(target => [String(target.id), target.label]));
+            showSavedLinks(body, labels);
+            drawer?.show(body.referenceList, labels);
         } catch {
             problem = texts.failed;
             showStatusMessage(messages, "error", problem);
@@ -263,8 +268,7 @@ function createNoteEditor(panel, data, shared) {
 
     // The links of the saved text, drawn where its paragraphs are now. A paragraph edited while the save was on its way
     // gets its links at the next save.
-    function showSavedLinks(body) {
-        const labels = new Map((body.references ?? []).map(target => [String(target.id), target.label]));
+    function showSavedLinks(body, labels) {
         const places = new Map(view.state.field(trackedParagraphs).map(item => [item.id, item]));
         const links = [];
         for (const block of body.blocks ?? []) {
@@ -333,13 +337,15 @@ function createNoteEditor(panel, data, shared) {
 // and leaving the page with unsaved changes in any tab asks first. Minimize and Maximize only change how the window
 // is shown: the tabs, their order, the active tab and every note's state stay as they are.
 function initializeEditorWindow(dialog, settings) {
+    const noteUrl = id => `${settings.noteUrl}?note=${id}`;
     const shared = {
         texts: settings.texts,
         phrases: settings.phrases,
         messages: dialog.querySelector("[data-editor-messages]"),
         token: dialog.querySelector("input[name='__RequestVerificationToken']")?.value ?? "",
         // A link opens its notes in tabs of this window, like notes opened from the board.
-        openNotes: ids => openNotes(ids.map(String))
+        openNotes: ids => openNotes(ids.map(String)),
+        noteUrl
     };
     const windowPanel = dialog.querySelector("[data-editor-window]");
     const tabList = dialog.querySelector("[data-editor-tabs]");
@@ -350,7 +356,7 @@ function initializeEditorWindow(dialog, settings) {
     let leaving = false;            // unsaved changes were already confirmed away
 
     const isMinimized = () => dialog.classList.contains("note-editor-dialog--minimized");
-    const noteUrl = id => `${settings.noteUrl}?note=${id}`;
+    let referencesOpen = false;     // the references drawer, open or closed in every tab
 
     // The window's paper follows the active note's type, like its card on the board.
     function setSheetType(typeClass) {
@@ -381,11 +387,28 @@ function initializeEditorWindow(dialog, settings) {
         else tab.editor.view.requestMeasure();
     }
 
+    // The references drawer is open or closed for the whole window: a tab opened later shows it the same way, and
+    // opening or closing it in one tab does the same in the others.
+    function followReferencesDrawer(panel) {
+        const drawer = panel.querySelector("[data-editor-references]");
+        if (!drawer) return;
+        drawer.open = referencesOpen;
+        drawer.addEventListener("toggle", () => {
+            if (drawer.open === referencesOpen) return;
+            referencesOpen = drawer.open;
+            for (const tab of tabs.values()) {
+                const other = tab.panel.querySelector("[data-editor-references]");
+                if (other && other !== drawer) other.open = referencesOpen;
+            }
+        });
+    }
+
     function addTab(item, panel) {
         const id = item.dataset.editorTab;
         const data = JSON.parse(panel.querySelector("[data-editor-note]").textContent);
         const editor = createNoteEditor(panel, data, shared);
         tabs.set(id, { item, panel, editor });
+        followReferencesDrawer(panel);
         const label = item.querySelector("[data-editor-tab-title]");
         panel.querySelector("[data-editor-title]")?.addEventListener("input", () => {
             label.textContent = editor.title();

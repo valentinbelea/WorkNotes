@@ -471,7 +471,7 @@ public sealed class NoteServiceTests
     {
         var paragraph = Guid.NewGuid();
         var resolution = new NoteReferenceResolution([new(paragraph, "CR", 30080, "CR 30080", [12])], [Cr30080],
-            new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>> { [paragraph] = [new(5, 8, [12])] });
+            new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>> { [paragraph] = [new(5, 8, "CR", 30080, [12])] });
         var notes = new StubNotes(document: Document());
         var references = new StubReferences(resolution);
         var service = new NoteService(notes, new StubContexts(), references, UtcTime);
@@ -494,7 +494,7 @@ public sealed class NoteServiceTests
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();
         // CR 30080 opens two notes, in the two places the first paragraph writes it.
-        IReadOnlyList<NoteReferenceLink> links = [new(0, 8, [12, 15]), new(15, 8, [12, 15])];
+        IReadOnlyList<NoteReferenceLink> links = [new(0, 8, "CR", 30080, [12, 15]), new(15, 8, "CR", 30080, [12, 15])];
         var resolution = new NoteReferenceResolution([new(first, "CR", 30080, "CR 30080", [12, 15])], [Cr30080, Test30080],
             new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>> { [first] = links });
         var saved = new NoteSaveResult(NoteSaveStatus.Saved, "v2", [new(first, DateTime.UtcNow, DateTime.UtcNow), new(second, DateTime.UtcNow, DateTime.UtcNow)]);

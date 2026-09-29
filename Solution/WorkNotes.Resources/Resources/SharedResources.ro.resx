@@ -171,4 +171,7 @@
 <data name="Notes_ReorderInvalidTarget" xml:space="preserve"><value>O notă poate schimba locul numai cu altă notă din aceeași lună.</value></data>
 <data name="Notes_ReorderConflict" xml:space="preserve"><value>Notele s-au schimbat între timp, iar ordinea nu a fost salvată. Reîncarcă pagina.</value></data>
 <data name="Notes_ReferenceTarget" xml:space="preserve"><value>„{0}” ({1})</value></data>
+<data name="Editor_References" xml:space="preserve"><value>Referințe</value></data>
+<data name="Editor_ReferencesHelp" xml:space="preserve"><value>Referințele din această notă și notele pe care le deschid. Lista se actualizează la salvare.</value></data>
+<data name="Editor_ReferencesEmpty" xml:space="preserve"><value>Nota nu are referințe către alte note.</value></data>
 </root>
