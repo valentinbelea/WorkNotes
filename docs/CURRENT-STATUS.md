@@ -1,6 +1,6 @@
 # Starea curentă
 
-**Data ultimei actualizări:** 2026-09-29 · **Versiunea:** 0.02 (`v.0.02`) · **Baza analizei:** `main` la commit-ul `504c01e` (merge-ul PR #3)
+**Data ultimei actualizări:** 2026-09-29 · **Versiunea:** 0.03 (`v.0.03`, în dezvoltare; 0.02 integrată în `main`) · **Baza analizei:** `main` la commit-ul `504c01e` (merge-ul PR #3)
 
 Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.md); planul, în [ROADMAP.md](ROADMAP.md).
 
@@ -15,6 +15,7 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 
 ## În dezvoltare
 
+- **Versiunea 0.03** — branch `main_task_03`, creată la cererea utilizatorului din 2026-09-29 pentru integrarea cu Git: folderul `Scripts/version_0.03`, cu `000_UpdateDatabaseVersion.sql` (inserează `v.0.03`, neaplicat pe nicio bază), și documentele de versionare actualizate. Nu există încă cod pentru integrarea cu Git. TODO: Necesită clarificare — conținutul funcțional al integrării ([REQUIREMENTS.md](REQUIREMENTS.md#integrarea-cu-git-version_003)).
 - **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main` (care a fost adus în branch prin merge), cu commit-urile:
   - „Board: the next drag is no longer refused while a swap is being saved” — schimburile se aplică la `dragend` și se salvează pe rând;
   - „Editor and board: internal references between notes” — primul model al referințelor interne (legătura în text, `[[note:{id}|{număr}]]`), tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`; modelul este înlocuit (vezi mai jos);

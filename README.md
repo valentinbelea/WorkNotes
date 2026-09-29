@@ -2,7 +2,7 @@
 
 WorkNotes este un caiet de lucru web pentru munca de zi cu zi pe proiecte: jurnalul cronologic al zilei și articole — fișe de lucru despre subiecte precise, de exemplu un CR, un bug sau o livrare. Notele sunt organizate pe contexte (clienți sau firme), apar ca post-it-uri pe o tablă, grupate pe luni, și se editează într-un editor cu paragrafe care își păstrează identitatea și auditul. Scopul și terminologia sunt în [docs/PROJECT-CONTEXT.md](docs/PROJECT-CONTEXT.md).
 
-Versiunea curentă: **0.02** (eticheta `v.0.02` din `dbo.DatabaseVersion`, afișată în footer). Stadiul real: [docs/CURRENT-STATUS.md](docs/CURRENT-STATUS.md); cerințele și statusul lor: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md); istoricul: [CHANGELOG.md](CHANGELOG.md).
+Versiunea curentă: **0.03**, în dezvoltare — integrarea cu Git (eticheta `v.0.03` din `dbo.DatabaseVersion`, afișată în footer). Stadiul real: [docs/CURRENT-STATUS.md](docs/CURRENT-STATUS.md); cerințele și statusul lor: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md); istoricul: [CHANGELOG.md](CHANGELOG.md).
 
 ## Tehnologii
 
@@ -31,7 +31,7 @@ Versiunea curentă: **0.02** (eticheta `v.0.02` din `dbo.DatabaseVersion`, afiș
 ├── README.md
 ├── CHANGELOG.md
 ├── docs/                      # documentația detaliată; docs/decisions/ conține ADR-urile
-├── Scripts/                   # scripturile SQL versionate (README.md, version_0.01/, version_0.02/)
+├── Scripts/                   # scripturile SQL versionate (README.md, version_0.01/, version_0.02/, version_0.03/)
 └── Solution/                  # folderul soluției: comenzile dotnet se rulează de aici
     ├── WorkNotes.sln
     ├── dotnet-tools.json      # dotnet-ef 10.0.12, instrument local
@@ -52,7 +52,7 @@ Descrierea proiectelor, a fluxurilor și a paginilor este în [docs/ARCHITECTURE
 - Connection string-ul este cheia `ConnectionStrings:WorkNotes` din `Solution/WorkNotes.Web/appsettings.json`; fără ea aplicația nu pornește.
 - Configurația locală versionată: serverul `localhost\MSSQLSERVER02`, baza `WorkNotes.db`, `Integrated Security=True`, `Encrypt=True`, `TrustServerCertificate=True` — fără utilizator și fără parolă. Conexiunea folosește identitatea Windows a procesului, care are nevoie de drepturi de citire și scriere a datelor pentru aplicație și de drepturi de modificare a schemei atunci când se execută scripturile.
 - Pentru alt server sau alt mediu suprascrieți cheia prin configurația mediului (de exemplu variabila de mediu `ConnectionStrings__WorkNotes`), nu prin fișiere versionate; credențialele nu se salvează în Git.
-- Pregătirea bazei: creați baza `WorkNotes.db`, apoi aplicați, în ordine, scripturile din `Scripts/version_0.01` și `Scripts/version_0.02` — lista, efectul fiecărui script și comenzile `sqlcmd` sunt în [Scripts/README.md](Scripts/README.md). Schema este descrisă în [docs/DATABASE.md](docs/DATABASE.md).
+- Pregătirea bazei: creați baza `WorkNotes.db`, apoi aplicați, în ordine, scripturile din `Scripts/version_0.01`, `Scripts/version_0.02` și `Scripts/version_0.03` — lista, efectul fiecărui script și comenzile `sqlcmd` sunt în [Scripts/README.md](Scripts/README.md). Schema este descrisă în [docs/DATABASE.md](docs/DATABASE.md).
 
 ## Pornire
 

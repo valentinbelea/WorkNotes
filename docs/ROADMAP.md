@@ -18,6 +18,8 @@ Baza existentă, livrată în version_0.01 și version_0.02:
 
 - PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; deschiderea și închiderea notelor fără reîncărcarea tablei, care urmează salvările din editor; schimbarea tipului unei note din editor; referințele interne CR/bug între note, cu destinațiile aflate din titluri (toate notele cu referința în titlu), relații pe paragraf în `NoteReferences`, cu notele fiecărei referințe în `NoteReferenceTargets` și cu ID-ul fiecărei referințe din catalogul `WorkReferences`, tipurile configurabile din `ReferenceTypes` (ținute în memorie), sertarul referințelor din editor, popup-ul referinței abia scrise și reindexarea conținutului existent prin `version_0.02/004_ReplaceNoteReferences.sql`–`012_RefreshNoteReferences.sql` ([ADR-003](decisions/ADR-003-internal-references.md)); corecția selecției din editor.
 
+- Versiunea 0.03 (branch `main_task_03`): integrarea cu Git; deocamdată numai folderul `Scripts/version_0.03`, cu înregistrarea `v.0.03`. TODO: Necesită clarificare — conținutul funcțional ([REQUIREMENTS.md](REQUIREMENTS.md#integrarea-cu-git-version_003)).
+
 ## Etapele următoare
 
 Pașii rămași din planul inițial, în ordinea lui:

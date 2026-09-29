@@ -69,13 +69,13 @@ Abordarea curentă, cerută explicit, este Database First. Schema SQL este sursa
 ## Scripturi SQL și versiuni
 
 - Rădăcina repository-ului conține `Scripts` (scripturile SQL) și `Solution` (soluția, proiectele și `tools`). Comenzile `dotnet` se rulează din `Solution`; de acolo scripturile se află la `..\Scripts\version_0.0x`.
-- Regula folderelor: versiunea curentă 0.0x înseamnă folderul `Scripts/version_0.0x`. Versiunea curentă este indicată în [docs/VERSIONING.md](docs/VERSIONING.md#versiunea-curentă) (la această actualizare: 0.02, eticheta din bază `v.0.02`, folderul `Scripts/version_0.02`).
+- Regula folderelor: versiunea curentă 0.0x înseamnă folderul `Scripts/version_0.0x`. Versiunea curentă este indicată în [docs/VERSIONING.md](docs/VERSIONING.md#versiunea-curentă) (la această actualizare: 0.03, eticheta din bază `v.0.03`, folderul `Scripts/version_0.03`).
 - TOATE scripturile noi, inclusiv Identity și scripturile de tranziție, se pun în folderul versiunii curente. Nu incrementați versiunea și nu creați un folder de versiune nouă doar pentru un modul sau o modificare; schimbarea versiunii necesită solicitare explicită.
 - Păstrați numerotarea ordonată a scripturilor și evitați suprascrierea altor scripturi. Convențiile, ordinea de aplicare și verificările sunt în [Scripts/README.md](Scripts/README.md).
 - Nu modificați retroactiv scripturile deja livrate (integrate în `main`). O corecție sau o schimbare ulterioară de structură se face printr-un script nou.
 - Scriptul de creare păstrează tabelele existente; schimbările de structură folosesc scripturi `ALTER` dedicate. Scripturile de inserare a versiunilor evită duplicatele și păstrează datele existente. Folosiți tranzacții acolo unde atomicitatea este necesară.
 - Nu înlocuiți sau ștergeți tabele/date pentru a rezolva o incompatibilitate de model fără solicitare explicită.
-- Păstrați scriptul și versiunea `v.0.01`; `v.0.02` se adaugă ca rând nou prin `version_0.02/000_UpdateDatabaseVersion.sql`. Nu hardcodați versiunea afișată în Web sau Business; ea este citită din `DatabaseVersion`.
+- Păstrați scripturile și versiunile anterioare (`v.0.01`, `v.0.02`); fiecare versiune nouă se adaugă ca rând nou prin `000_UpdateDatabaseVersion.sql` din folderul ei (`v.0.02` prin `version_0.02/000_UpdateDatabaseVersion.sql`, `v.0.03` prin `version_0.03/000_UpdateDatabaseVersion.sql`). Nu hardcodați versiunea afișată în Web sau Business; ea este citită din `DatabaseVersion`.
 
 ## Fluxul versiunii aplicației
 

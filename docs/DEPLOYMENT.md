@@ -75,7 +75,7 @@ TODO: Necesită clarificare — nu există o procedură de backup documentată (
 ## Verificări după publicare
 
 1. Aplicația pornește fără erori, pe HTTPS.
-2. Footerul afișează versiunea așteptată (în prezent `v.0.02`), nu „Versiune neconfigurată”.
+2. Footerul afișează versiunea așteptată (în prezent `v.0.03`), nu „Versiune neconfigurată”.
 3. Autentificarea funcționează; cookie-ul `WorkNotes.Auth` este `Secure` și HttpOnly.
 4. Tabla unui context se încarcă, iar o notă se deschide în editor.
 5. Schimbarea limbii funcționează în română, engleză și poloneză.

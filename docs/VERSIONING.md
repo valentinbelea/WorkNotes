@@ -4,34 +4,35 @@ Regulile obligatorii sunt în [AGENTS.md](../AGENTS.md#scripturi-sql-și-versiun
 
 ## Schema de versionare
 
-- Versiunea WorkNotes este versiunea bazei de date: o etichetă text înregistrată în `dbo.DatabaseVersion.Version`, în formatul `v.major.minor[.build[.revision]]`, de exemplu `v.0.01` și `v.0.02`.
+- Versiunea WorkNotes este versiunea bazei de date: o etichetă text înregistrată în `dbo.DatabaseVersion.Version`, în formatul `v.major.minor[.build[.revision]]`, de exemplu `v.0.01`, `v.0.02` și `v.0.03`.
 - Versiunea 0.0x corespunde etichetei `v.0.0x` și folderului `Scripts/version_0.0x`.
 - Nu există o versiune separată a assembly-urilor (proiectele nu declară `Version`), tag-uri Git sau release-uri; nu există o legătură automată între versiune și branch-uri (verificat la 2026-09-25).
-- Versiunile corespund taskurilor: version_0.01 cuprinde taskurile 00 și 01, iar version_0.02 începe cu taskul 02.
+- Versiunile corespund taskurilor: version_0.01 cuprinde taskurile 00 și 01, version_0.02 cuprinde taskul 02, iar version_0.03 începe cu taskul 03 (branch `main_task_03`).
 
 ## Versiunea curentă
 
-**0.02** — eticheta `v.0.02`, folderul `Scripts/version_0.02`.
+**0.03** — eticheta `v.0.03`, folderul `Scripts/version_0.03` (creată la cererea utilizatorului din 2026-09-29, pentru integrarea cu Git).
 
 | Versiune | Conținut principal | Integrare în `main` |
 | --- | --- | --- |
 | 0.01 | Conturi, localizare, design „Hârtie & salvie”, contexte și membri, note pe tablă, editorul cu paragrafe, taburi și minimizare | PR #1 (2026-09-22), PR #2 (2026-09-25) |
-| 0.02 | Înregistrarea `v.0.02`; ordonarea post-it-urilor prin drag-and-drop (`Notes.[Order]`) | PR #3 (2026-09-25); PR #4 este deschis |
+| 0.02 | Înregistrarea `v.0.02`; ordonarea post-it-urilor prin drag-and-drop (`Notes.[Order]`) | PR #3 (2026-09-25), PR #4 (2026-09-29) |
+| 0.03 | Înregistrarea `v.0.03`; integrarea cu Git (TODO: Necesită clarificare — conținutul funcțional) | în dezvoltare, branch `main_task_03` |
 
 Detaliile sunt în [CHANGELOG.md](../CHANGELOG.md). Nu se creează o versiune nouă fără solicitare explicită.
 
 ## Tabela DatabaseVersion
 
 - Structura: o singură coloană, `Version nvarchar(50) NOT NULL`, cheie primară `PK_DatabaseVersion` (scriptul `version_0.01/000_CreateDatabaseVersion.sql`).
-- Fiecare versiune adaugă un rând, numai dacă lipsește; rândurile versiunilor anterioare rămân (`v.0.01` rămâne lângă `v.0.02`).
+- Fiecare versiune adaugă un rând, numai dacă lipsește; rândurile versiunilor anterioare rămân (`v.0.01` și `v.0.02` rămân lângă `v.0.03`).
 - Tabela nu are dată de instalare, deci versiunea curentă este cea mai mare versiune numerică înregistrată. Compararea este numerică (`v.0.10` urmează după `v.0.9`), eticheta originală se afișează nemodificată, iar etichetele care nu se pot interpreta numeric au prioritatea cea mai mică și sunt ordonate determinist după text. Regula este în `ApplicationVersionService` și este acoperită de `ApplicationVersionServiceTests`.
 - Web afișează versiunea în dreapta-jos a footerului; o tabelă goală afișează „Versiune neconfigurată”, iar o eroare de conexiune nu este tratată ca tabelă goală. Versiunea nu se hardcodează în Web sau Business.
 
 ## Folderele și ordinea scripturilor
 
-- Câte un folder pentru fiecare versiune: `Scripts/version_0.01`, `Scripts/version_0.02`. În fiecare folder, scripturile sunt numerotate `NNN_Descriere.sql` de la `000` și se aplică în ordinea numelor.
-- Folderele se aplică în ordinea versiunilor: întâi toate scripturile din `version_0.01`, apoi cele din `version_0.02`.
-- Primul script al unei versiuni înregistrează versiunea: `000_CreateDatabaseVersion.sql` și `001_InsertDatabaseVersion.sql` în 0.01, `000_UpdateDatabaseVersion.sql` în 0.02.
+- Câte un folder pentru fiecare versiune: `Scripts/version_0.01`, `Scripts/version_0.02`, `Scripts/version_0.03`. În fiecare folder, scripturile sunt numerotate `NNN_Descriere.sql` de la `000` și se aplică în ordinea numelor.
+- Folderele se aplică în ordinea versiunilor: întâi toate scripturile din `version_0.01`, apoi cele din `version_0.02`, apoi cele din `version_0.03`.
+- Primul script al unei versiuni înregistrează versiunea: `000_CreateDatabaseVersion.sql` și `001_InsertDatabaseVersion.sql` în 0.01, `000_UpdateDatabaseVersion.sql` în 0.02 și în 0.03.
 - Un modul nou nu schimbă versiunea: scripturile lui se adaugă, cu numărul următor, în folderul versiunii curente.
 
 ## Legătura dintre aplicație și baza de date
@@ -58,7 +59,7 @@ Detaliile sunt în [CHANGELOG.md](../CHANGELOG.md). Nu se creează o versiune no
 
 ## Schimbarea versiunii
 
-Numai la solicitare explicită, după precedentul version_0.02 (decizia #22 din [jurnalul deciziilor](decisions/README.md#jurnalul-deciziilor)):
+Numai la solicitare explicită, după precedentul version_0.02 (decizia #22; urmat și de version_0.03, decizia #98 din [jurnalul deciziilor](decisions/README.md#jurnalul-deciziilor)):
 
 1. Se creează folderul `Scripts/version_<versiune>`.
 2. Primul script, `000_UpdateDatabaseVersion.sql`, inserează eticheta nouă în `DatabaseVersion` numai dacă lipsește, în tranzacție, cu `UPDLOCK, HOLDLOCK`, fără a modifica versiunile anterioare.

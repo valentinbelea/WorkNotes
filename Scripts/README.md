@@ -17,20 +17,22 @@ Scripts/
 │   ├── 006_CreateNotes.sql
 │   ├── 007_AllowSeveralJournalsPerDay.sql
 │   └── 008_CreateNoteBlocks.sql
-└── version_0.02/                         # versiunea curentă
-    ├── 000_UpdateDatabaseVersion.sql
-    ├── 001_AddNoteOrder.sql
-    ├── 002_CreateNoteReferences.sql      # PR #4; înlocuit de 004
-    ├── 003_InsertNoteReferences.sql      # PR #4; înlocuit de 004
-    ├── 004_ReplaceNoteReferences.sql     # PR #4; completat de 005
-    ├── 005_CreateNoteReferenceTargets.sql # PR #4
-    ├── 006_CreateWorkReferences.sql      # PR #4
-    ├── 007_InsertWorkReferences.sql      # PR #4
-    ├── 008_UpdateNoteReferencesWorkReferenceId.sql # PR #4
-    ├── 009_CreateReferenceTypes.sql      # PR #4
-    ├── 010_InsertReferenceTypes.sql      # PR #4
-    ├── 011_UpdateReferenceTypeKeys.sql   # PR #4
-    └── 012_RefreshNoteReferences.sql     # PR #4
+├── version_0.02/
+│   ├── 000_UpdateDatabaseVersion.sql
+│   ├── 001_AddNoteOrder.sql
+│   ├── 002_CreateNoteReferences.sql      # PR #4; înlocuit de 004
+│   ├── 003_InsertNoteReferences.sql      # PR #4; înlocuit de 004
+│   ├── 004_ReplaceNoteReferences.sql     # PR #4; completat de 005
+│   ├── 005_CreateNoteReferenceTargets.sql # PR #4
+│   ├── 006_CreateWorkReferences.sql      # PR #4
+│   ├── 007_InsertWorkReferences.sql      # PR #4
+│   ├── 008_UpdateNoteReferencesWorkReferenceId.sql # PR #4
+│   ├── 009_CreateReferenceTypes.sql      # PR #4
+│   ├── 010_InsertReferenceTypes.sql      # PR #4
+│   ├── 011_UpdateReferenceTypeKeys.sql   # PR #4
+│   └── 012_RefreshNoteReferences.sql     # PR #4
+└── version_0.03/                         # versiunea curentă
+    └── 000_UpdateDatabaseVersion.sql
 ```
 
 ## Convenții de denumire
@@ -42,7 +44,7 @@ Scripts/
 
 ## Ordinea de aplicare
 
-Baza `WorkNotes.db` trebuie să existe. Se aplică întâi `version_0.01`, apoi `version_0.02`, în ordinea numelor:
+Baza `WorkNotes.db` trebuie să existe. Se aplică întâi `version_0.01`, apoi `version_0.02`, apoi `version_0.03`, în ordinea numelor:
 
 | # | Script | Efect |
 | --- | --- | --- |
@@ -67,6 +69,7 @@ Baza `WorkNotes.db` trebuie să existe. Se aplică întâi `version_0.01`, apoi 
 | 19 | `version_0.02/010_InsertReferenceTypes.sql` | PR #4, script de date: adaugă tipurile `CR` și `BUG`, active, și orice alt tip deja stocat în `NoteReferences` sau `WorkReferences`, dacă lipsesc; un tip existent rămâne cum este; afișează tipurile |
 | 20 | `version_0.02/011_UpdateReferenceTypeKeys.sql` | PR #4: adaugă cheile externe `FK_NoteReferences_ReferenceTypes_ReferenceType` și `FK_WorkReferences_ReferenceTypes_ReferenceType` (fără cascadă), apoi elimină `CK_NoteReferences_ReferenceType` și `CK_WorkReferences_ReferenceType` |
 | 21 | `version_0.02/012_RefreshNoteReferences.sql` | PR #4, script de date, se poate rula oricând: citește din nou toate paragrafele și titlurile cu tipurile active, aduce la zi `NoteReferences`, `NoteReferenceTargets` și `WorkReferences` (șterge rândurile pe care regula nu le mai dă, inclusiv cele ale tipurilor dezactivate, și le adaugă pe cele lipsă) și afișează tipurile, rezumatul, referințele fără notă, cele cu mai multe note și jurnalul „CRs” |
+| 22 | `version_0.03/000_UpdateDatabaseVersion.sql` | Inserează `v.0.03`, dacă lipsește; `v.0.01` și `v.0.02` rămân, iar footerul afișează `v.0.03` |
 
 Comentariul din antetul `006_CreateNotes.sql` („A Journal is daily: one per owner, context and date”) descrie regula inițială, înlocuită de `007_AllowSeveralJournalsPerDay.sql`; scriptul livrat nu se modifică.
 
@@ -96,6 +99,7 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\010_InsertReferenceTypes.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\011_UpdateReferenceTypeKeys.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\012_RefreshNoteReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.03\000_UpdateDatabaseVersion.sql'
 ```
 
 Pe o bază la care `002` și `003` au fost deja aplicate se rulează numai `004`–`011`; pe una la care și `004` a fost aplicat, `005`–`011`; pe una la care s-a ajuns până la `008`, `009`–`011`. `012` se rulează apoi oricând este nevoie. Scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea versiunii de cod care le folosește: codul PR #4 scrie `WorkReferenceId` la fiecare referință stocată, iar codul anterior nu îl scrie, deci după `008` nu mai poate salva o referință nouă (și nici nu citește catalogul). `005` afișează rezultatele sub formă de liste (rezumatul, referințele fără notă, cele cu mai multe note, cu fiecare notă, și jurnalul „CRs”), ca `004`. `004` afișează rezultatele sub formă de liste (în SSMS, în fila Results; cu `sqlcmd`, în consolă): rezumatul, referințele fără destinație, cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele ale căror legături vechi au devenit text. Cu `DECLARE @Save bit = 0;` în loc de `1`, `004`, `005`, `007`, `008` și `012` nu salvează nimic, nici tabelele sau coloana: listele arată ce ar face. `007` și `008` încep prin a verifica existența `dbo.WorkReferences` și se opresc cu un mesaj dacă `006` nu a fost aplicat; `010`–`012` verifică la fel scripturile de care depind.
@@ -106,7 +110,7 @@ Scripturile `009`–`011` se aplică înaintea versiunii de cod care citește `d
 
 ## Tabela DatabaseVersion
 
-`dbo.DatabaseVersion` păstrează câte un rând pentru fiecare versiune aplicată (`v.0.01`, `v.0.02`); aplicația afișează versiunea numerică maximă. Semnificația completă: [docs/VERSIONING.md](../docs/VERSIONING.md#tabela-databaseversion).
+`dbo.DatabaseVersion` păstrează câte un rând pentru fiecare versiune aplicată (`v.0.01`, `v.0.02`, `v.0.03`); aplicația afișează versiunea numerică maximă. Semnificația completă: [docs/VERSIONING.md](../docs/VERSIONING.md#tabela-databaseversion).
 
 ## Idempotență
 
@@ -129,7 +133,7 @@ Un script integrat în `main` nu se mai modifică: orice corecție se face print
 
 ## Adăugarea unui script
 
-1. Folderul versiunii curente (în prezent `version_0.02`), cu numărul următor liber.
+1. Folderul versiunii curente (în prezent `version_0.03`), cu numărul următor liber.
 2. Antet în engleză: scopul și faptul că scriptul este idempotent; `USE [WorkNotes.db];`, `SET XACT_ABORT ON`, tranzacție acolo unde atomicitatea contează.
 3. Verificări de existență pentru fiecare obiect creat, modificat sau eliminat.
 4. Actualizarea acestui fișier (structura, ordinea, comenzile), a [docs/DATABASE.md](../docs/DATABASE.md) și a secțiunii Database din [CHANGELOG.md](../CHANGELOG.md); pentru tabele noi, extinderea comenzii de scaffolding și regenerarea modelului EF.
@@ -138,7 +142,7 @@ Un script integrat în `main` nu se mai modifică: orice corecție se face print
 ## Verificarea după aplicare
 
 ```sql
--- Versiunile înregistrate: v.0.01 și v.0.02
+-- Versiunile înregistrate: v.0.01, v.0.02 și v.0.03
 SELECT [Version] FROM [dbo].[DatabaseVersion] ORDER BY [Version];
 
 -- Tabelele aplicației
@@ -178,4 +182,4 @@ SELECT [name] FROM sys.check_constraints WHERE [name] IN (N'CK_NoteReferences_Re
 SELECT COUNT(*) AS [OldLinks] FROM [dbo].[NoteBlocks] WHERE CHARINDEX(N'[[note:', [Content]) > 0;
 ```
 
-Apoi porniți aplicația și verificați că footerul afișează `v.0.02` și că tabla se încarcă fără erori.
+Apoi porniți aplicația și verificați că footerul afișează `v.0.03` și că tabla se încarcă fără erori.

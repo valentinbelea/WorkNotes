@@ -36,7 +36,7 @@ dotnet test WorkNotes.sln --no-build --no-restore
 
 | Coloană | Tip | Note |
 | --- | --- | --- |
-| `Version` | nvarchar(50) NOT NULL | cheie primară `PK_DatabaseVersion`; eticheta versiunii, de exemplu `v.0.02` |
+| `Version` | nvarchar(50) NOT NULL | cheie primară `PK_DatabaseVersion`; eticheta versiunii, de exemplu `v.0.03` |
 
 Un rând pentru fiecare versiune aplicată; nu există dată de instalare. Semnificația și regula versiunii curente: [VERSIONING.md](VERSIONING.md#tabela-databaseversion).
 

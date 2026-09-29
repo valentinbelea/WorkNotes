@@ -120,6 +120,13 @@ Implementate în PR #4 (branch `main_task_02`), neintegrate în `main`; regulile
 - [x] Mesajele de validare, erorile Identity și textele editorului sunt localizate.
 - [!] Datele sunt afișate în același format în toate limbile. TODO: Necesită clarificare ([LOCALIZATION.md](LOCALIZATION.md#formatarea-datelor)).
 
+## Integrarea cu Git (version_0.03)
+
+Versiunea 0.03 este dedicată integrării cu Git, la cererea utilizatorului din 2026-09-29. Până acum există numai folderul `Scripts/version_0.03`, cu înregistrarea `v.0.03`.
+
+- [~] Versiunea 0.03: `Scripts/version_0.03/000_UpdateDatabaseVersion.sql` și documentele de versionare (branch `main_task_03`).
+- [!] Integrarea cu Git. TODO: Necesită clarificare — ce se integrează (de exemplu repository-uri, branch-uri, commit-uri sau pull request-uri legate de note, de CR-uri și buguri), cu ce furnizor (Git local, GitHub, Azure DevOps…), cum se autentifică aplicația și ce date se stochează.
+
 ## Alte cerințe
 
 - [x] Versiunea aplicației, citită din `DatabaseVersion`, în footer.

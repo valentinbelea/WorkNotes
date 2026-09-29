@@ -6,6 +6,13 @@ Categorii: **Added** (funcționalități noi), **Changed** (comportament modific
 
 ## [Nelansat]
 
+### Versiunea 0.03 — integrarea cu Git (branch `main_task_03`)
+
+Creată la cererea utilizatorului din 2026-09-29 ([docs/VERSIONING.md](docs/VERSIONING.md#versiunea-curentă), decizia 98). Conținutul funcțional al integrării cu Git nu este încă stabilit (TODO: Necesită clarificare).
+
+- **Database** — `Scripts/version_0.03/000_UpdateDatabaseVersion.sql`: inserează `v.0.03` în `dbo.DatabaseVersion`, dacă lipsește; `v.0.01` și `v.0.02` rămân, iar footerul afișează `v.0.03` după aplicare.
+- **Documentation** — versiunea curentă 0.03 în `AGENTS.md`, `README.md`, `Scripts/README.md`, `docs/VERSIONING.md`, `docs/CURRENT-STATUS.md`, `docs/REQUIREMENTS.md`, `docs/ROADMAP.md`, `docs/DEPLOYMENT.md`, `docs/DATABASE.md` și în jurnalul deciziilor; PR #4 apare în `docs/VERSIONING.md` ca integrat în `main` (2026-09-29).
+
 ### Documentation
 
 - Structura nouă de documentație: `CLAUDE.md` (cu importuri permanente), `AGENTS.md` și `README.md` mutate din `Solution/` în rădăcina repository-ului și consolidate, `CHANGELOG.md`, `docs/` (context, cerințe, model de domeniu, arhitectură, bază de date, standarde de cod, UI/UX, localizare, securitate, testare, Git, versionare, publicare, stare curentă, roadmap), ADR-urile din `docs/decisions/`, `Scripts/README.md` și câte un `CLAUDE.md` în `WorkNotes.Web`, `WorkNotes.Business` și `WorkNotes.DataAccess`.
