@@ -1,13 +1,17 @@
 // Upgrades server-rendered overlays (dialog[data-modal][open]) to modal dialogs: focus stays inside,
-// the page behind is inert, and Escape or a click on the overlay returns to the close URL.
+// the page behind is inert, and Escape or a click on the overlay returns to the close URL. An overlay that can close
+// itself over the page as it is (the note editor, note-editor.js) takes the cancelable modal:close event first.
 function upgrade(dialog) {
     if (typeof dialog.showModal !== "function") return;
     dialog.close();
     dialog.showModal();
     const closeUrl = dialog.dataset.closeUrl;
+    const leave = () => {
+        if (dialog.dispatchEvent(new Event("modal:close", { cancelable: true })) && closeUrl) window.location.assign(closeUrl);
+    };
     dialog.addEventListener("cancel", event => {
         event.preventDefault();
-        if (closeUrl) window.location.assign(closeUrl);
+        leave();
     });
     // Escape itself leads to the close URL, with the key's default prevented: left to the browser, Firefox would stop
     // that navigation (Escape stops a page that is loading). An Escape the content already used (an editor's search
@@ -15,11 +19,11 @@ function upgrade(dialog) {
     dialog.addEventListener("keydown", event => {
         if (event.key !== "Escape" || event.defaultPrevented || event.isComposing || !closeUrl || !dialog.matches(":modal")) return;
         event.preventDefault();
-        window.location.assign(closeUrl);
+        leave();
     });
     dialog.addEventListener("click", event => {
         // A minimized editor (note-editor.js) is no overlay: a click on it never closes it.
-        if (event.target === dialog && closeUrl && dialog.matches(":modal")) window.location.assign(closeUrl);
+        if (event.target === dialog && closeUrl && dialog.matches(":modal")) leave();
     });
 }
 

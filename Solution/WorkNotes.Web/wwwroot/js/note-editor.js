@@ -256,6 +256,8 @@ function createNoteEditor(panel, data, shared) {
             const labels = new Map((body.references ?? []).map(target => [String(target.id), target.label]));
             showSavedLinks(body, labels);
             drawer?.show(body.referenceList, labels);
+            // The note's card on the board behind the window shows the save.
+            shared.showOnBoard(body.card);
         } catch {
             problem = texts.failed;
             showStatusMessage(messages, "error", problem);
@@ -348,7 +350,9 @@ function createNoteEditor(panel, data, shared) {
 // note (after a confirmation when it has unsaved changes); the header's Close closes the window with all its tabs,
 // and leaving the page with unsaved changes in any tab asks first. Minimize and Maximize only change how the window
 // is shown: the tabs, their order, the active tab and every note's state stay as they are.
-function initializeEditorWindow(dialog, settings) {
+// The board behind the window follows each save (notes-board.js, note-editor:saved), so closing the window only takes
+// it away, without loading the page again, while nothing is unsaved; otherwise the page loads the board again.
+function initializeEditorWindow(dialog, settings, dataElement) {
     const noteUrl = id => `${settings.noteUrl}?note=${id}`;
     const lookupTemplate = dialog.querySelector("template[data-reference-lookup]");
     const lookupNoteTemplate = dialog.querySelector("template[data-reference-lookup-note]");
@@ -363,7 +367,12 @@ function initializeEditorWindow(dialog, settings) {
         // The popup of a reference just typed (note-references.js), common to all tabs.
         lookup: lookupTemplate && lookupNoteTemplate
             ? { length: settings.lookupLength, template: lookupTemplate, noteTemplate: lookupNoteTemplate }
-            : null
+            : null,
+        // A saved note's card (the save's answer) goes to the board, which marks the event handled once the card shows
+        // it; a save the board could not show makes closing the window load the board again.
+        showOnBoard: card => {
+            if (!card || document.dispatchEvent(new CustomEvent("note-editor:saved", { detail: card, cancelable: true }))) boardStale = true;
+        }
     };
     const windowPanel = dialog.querySelector("[data-editor-window]");
     const tabList = dialog.querySelector("[data-editor-tabs]");
@@ -372,6 +381,9 @@ function initializeEditorWindow(dialog, settings) {
     const tabs = new Map();         // note id -> { item, panel, editor }, in the order of the tab bar
     let activeId = null;
     let leaving = false;            // unsaved changes were already confirmed away
+    let boardStale = false;         // a save the board behind could not show
+    let removed = false;            // the window closed in place
+    const listeners = new AbortController(); // the document's and the window's listeners, removed with the window
 
     const isMinimized = () => dialog.classList.contains("note-editor-dialog--minimized");
     let referencesOpen = false;     // the references drawer, open or closed in every tab
@@ -439,7 +451,28 @@ function initializeEditorWindow(dialog, settings) {
         return id;
     }
 
+    // Nothing to lose and nothing to show: every tab is saved and the board shows every save.
+    const closesInPlace = () => !boardStale && ![...tabs.values()].some(tab => tab.editor.isDirty());
+
+    // The window goes and the board behind it is used again as it is, without loading the page: the address becomes the
+    // board's (the close URL), as a new history entry, like the page it replaces (Back loads the note again), and the
+    // board puts the focus on the card of the active note (note-editor:closed).
+    function removeWindow() {
+        if (removed) return;
+        removed = true;
+        listeners.abort();
+        for (const tab of tabs.values()) tab.editor.view.destroy();
+        dialog.close();
+        dialog.remove();
+        dataElement.remove();
+        window.history.pushState(null, "", settings.closeUrl);
+        window.addEventListener("popstate", reloadOnHistory);
+        document.dispatchEvent(new CustomEvent("note-editor:closed", { detail: { id: activeId } }));
+    }
+
+    // The last tab was closed, its changes (if any) confirmed away: the window goes, in place unless the board missed a save.
     function closeWindow() {
+        if (!boardStale) { removeWindow(); return; }
         leaving = true;
         window.location.assign(settings.closeUrl);
     }
@@ -473,6 +506,7 @@ function initializeEditorWindow(dialog, settings) {
             if (!response.ok) throw new Error(String(response.status));
             const fragment = document.createElement("template");
             fragment.innerHTML = await response.text();
+            if (removed) return false; // the window closed meanwhile
             const item = fragment.content.querySelector("[data-editor-tab]");
             const panel = fragment.content.querySelector("[data-editor-panel]");
             if (!item || !panel) throw new Error("fragment");
@@ -553,32 +587,61 @@ function initializeEditorWindow(dialog, settings) {
     minimized.querySelector("[data-editor-maximize]").addEventListener("click", () => restore());
     minimized.addEventListener("dblclick", event => { if (!event.target.closest("a, button")) restore(); });
 
+    // Close (in the header and on the minimized form), Escape and a click beside the window (modal.js, modal:close) take
+    // the window away in place when they can; otherwise Close is a link to the board and modal.js goes there, and leaving
+    // the page asks first about unsaved changes.
+    for (const link of dialog.querySelectorAll("[data-editor-close]")) {
+        link.addEventListener("click", event => {
+            if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || !closesInPlace()) return;
+            event.preventDefault();
+            removeWindow();
+        });
+    }
+    dialog.addEventListener("modal:close", event => {
+        if (!closesInPlace()) return;
+        event.preventDefault();
+        removeWindow();
+    });
+
+    const { signal } = listeners;
     // Ctrl+S / Cmd+S saves the active note, not while the editor is minimized.
     document.addEventListener("keydown", event => {
         if (!isMinimized() && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
             event.preventDefault();
             tabs.get(activeId)?.editor.save();
         }
-    });
-    // Leaving the page (the header's Close, Escape, the board) asks first when any tab has unsaved changes.
+    }, { signal });
+    // Leaving the page (Close or Escape with unsaved changes, the board) asks first when any tab has unsaved changes.
     window.addEventListener("beforeunload", event => {
         if (!leaving && [...tabs.values()].some(tab => tab.editor.isDirty())) event.preventDefault();
-    });
+    }, { signal });
     // Open and double-click on a board card (notes-board.js) come here while the editor is on the page.
     document.addEventListener("note-editor:open", event => {
         event.preventDefault();
         openNote(String(event.detail.id));
-    });
+    }, { signal });
     // Two cards swapped on the board: the tabs of those notes take the notes' new versions.
     document.addEventListener("note-board:versions", event => {
         for (const change of event.detail) tabs.get(String(change.id))?.editor.followVersion(change.previous, change.version);
-    });
+    }, { signal });
 
     const first = dialog.querySelector("[data-editor-tab]");
     activate(addTab(first, dialog.querySelector("[data-editor-panel]")));
 }
 
-// The window is on the page when it loads (/?note={id}), or notes-board.js has just put it there and imports this module.
-const editorDialog = document.querySelector("dialog.note-editor-dialog");
-const dataElement = document.getElementById("note-editor-data");
-if (editorDialog && dataElement) initializeEditorWindow(editorDialog, JSON.parse(dataElement.textContent));
+// Back or Forward to an address the page took without loading (the board once the window closed in place) loads it.
+const reloadOnHistory = () => window.location.reload();
+
+// Sets up the editor window on the page, once: the one the page loads with (/?note={id}), or the one notes-board.js has
+// just put there. notes-board.js calls it after importing this module, which runs only once, so a window opened again
+// after one closed in place is set up too.
+const startedWindows = new WeakSet();
+export function startEditor() {
+    const dialog = document.querySelector("dialog.note-editor-dialog");
+    const dataElement = document.getElementById("note-editor-data");
+    if (!dialog || !dataElement || startedWindows.has(dialog)) return;
+    startedWindows.add(dialog);
+    initializeEditorWindow(dialog, JSON.parse(dataElement.textContent), dataElement);
+}
+
+startEditor();

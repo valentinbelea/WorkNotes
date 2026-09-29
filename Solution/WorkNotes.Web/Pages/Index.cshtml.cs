@@ -125,7 +125,9 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                 }),
                 references = NoteReferences.Targets(localizer, result.References),
                 // The references drawer of the saved text: each reference once, with the notes it opens.
-                referenceList = NoteReferences.ListData(NoteReferences.List((result.Blocks ?? []).Select(block => block.Links), result.References))
+                referenceList = NoteReferences.ListData(NoteReferences.List((result.Blocks ?? []).Select(block => block.Links), result.References)),
+                // The note's card on the board behind the editor, which follows the save (notes-board.js).
+                card = result.Note is { } saved ? BoardCard(saved, result.Month) : null
             }),
             NoteSaveStatus.Conflict => EditorFailure(StatusCodes.Status409Conflict, "Editor_Conflict"),
             NoteSaveStatus.Forbidden => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
@@ -195,12 +197,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                 ? new JsonResult(new
                 {
                     title = renamed.Title,
-                    modified = new
-                    {
-                        text = NoteDates.Card(renamed.LastChangedAtUtc),
-                        iso = NoteDates.Iso(renamed.LastChangedAtUtc),
-                        shown = NoteDates.ShowsModified(renamed)
-                    },
+                    modified = LastChange(renamed),
                     message = localizer[messageKey].Value
                 })
                 : EditorFailure(result.Status switch
@@ -258,6 +255,33 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
 
     private JsonResult EditorFailure(int statusCode, string messageKey) =>
         new(new { message = localizer[messageKey].Value }) { StatusCode = statusCode };
+
+    // A card's last change as _NoteCard shows it, hidden while it reads like the creation date.
+    private static object LastChange(NoteSummary note) => new
+    {
+        text = NoteDates.Card(note.LastChangedAtUtc),
+        iso = NoteDates.Iso(note.LastChangedAtUtc),
+        shown = NoteDates.ShowsModified(note)
+    };
+
+    // A saved note's card with the texts _NoteCard shows for it: the title (null when untitled) and the name standing for
+    // it, the labels of Open and Delete, the preview (null without text) and the last change; when the save moved the note
+    // to another month, that month's key and its notes in their board order.
+    private object BoardCard(NoteSummary note, NoteMonthGroup? month)
+    {
+        var name = note.Title ?? localizer["Notes_Untitled"].Value;
+        return new
+        {
+            id = note.Id,
+            title = note.Title,
+            name,
+            open = localizer["Notes_OpenNamed", name].Value,
+            delete = localizer["Notes_DeleteNamed", name].Value,
+            preview = note.Preview,
+            modified = LastChange(note),
+            month = month is null ? null : new { key = NoteDates.MonthKey(month.Year, month.Month), notes = month.Notes.Select(item => item.Id) }
+        };
+    }
 
     private async Task LoadBoardAsync(int? contextId, CancellationToken cancellationToken)
     {

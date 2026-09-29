@@ -68,22 +68,23 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (!NoteRules.ValidTitle(title)) return new(NoteSaveStatus.InvalidTitle);
         if (Normalize(blocks) is not { } paragraphs) return new(NoteSaveStatus.InvalidContent);
 
-        var document = await notes.GetDocumentAsync(noteId, userId, cancellationToken);
-        if (document is null) return new(NoteSaveStatus.NotFound);
+        // The note as its card showed it: the paragraphs themselves are read by the repository's save.
+        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
+        if (note is null) return new(NoteSaveStatus.NotFound);
         // Members may read a shared note; only its owner edits it.
-        if (!document.IsOwner) return new(NoteSaveStatus.Forbidden);
+        if (!note.IsOwner) return new(NoteSaveStatus.Forbidden);
         if (string.IsNullOrWhiteSpace(expectedVersion)) return new(NoteSaveStatus.Conflict);
 
         // The references of the paragraphs are stored with them, in the same transaction.
         var normalized = NoteRules.NormalizeTitle(title);
-        var resolution = await references.ResolveAsync(userId, document.ContextId, noteId, paragraphs, cancellationToken);
+        var resolution = await references.ResolveAsync(userId, note.ContextId, noteId, paragraphs, cancellationToken);
         var result = await notes.SaveAsync(
             new NoteChanges(noteId, userId, expectedVersion, normalized, paragraphs, resolution.References, SavedAtUtc()),
             cancellationToken);
         if (result.Status != NoteSaveStatus.Saved) return result;
         // Other paragraphs of the board may name the note by its old or its new title.
-        if (normalized != document.Title) await references.RefreshAsync(document.ContextId, document.Title, normalized, cancellationToken);
-        return WithLinks(result, resolution);
+        if (normalized != note.Title) await references.RefreshAsync(note.ContextId, note.Title, normalized, cancellationToken);
+        return await WithCardAsync(WithLinks(result, resolution), userId, note, normalized, paragraphs, cancellationToken);
     }
 
     public async Task<NoteReferenceLookup> LookUpReferenceAsync(string userId, int noteId, string? text, CancellationToken cancellationToken)
@@ -166,6 +167,27 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
                 .ToList(),
             References = resolution.Targets
         };
+    }
+
+    // The saved note as its card on the board shows it now, from what was just stored (the board would read the same),
+    // so the board behind the editor follows the save without being read again. Only a save that moved the note to
+    // another month (a change made in the current month) reads the board, for that month's order; within a month a
+    // note keeps its place (its Order).
+    private async Task<NoteSaveResult> WithCardAsync(NoteSaveResult result, string userId, NoteSummary note, string? title,
+        IReadOnlyList<NoteBlockInput> paragraphs, CancellationToken cancellationToken)
+    {
+        var saved = note with
+        {
+            Title = title,
+            Preview = NoteRules.PreviewOf(paragraphs.Select(paragraph => paragraph.Content)),
+            // As on the board: the note counts as changed once its last change is later than its creation.
+            ModifiedAtUtc = result.ModifiedAtUtc > note.CreatedAtUtc ? result.ModifiedAtUtc : note.ModifiedAtUtc,
+            Version = result.Version ?? note.Version
+        };
+        var month = LocalMonth(saved.LastChangedAtUtc);
+        if (month == LocalMonth(note.LastChangedAtUtc)) return result with { Note = saved };
+        var board = await GetBoardAsync(userId, note.ContextId, cancellationToken);
+        return result with { Note = saved, Month = board.FirstOrDefault(group => (group.Year, group.Month) == month) };
     }
 
     // Audit times are kept to the second, the precision of the stored columns, so they read the same after a reload.

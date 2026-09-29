@@ -1,7 +1,8 @@
 // Dashboard behaviour only: all appearance comes from CSS classes rendered by the server.
 // Switches the board, inserts the server-rendered new-note card, removes it on Cancel, renames titles in place
-// (and shows the card's new last change), opens saved notes on double-click and swaps two cards of a month by drag
-// and drop. Positions come from the grid: cards move only in the DOM order, and no inline styles are written.
+// (and shows the card's new last change), opens saved notes on double-click, swaps two cards of a month by drag
+// and drop, and shows on the cards what the editor over the board saves. Positions come from the grid: cards move
+// only in the DOM order, and no inline styles are written.
 import { showStatusMessage } from "./status-messages.js";
 
 // Single entry point for opening a note from the board: a card's Open and double-click. When the editor is already
@@ -9,8 +10,8 @@ import { showStatusMessage } from "./status-messages.js";
 // it brings a minimized editor back and selects the note's tab when it is already open), keeping the other tabs.
 // Otherwise the editor window with the note is fetched and put over this board, which is not read and drawn again as
 // it would be for the link (/?note={id}, the editor over the board). The address still becomes the link's, as a new
-// history entry, and closing the editor goes back to the board as before. When the window cannot be fetched, the link
-// is followed. Without JavaScript the links work on their own.
+// history entry, and closing the editor gives the board back (note-editor.js). When the window cannot be fetched, the
+// link is followed. Without JavaScript the links work on their own.
 export function openNote(id, href) {
     const handled = !document.dispatchEvent(new CustomEvent("note-editor:open", { detail: { id }, cancelable: true }));
     if (!handled) openEditorWindow(id, href);
@@ -18,6 +19,9 @@ export function openNote(id, href) {
 
 // The editor window while it is being fetched: notes opened meanwhile wait for it and open in its tabs.
 let editorWindow = null;
+
+// Back or Forward to an address the page took without loading (a note opened over the board) loads it.
+const reloadOnHistory = () => window.location.reload();
 
 async function openEditorWindow(id, href) {
     if (editorWindow) {
@@ -44,11 +48,13 @@ async function loadEditorWindow(id, href) {
         window.history.pushState(null, "", href);
         // Back leaves the note for the board, as it did when the note was loaded as a page; note-editor.js asks first
         // when a tab has unsaved changes.
-        window.addEventListener("popstate", () => window.location.reload());
-        // Where the page puts the window it renders itself; modal.js makes it modal, then note-editor.js sets it up.
+        window.addEventListener("popstate", reloadOnHistory);
+        // Where the page puts the window it renders itself; modal.js makes it modal, then note-editor.js sets it up (the
+        // module runs once: a window opened again after one closed is set up by startEditor).
         dashboard.after(dialog, data);
         dialog.dispatchEvent(new Event("modal:open", { bubbles: true }));
-        await import("./note-editor.js");
+        const { startEditor } = await import("./note-editor.js");
+        startEditor();
         return true;
     } catch {
         window.location.assign(href);
@@ -98,7 +104,7 @@ export function initializeDashboard(dashboard) {
     });
 
     initializeRename(dashboard);
-    initializeReorder(dashboard);
+    followEditor(dashboard, initializeReorder(dashboard));
 
     // A plain click on Open goes through openNoteEditor too, so an open editor gets a new tab instead of a reload.
     dashboard.addEventListener("click", event => {
@@ -113,8 +119,8 @@ export function initializeDashboard(dashboard) {
     });
 }
 
-// The card's last change as the server formats it, hidden while it reads like the creation date.
-// The card keeps its place; the board orders it by the new date on the next load.
+// The card's last change as the server formats it, hidden while it reads like the creation date. After a rename the card
+// keeps its place; the board orders it by the new date on the next load.
 function showLastChange(card, modified) {
     const date = card?.querySelector("[data-note-modified]");
     const time = date?.querySelector("time");
@@ -122,6 +128,53 @@ function showLastChange(card, modified) {
     time.dateTime = modified.iso;
     time.textContent = modified.text;
     date.hidden = !modified.shown;
+}
+
+// The editor over the board (note-editor.js). After each save the note's card shows what was saved, as the page would
+// draw it again (_NoteCard): the title and the start of the text where they changed, the last change always. A save that
+// moved the note to another month (the current one) moves the card to that month's list, in the order the server
+// returned. The event is marked handled once the card shows the save, so the editor closes without loading the page
+// again; a card the page does not have, or a month it does not show (a page from an earlier month), leaves it unhandled
+// and closing the editor loads the board. When the editor closes, the focus goes to the card of its active note.
+function followEditor(dashboard, reorder) {
+    const cardOf = id => [...dashboard.querySelectorAll(".note-card[data-note-id]")].find(card => card.dataset.noteId === String(id));
+    document.addEventListener("note-editor:saved", event => {
+        const saved = event.detail;
+        const card = saved ? cardOf(saved.id) : undefined;
+        if (!card) return;
+        showSaved(card, saved);
+        if (saved.month && !reorder?.place(card.closest(".note-cell"), saved.month)) return;
+        event.preventDefault();
+    });
+    document.addEventListener("note-editor:closed", event => {
+        cardOf(event.detail?.id)?.querySelector("[data-note-open]")?.focus();
+    });
+}
+
+// A saved note's title (in the rename field, the heading read out and the labels of Open and Delete) and the start of
+// its text, each only where it changed, and its last change.
+function showSaved(card, saved) {
+    const title = saved.title ?? "";
+    const field = card.querySelector("[data-note-title]");
+    if (field && field.defaultValue !== title) {
+        field.value = field.defaultValue = title;
+        field.title = saved.name;
+    }
+    const name = card.querySelector("[data-note-name]");
+    if (name && name.textContent !== saved.name) name.textContent = saved.name;
+    for (const [selector, label] of [["[data-note-open]", saved.open], ["[data-note-delete]", saved.delete]]) {
+        const link = card.querySelector(selector);
+        if (!link || link.getAttribute("aria-label") === label) continue;
+        link.setAttribute("aria-label", label);
+        link.title = label;
+    }
+    const preview = card.querySelector("[data-note-preview]");
+    const text = saved.preview ?? "";
+    if (preview && preview.textContent !== text) {
+        preview.textContent = text;
+        preview.hidden = text === "";
+    }
+    showLastChange(card, saved.modified);
 }
 
 // Titles are renamed in place. Enter (or leaving the field with a changed title) saves in the background;
@@ -184,6 +237,7 @@ function initializeRename(dashboard) {
 // pointer; a drop anywhere else is ignored and the card stays where it was. Every class is removed when the drag ends
 // or is cancelled. No cell moves during a drag: the browser follows the dragged tape until dragend, and a tape moved
 // on drop can lose its dragend (Firefox), so the swap waits for dragend.
+// The result's place() moves the card of a note that a save in the editor moved to another month.
 function initializeReorder(dashboard) {
     const form = dashboard.querySelector("[data-note-order]");
     if (!form) return;
@@ -319,6 +373,20 @@ function initializeReorder(dashboard) {
             }
         }
     }
+
+    // A note saved in the editor moved to another month (month: its key and notes, in the order the server returned):
+    // its cell goes to that month's list, which takes that order as it takes a swap's. The month it left is hidden by CSS
+    // once no card is left in it. False when the page has no list for that month.
+    function place(cell, month) {
+        const board = [...dashboard.querySelectorAll("[data-note-month]")].find(list => list.dataset.noteMonth === month.key);
+        if (!board || !cell) return false;
+        board.append(cell);
+        stored.set(board, (month.notes ?? []).map(String));
+        settle();
+        return true;
+    }
+
+    return { place };
 }
 
 // Two cells of the same list change places.

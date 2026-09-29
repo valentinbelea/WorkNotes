@@ -41,4 +41,10 @@ public static class NoteRules
         if (cut < PreviewMaxLength / 2) cut = PreviewMaxLength;
         return text[..cut].TrimEnd() + "…";
     }
+
+    // The same preview from whole paragraphs in document order (a note just saved): only what the board reads of them
+    // counts, the first PreviewParagraphs, PreviewSourceLength characters of each.
+    public static string? PreviewOf(IEnumerable<string> paragraphs) =>
+        BuildPreview(paragraphs.Take(PreviewParagraphs)
+            .Select(paragraph => paragraph.Length > PreviewSourceLength ? paragraph[..PreviewSourceLength] : paragraph));
 }

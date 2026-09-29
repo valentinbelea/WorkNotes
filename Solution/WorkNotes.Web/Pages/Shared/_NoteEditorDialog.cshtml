@@ -35,7 +35,9 @@
     };
 }
 @* The note editor over its board, 90% of the window. Without JavaScript the open dialog is a CSS overlay;
-   modal.js makes it modal (Escape and a click outside go back to the board, after the unsaved-changes warning).
+   modal.js makes it modal; Close, Escape and a click outside close it over the board as it is, without loading the page
+   again (note-editor.js), or go back to the board's address when a tab has unsaved changes (after the warning) or the
+   board could not follow a save.
    Each open note is a tab (note-editor.js adds the notes opened later from the board, without reloading the page).
    The header has the tabs and, on the right, Minimize and Close (which closes the editor with all its tabs); each
    note's actions are in its own footer. Minimize only changes how the dialog is shown: the tabs keep their state,
@@ -54,7 +56,7 @@
             <button type="button" class="note-editor-icon" aria-label="@L["Editor_Minimize"]" title="@L["Editor_Minimize"]" data-editor-minimize hidden>
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 17.5h12" /></svg>
             </button>
-            <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]">
+            <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]" data-editor-close>
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
             </a>
         </div>
@@ -104,7 +106,7 @@
         <button type="button" class="note-editor-icon" aria-label="@L["Editor_Maximize"]" title="@L["Editor_Maximize"]" data-editor-maximize>
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.5 6.5h11v11h-11Z" /></svg>
         </button>
-        <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]">
+        <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]" data-editor-close>
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
         </a>
     </div>

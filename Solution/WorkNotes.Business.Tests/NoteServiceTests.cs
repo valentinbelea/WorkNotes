@@ -181,10 +181,14 @@ public sealed class NoteServiceTests
     private static NoteDocument Document(bool isOwner = true) =>
         new(7, 5, "TopDev", NoteTypes.Article, "Titlu", NoteVisibilities.Private, isOwner, DateTime.UtcNow, DateTime.UtcNow, "v1", []);
 
+    // The note being saved, as its card showed it: an article of board 5, created this month and not changed since.
+    private static NoteSummary Saving(bool isOwner = true) =>
+        Note(7, NoteTypes.Article, September, isOwner) with { Title = "Titlu", Preview = "Text vechi" };
+
     [Fact]
     public async Task OwnerSavesNormalizedParagraphsInOrder()
     {
-        var notes = new StubNotes(document: Document());
+        var notes = new StubNotes(summary: Saving());
         // Sub-second parts are dropped: audit times have the precision of the stored columns.
         var time = new FixedTime(new DateTimeOffset(2026, 9, 24, 8, 0, 0, 700, TimeSpan.Zero), TimeSpan.FromHours(3));
         var service = new NoteService(notes, new StubContexts(), new StubReferences(), time);
@@ -194,7 +198,7 @@ public sealed class NoteServiceTests
         var result = await service.SaveAsync(User, 7, "v1", "  Analiză  ",
             [new(first, "\nRând 1\r\nRând 2\n"), new(second, "Al doilea\tparagraf")], CancellationToken.None);
 
-        Assert.Equal(new NoteSaveResult(NoteSaveStatus.Saved, "v2"), result);
+        Assert.Equal((NoteSaveStatus.Saved, "v2"), (result.Status, result.Version));
         Assert.Equal("Analiză", notes.Saved!.Title);
         Assert.Equal([new NoteBlockInput(first, "Rând 1\nRând 2"), new NoteBlockInput(second, "Al doilea\tparagraf")], notes.Saved.Blocks);
         Assert.Equal(new DateTime(2026, 9, 24, 8, 0, 0, DateTimeKind.Utc), notes.Saved.SavedAtUtc);
@@ -204,7 +208,7 @@ public sealed class NoteServiceTests
     [Fact]
     public async Task OnlyTheOwnerSaves()
     {
-        var notes = new StubNotes(document: Document(isOwner: false));
+        var notes = new StubNotes(summary: Saving(isOwner: false));
         var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteSaveStatus.Forbidden, (await service.SaveAsync(User, 7, "v1", null, [], CancellationToken.None)).Status);
@@ -214,7 +218,7 @@ public sealed class NoteServiceTests
     [Fact]
     public async Task InvisibleNoteIsNotFound()
     {
-        var notes = new StubNotes(document: null);
+        var notes = new StubNotes(summary: null);
         var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteSaveStatus.NotFound, (await service.SaveAsync(User, 7, "v1", null, [], CancellationToken.None)).Status);
@@ -238,7 +242,7 @@ public sealed class NoteServiceTests
     [MemberData(nameof(InvalidParagraphs))]
     public async Task InvalidParagraphsAreRejectedBeforeDataAccess(NoteBlockInput[] blocks)
     {
-        var notes = new StubNotes(document: Document());
+        var notes = new StubNotes(summary: Saving());
         var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteSaveStatus.InvalidContent, (await service.SaveAsync(User, 7, "v1", null, blocks, CancellationToken.None)).Status);
@@ -248,7 +252,7 @@ public sealed class NoteServiceTests
     [Fact]
     public async Task TooManyParagraphsAreRejected()
     {
-        var notes = new StubNotes(document: Document());
+        var notes = new StubNotes(summary: Saving());
         var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
         var blocks = Enumerable.Range(0, NoteRules.MaxBlocks + 1).Select(_ => new NoteBlockInput(Guid.NewGuid(), "x")).ToList();
 
@@ -258,7 +262,7 @@ public sealed class NoteServiceTests
     [Fact]
     public async Task InvalidTitleAndMissingVersionAreRejected()
     {
-        var notes = new StubNotes(document: Document());
+        var notes = new StubNotes(summary: Saving());
         var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteSaveStatus.InvalidTitle, (await service.SaveAsync(User, 7, "v1", "a\nb", [], CancellationToken.None)).Status);
@@ -269,10 +273,68 @@ public sealed class NoteServiceTests
     [Fact]
     public async Task ConflictFromDataAccessIsReturned()
     {
-        var notes = new StubNotes(document: Document(), saveResult: new NoteSaveResult(NoteSaveStatus.Conflict));
+        var notes = new StubNotes(summary: Saving(), saveResult: new NoteSaveResult(NoteSaveStatus.Conflict));
         var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
-        Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, "v1", null, [new(Guid.NewGuid(), "Text")], CancellationToken.None)).Status);
+        var result = await service.SaveAsync(User, 7, "v1", null, [new(Guid.NewGuid(), "Text")], CancellationToken.None);
+
+        Assert.Equal(NoteSaveStatus.Conflict, result.Status);
+        // Nothing was saved: the card stays as it is.
+        Assert.Null(result.Note);
+    }
+
+    [Fact]
+    public async Task ASavedNoteComesBackAsItsCardShowsIt()
+    {
+        var savedAtUtc = new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc);
+        var notes = new StubNotes(summary: Saving(), saveResult: new NoteSaveResult(NoteSaveStatus.Saved, "v2", ModifiedAtUtc: savedAtUtc));
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
+
+        var result = await service.SaveAsync(User, 7, "v1", "  Analiză  ",
+            [new(Guid.NewGuid(), "Primul"), new(Guid.NewGuid(), "Al doilea"), new(Guid.NewGuid(), "Al treilea"), new(Guid.NewGuid(), "Al patrulea")],
+            CancellationToken.None);
+
+        // The stored title, the start of the first paragraphs, the last change and the new version, from what was saved.
+        Assert.Equal(Saving() with { Title = "Analiză", Preview = "Primul\nAl doilea\nAl treilea", ModifiedAtUtc = savedAtUtc, Version = "v2" },
+            result.Note);
+        // Changed in the month it was already in: the note keeps its place and the board is not read.
+        Assert.Null(result.Month);
+        Assert.Null(notes.BoardUser);
+    }
+
+    [Fact]
+    public async Task ASaveThatChangesNothingKeepsTheCardsLastChange()
+    {
+        // Nothing was stored: the note's last change is still its creation.
+        var notes = new StubNotes(summary: Saving(), saveResult: new NoteSaveResult(NoteSaveStatus.Saved, "v2", ModifiedAtUtc: September));
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
+
+        var result = await service.SaveAsync(User, 7, "v1", "Titlu", [new(Guid.NewGuid(), "Text vechi")], CancellationToken.None);
+
+        Assert.Null(result.Note!.ModifiedAtUtc);
+        Assert.Equal(September, result.Note.LastChangedAtUtc);
+        Assert.Null(result.Month);
+    }
+
+    [Fact]
+    public async Task ASaveThatMovesTheNoteToTheCurrentMonthBringsThatMonthInItsOrder()
+    {
+        var august = new DateTime(2026, 8, 20, 9, 0, 0, DateTimeKind.Utc);
+        var savedAtUtc = new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc);
+        // The board as it is read after the save: the note, changed now, among this month's notes.
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Article, august, order: 4),
+            board: [Note(7, NoteTypes.Article, august, modifiedAtUtc: savedAtUtc, order: 4), Note(8, NoteTypes.Journal, September, order: -1),
+                Note(9, NoteTypes.Journal, September, order: 6), Note(10, NoteTypes.Article, august, order: 1)],
+            saveResult: new NoteSaveResult(NoteSaveStatus.Saved, "v2", ModifiedAtUtc: savedAtUtc));
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
+
+        var result = await service.SaveAsync(User, 7, "v1", null, [new(Guid.NewGuid(), "Text")], CancellationToken.None);
+
+        // September, with the note placed among the others by its Order; August is not part of the answer.
+        Assert.Equal((2026, 9), (result.Month!.Year, result.Month.Month));
+        Assert.Equal([8, 7, 9], result.Month.Notes.Select(note => note.Id));
+        Assert.Equal((User, 5), (notes.BoardUser, notes.BoardContext));
+        Assert.Equal(savedAtUtc, result.Note!.LastChangedAtUtc);
     }
 
     private static NoteSummary Note(int id, string type, DateTime createdAtUtc, bool isOwner = true, DateTime? modifiedAtUtc = null,
@@ -472,7 +534,7 @@ public sealed class NoteServiceTests
         var paragraph = Guid.NewGuid();
         var resolution = new NoteReferenceResolution([new(paragraph, "CR", 30080, "CR 30080", [12])], [Cr30080],
             new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>> { [paragraph] = [new(5, "CR 30080", "CR", 30080, [12])] });
-        var notes = new StubNotes(document: Document());
+        var notes = new StubNotes(summary: Saving());
         var references = new StubReferences(resolution);
         var service = new NoteService(notes, new StubContexts(), references, UtcTime);
 
@@ -498,7 +560,7 @@ public sealed class NoteServiceTests
         var resolution = new NoteReferenceResolution([new(first, "CR", 30080, "CR 30080", [12, 15])], [Cr30080, Test30080],
             new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>> { [first] = links });
         var saved = new NoteSaveResult(NoteSaveStatus.Saved, "v2", [new(first, DateTime.UtcNow, DateTime.UtcNow), new(second, DateTime.UtcNow, DateTime.UtcNow)]);
-        var notes = new StubNotes(document: Document(), saveResult: saved);
+        var notes = new StubNotes(summary: Saving(), saveResult: saved);
         var service = new NoteService(notes, new StubContexts(), new StubReferences(resolution), UtcTime);
 
         var result = await service.SaveAsync(User, 7, "v1", "Titlu",
@@ -513,7 +575,7 @@ public sealed class NoteServiceTests
     public async Task ANewTitleRefreshesTheReferencesOfTheBoardOnceTheNoteIsSaved()
     {
         var references = new StubReferences();
-        var service = new NoteService(new StubNotes(document: Document()), new StubContexts(), references, UtcTime);
+        var service = new NoteService(new StubNotes(summary: Saving()), new StubContexts(), references, UtcTime);
 
         await service.SaveAsync(User, 7, "v1", " CR 30080 ", [new(Guid.NewGuid(), "Text")], CancellationToken.None);
 
@@ -524,7 +586,7 @@ public sealed class NoteServiceTests
     public async Task ASaveThatFailsRefreshesNothing()
     {
         var references = new StubReferences();
-        var notes = new StubNotes(document: Document(), saveResult: new NoteSaveResult(NoteSaveStatus.Conflict));
+        var notes = new StubNotes(summary: Saving(), saveResult: new NoteSaveResult(NoteSaveStatus.Conflict));
         var service = new NoteService(notes, new StubContexts(), references, UtcTime);
 
         Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, "v1", "CR 30080", [new(Guid.NewGuid(), "Text")], CancellationToken.None)).Status);
@@ -535,7 +597,7 @@ public sealed class NoteServiceTests
     public async Task ReferencesAreResolvedOnlyForTheOwnersSave()
     {
         var references = new StubReferences();
-        var service = new NoteService(new StubNotes(document: Document(isOwner: false)), new StubContexts(), references, UtcTime);
+        var service = new NoteService(new StubNotes(summary: Saving(isOwner: false)), new StubContexts(), references, UtcTime);
 
         await service.SaveAsync(User, 7, "v1", null, [new(Guid.NewGuid(), "CR 30080")], CancellationToken.None);
 
