@@ -1,0 +1,26 @@
+using WorkNotes.Business.Models;
+
+namespace WorkNotes.Business.Abstractions;
+
+// GitHub's OAuth endpoints and the account API, implemented in WorkNotes.Integrations. The calls report whether GitHub
+// refused (Rejected) or could not answer (Unavailable); cancellation is propagated, never reported as a result.
+public interface IGitHubOAuthClient
+{
+    // False when GitHub:ClientId or GitHub:ClientSecret is missing: no call can succeed.
+    bool IsConfigured { get; }
+
+    // The authorization address the browser is sent to, with the state and the PKCE challenge.
+    string GetAuthorizationUrl(string state, string codeChallenge, string redirectUri);
+
+    Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri,
+        CancellationToken cancellationToken);
+
+    // Only for tokens that expire (a GitHub App): a refresh token is used once and replaced.
+    Task<GitProviderResult<GitTokens>> RefreshAsync(string refreshToken, CancellationToken cancellationToken);
+
+    // The account the token belongs to; Rejected when the token is revoked or expired.
+    Task<GitProviderResult<GitAccount>> GetAccountAsync(string accessToken, CancellationToken cancellationToken);
+
+    // Revokes the user's authorization of the application, with all its tokens.
+    Task<GitProviderStatus> RevokeAsync(string accessToken, CancellationToken cancellationToken);
+}

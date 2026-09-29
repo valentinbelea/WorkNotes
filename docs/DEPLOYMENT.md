@@ -48,8 +48,14 @@ TODO: Necesită clarificare — furnizorul sau serverul de găzduire, numărul d
 | `Logging:LogLevel` | Nivelurile de log | `Default = Information`, `Microsoft.AspNetCore = Warning` |
 | `AllowedHosts` | Host-urile acceptate | `*` în configurația versionată |
 | `ASPNETCORE_ENVIRONMENT` | Mediul | `Development` în profilurile locale |
+| `GitHub:ClientId` | ID-ul aplicației GitHub (0.03) | Din GitHub App (recomandat) sau OAuth App înregistrată pentru mediu; gol în `appsettings.json`; fără el pagina Conectare GitHub spune că nu este configurată |
+| `GitHub:ClientSecret` | Secretul aplicației GitHub (0.03) | Secret: User Secrets în Development (`dotnet user-secrets set "GitHub:ClientSecret" "…" --project WorkNotes.Web`), variabila `GitHub__ClientSecret` în rest; niciodată în Git |
+| `GitHub:Scopes` | Scopurile OAuth App (0.03) | Gol pentru o GitHub App (permisiunile sunt ale aplicației); pentru o OAuth App, `repo` pentru repository-uri private |
+| `DataProtection:KeysPath` | Folderul cheilor Data Protection (0.03) | Recomandat pe mediile găzduite: persistent, comun instanțelor, accesibil numai identității aplicației; cheile protejează cookie-urile și tokenurile GitHub stocate. Pe Windows sunt criptate cu DPAPI |
 
-Fișierele: `appsettings.json` (comun), `appsettings.Development.json` (numai logging). Credențialele nu se pun în fișiere versionate.
+Fișierele: `appsettings.json` (comun), `appsettings.Development.json` (numai logging). Credențialele nu se pun în fișiere versionate; proiectul Web are `UserSecretsId`, deci User Secrets funcționează în Development.
+
+Aplicația GitHub (0.03) se înregistrează pentru fiecare mediu (GitHub → Settings → Developer settings → GitHub Apps sau OAuth Apps), cu URL-ul de callback `https://<host>/Account/GitHub/Callback`; local, `http://localhost:5018/Account/GitHub/Callback` sau `https://localhost:7190/Account/GitHub/Callback` (o GitHub App acceptă mai multe URL-uri, o OAuth App unul singur). Pentru o GitHub App: permisiunile de repository Contents, Metadata și Pull requests numai de citire, „Expire user authorization tokens” activat, fără webhook. Prima pornire cu versiunea 0.03 schimbă numele aplicației din Data Protection (`WorkNotes`), deci utilizatorii se autentifică din nou o dată.
 
 ## Publicare
 
@@ -80,6 +86,7 @@ TODO: Necesită clarificare — nu există o procedură de backup documentată (
 4. Tabla unui context se încarcă, iar o notă se deschide în editor.
 5. Schimbarea limbii funcționează în română, engleză și poloneză.
 6. Logurile nu conțin erori la pornire.
+7. Versiunea 0.03: pagina Conectare GitHub nu mai spune „nu este configurată”; conectarea, verificarea și deconectarea unui cont de test funcționează.
 
 ## Rollback
 

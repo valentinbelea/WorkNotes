@@ -180,4 +180,28 @@
 <data name="Editor_ReferenceMissing" xml:space="preserve"><value>Odwołanie nie istnieje: żadna notatka nie ma {0} w tytule.</value></data>
 <data name="Editor_ReferenceCreate" xml:space="preserve"><value>Zamień na odwołanie</value></data>
 <data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab zamienia · Esc zamyka</value></data>
+<data name="Navigation_GitHub" xml:space="preserve"><value>Połączenie z GitHub</value></data>
+<data name="GitHub_Description" xml:space="preserve"><value>Połącz konto GitHub, aby WorkNotes mógł odczytywać gałęzie, commity i pull requesty powiązane z CR-ami i błędami. Autoryzacja odbywa się w GitHub: WorkNotes nie widzi Twojego hasła do GitHub.</value></data>
+<data name="GitHub_NotConfiguredHelp" xml:space="preserve"><value>Połączenie z GitHub nie jest skonfigurowane na tym serwerze. Administrator musi zarejestrować aplikację w GitHub i ustawić GitHub:ClientId oraz GitHub:ClientSecret.</value></data>
+<data name="GitHub_Account" xml:space="preserve"><value>Konto GitHub</value></data>
+<data name="GitHub_ConnectedAt" xml:space="preserve"><value>Połączono</value></data>
+<data name="GitHub_ValidatedAt" xml:space="preserve"><value>Ostatnio zweryfikowano</value></data>
+<data name="GitHub_ExpiresAt" xml:space="preserve"><value>Dostęp wygasa</value></data>
+<data name="GitHub_ExpiresHelp" xml:space="preserve"><value>Dostęp jest odnawiany automatycznie podczas weryfikacji, dopóki autoryzacja w GitHub jest ważna.</value></data>
+<data name="GitHub_NotConnectedInfo" xml:space="preserve"><value>Twoje konto nie jest połączone z GitHub.</value></data>
+<data name="GitHub_Connected" xml:space="preserve"><value>Konto GitHub zostało połączone.</value></data>
+<data name="GitHub_NotConfigured" xml:space="preserve"><value>Połączenie z GitHub nie jest skonfigurowane na tym serwerze.</value></data>
+<data name="GitHub_InvalidState" xml:space="preserve"><value>Nie udało się potwierdzić połączenia: wygasło lub nie zostało rozpoczęte z tej strony. Spróbuj ponownie.</value></data>
+<data name="GitHub_Denied" xml:space="preserve"><value>Autoryzacja została odrzucona w GitHub; konto nie zostało połączone.</value></data>
+<data name="GitHub_Rejected" xml:space="preserve"><value>GitHub odrzucił połączenie. Spróbuj ponownie.</value></data>
+<data name="GitHub_Unavailable" xml:space="preserve"><value>GitHub w tej chwili nie odpowiada. Spróbuj ponownie później.</value></data>
+<data name="GitHub_Valid" xml:space="preserve"><value>Połączenie z GitHub działa.</value></data>
+<data name="GitHub_NotConnected" xml:space="preserve"><value>Twoje konto nie jest połączone z GitHub.</value></data>
+<data name="GitHub_ReconnectRequired" xml:space="preserve"><value>Dostęp do GitHub wygasł lub został cofnięty. Połącz konto ponownie.</value></data>
+<data name="GitHub_Disconnected" xml:space="preserve"><value>Konto GitHub zostało odłączone.</value></data>
+<data name="GitHub_NotRevoked" xml:space="preserve"><value>Konto zostało odłączone od WorkNotes, ale GitHub nie mógł cofnąć autoryzacji. Możesz ją cofnąć w ustawieniach GitHub (Applications).</value></data>
+<data name="Button_ConnectGitHub" xml:space="preserve"><value>Połącz z GitHub</value></data>
+<data name="Button_ReconnectGitHub" xml:space="preserve"><value>Połącz ponownie</value></data>
+<data name="Button_VerifyGitHub" xml:space="preserve"><value>Sprawdź połączenie</value></data>
+<data name="Button_DisconnectGitHub" xml:space="preserve"><value>Odłącz</value></data>
 </root>

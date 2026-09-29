@@ -117,6 +117,8 @@ Jurnalul păstrează cronologia, iar articolul adună explicațiile; codul CR-ul
 
 ## În dezvoltare
 
+**Conexiunea Git** (versiunea 0.03, branch `main_task_03`; [ADR-004](decisions/ADR-004-github-oauth.md)): legătura dintre un utilizator WorkNotes și contul lui la un furnizor Git (deocamdată GitHub), creată prin OAuth. Un utilizator are cel mult o conexiune pe furnizor, pe care numai el o vede și o schimbă; conexiunea păstrează contul (ID-ul stabil și login-ul) și tokenurile, criptate. Regulile sunt în `GitAuthorizationRules` și `GitHubConnectionService`: callback-ul se acceptă numai cu `state`-ul conectării pornite de utilizator; un token care expiră într-un minut se reîmprospătează la verificare; deconectarea șterge conexiunea, apoi revocă autorizarea la furnizor. Tabela: [DATABASE.md](DATABASE.md#gitconnections-versiunea-003).
+
 **Referința internă între note** (PR #4, branch `main_task_02`, neintegrat în `main`). Regulile sunt în `NoteReferenceRules`, `NoteReferenceParser` și `NoteReferenceService`; decizia este [ADR-003](decisions/ADR-003-internal-references.md).
 
 - Scop: un CR sau un bug scris într-un paragraf deschide notele care îl au în titlu — de exemplu `CR 30080` din jurnalul „CRs” deschide articolul „CR 30080 Export facturi”, iar dacă și jurnalul „CR-30080 testare” are CR-ul în titlu, le deschide pe amândouă.

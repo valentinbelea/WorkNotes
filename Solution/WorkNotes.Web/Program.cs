@@ -4,6 +4,9 @@ using WorkNotes.Web.Localization;
 using WorkNotes.Business.Abstractions;
 using WorkNotes.Business.Services;
 using WorkNotes.DataAccess;
+using WorkNotes.Integrations;
+using WorkNotes.Web.Git;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,9 +43,22 @@ builder.Services.AddScoped<INoteService, NoteService>();
 builder.Services.AddScoped<INoteReferenceService, NoteReferenceService>();
 builder.Services.AddSingleton<ReferenceTypeCache>();
 builder.Services.AddScoped<IReferenceTypeService, ReferenceTypeService>();
+builder.Services.AddScoped<IGitHubConnectionService, GitHubConnectionService>();
+builder.Services.AddSingleton<GitHubAuthorizationCookie>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDataAccess(builder.Configuration.GetConnectionString("WorkNotes")
     ?? throw new InvalidOperationException("ConnectionStrings:WorkNotes is required."));
+
+builder.Services.AddIntegrations(builder.Configuration.GetSection("GitHub"));
+
+// The keys encrypt the cookies and the stored Git tokens: they must survive restarts and be the same on every instance.
+// DataProtection:KeysPath sets their folder on a hosted environment; without it the per-user default folder is used.
+var dataProtection = builder.Services.AddDataProtection().SetApplicationName("WorkNotes");
+if (builder.Configuration["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
+{
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+    if (OperatingSystem.IsWindows()) dataProtection.ProtectKeysWithDpapi();
+}
 
 builder.Services.AddScoped<IdentityErrorDescriber, LocalizedIdentityErrorDescriber>();
 

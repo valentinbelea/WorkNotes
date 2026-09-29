@@ -24,7 +24,7 @@ foreach ($suffix in @('.ro', '.en', '.pl')) {
         if ($suffix -eq '.ro' -and $neutral[$key] -cne $catalogs[$suffix][$key]) { throw "Romanian fallback differs: $key" }
     }
 }
-$source = foreach ($project in @('WorkNotes.Web','WorkNotes.Business','WorkNotes.DataAccess')) {
+$source = foreach ($project in @('WorkNotes.Web','WorkNotes.Business','WorkNotes.DataAccess','WorkNotes.Integrations')) {
     Get-ChildItem (Join-Path $repoRoot $project) -Recurse -File |
         Where-Object { $_.Extension -in '.cs','.cshtml','.js' -and $_.FullName -notmatch '[\\/](bin|obj)[\\/]' } |
         ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }
@@ -33,7 +33,7 @@ $source = $source -join "`n"
 foreach ($key in $neutral.Keys) {
     if (-not $source.Contains('"' + $key + '"')) { throw "Unused resource key: $key" }
 }
-foreach ($match in [regex]::Matches($source, '"((?:Navigation|Field|Button|Language|Home|Dashboard|Contexts|ContextRole|Notes|NoteType|NoteVisibility|Editor|Footer|Validation|Message|Identity)_[A-Za-z0-9]+)"')) {
+foreach ($match in [regex]::Matches($source, '"((?:Navigation|Field|Button|Language|Home|Dashboard|Contexts|ContextRole|Notes|NoteType|NoteVisibility|Editor|Footer|Validation|Message|Identity|GitHub)_[A-Za-z0-9]+)"')) {
     if (-not $neutral.ContainsKey($match.Groups[1].Value)) { throw "Missing resource key: $($match.Groups[1].Value)" }
 }
 Write-Output "PASS: $($neutral.Count) keys; Romanian fallback; ro/en/pl parity; placeholders; no missing, empty or unused keys."

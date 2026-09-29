@@ -9,6 +9,7 @@ Versiunea curentă: **0.03**, în dezvoltare — integrarea cu Git (eticheta `v.
 - .NET 10 (`net10.0`), ASP.NET Core Razor Pages, C# cu nullable reference types.
 - Entity Framework Core 10.0.12 cu providerul SQL Server, abordare Database First: schema este definită de scripturi SQL versionate, fără migrări EF; instrumentul local `dotnet-ef` 10.0.12 (`Solution/dotnet-tools.json`) servește numai la scaffolding.
 - ASP.NET Core Identity cu stocare EF și cookie de autentificare.
+- GitHub OAuth (versiunea 0.03), prin `HttpClient`, în proiectul `WorkNotes.Integrations`; tokenurile criptate cu ASP.NET Core Data Protection.
 - SQL Server.
 - Localizare prin resurse .resx: română (implicită și fallback), engleză, poloneză.
 - Interfață: Razor, CSS cu tokenuri, JavaScript fără framework (module ES); editorul CodeMirror 6 (licență MIT), inclus local în `wwwroot/lib/codemirror`.
@@ -38,6 +39,7 @@ Versiunea curentă: **0.03**, în dezvoltare — integrarea cu Git (eticheta `v.
     ├── WorkNotes.Web/         # Razor Pages, ViewModels, localizare, CSS/JS, compunerea DI (Program.cs)
     ├── WorkNotes.Business/    # interfețe (Abstractions), servicii (Services), modele și reguli (Models)
     ├── WorkNotes.DataAccess/  # DbContext-uri, entități, repository-uri, Identity, AddDataAccess
+    ├── WorkNotes.Integrations/  # clienții serviciilor externe (GitHub OAuth și API), AddIntegrations
     ├── WorkNotes.Resources/   # SharedResources.resx (ro) + .ro/.en/.pl
     ├── WorkNotes.Business.Tests/  # teste xUnit, fără bază de date
     └── tools/
@@ -53,6 +55,17 @@ Descrierea proiectelor, a fluxurilor și a paginilor este în [docs/ARCHITECTURE
 - Configurația locală versionată: serverul `localhost\MSSQLSERVER02`, baza `WorkNotes.db`, `Integrated Security=True`, `Encrypt=True`, `TrustServerCertificate=True` — fără utilizator și fără parolă. Conexiunea folosește identitatea Windows a procesului, care are nevoie de drepturi de citire și scriere a datelor pentru aplicație și de drepturi de modificare a schemei atunci când se execută scripturile.
 - Pentru alt server sau alt mediu suprascrieți cheia prin configurația mediului (de exemplu variabila de mediu `ConnectionStrings__WorkNotes`), nu prin fișiere versionate; credențialele nu se salvează în Git.
 - Pregătirea bazei: creați baza `WorkNotes.db`, apoi aplicați, în ordine, scripturile din `Scripts/version_0.01`, `Scripts/version_0.02` și `Scripts/version_0.03` — lista, efectul fiecărui script și comenzile `sqlcmd` sunt în [Scripts/README.md](Scripts/README.md). Schema este descrisă în [docs/DATABASE.md](docs/DATABASE.md).
+
+## Configurarea GitHub
+
+Secțiunea Conectare GitHub (versiunea 0.03) are nevoie de o aplicație înregistrată pe GitHub (recomandat o GitHub App, cu permisiuni numai de citire), cu URL-ul de callback `http://localhost:5018/Account/GitHub/Callback` (sau `https://localhost:7190/Account/GitHub/Callback`). ID-ul și secretul ei se pun în User Secrets, din folderul `Solution`:
+
+```powershell
+dotnet user-secrets set "GitHub:ClientId" "<Client ID>" --project WorkNotes.Web
+dotnet user-secrets set "GitHub:ClientSecret" "<Client secret>" --project WorkNotes.Web
+```
+
+Fără ele, aplicația funcționează, iar pagina spune că GitHub nu este configurat. Pașii și setările pentru celelalte medii sunt în [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#configurare).
 
 ## Pornire
 

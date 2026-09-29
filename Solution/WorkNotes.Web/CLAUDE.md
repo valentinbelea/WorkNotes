@@ -4,10 +4,11 @@ Proiectul de prezentare: Razor Pages, ViewModel-uri, localizare, CSS, JavaScript
 
 ## Conținut
 
-- `Program.cs` — serviciile, `AddDataAccess`, cookie-urile și pipeline-ul HTTP; singurul loc care referă `WorkNotes.DataAccess`.
-- `Pages/` — `Index.cshtml` (tabla, notele, editorul), `Contexts/Index.cshtml`, `Account/*.cshtml`, `Language.cshtml`; `Pages/Shared/` — layout-ul și partialele (`_NoteCard`, `_NewNoteCard`, `_NoteTypeIcon`, `_NoteEditor*`, `_DeleteNoteDialog`, `_StatusMessage`, `_MainMenu`, `_LanguageSelector`).
+- `Program.cs` — serviciile, `AddDataAccess`, `AddIntegrations`, Data Protection, cookie-urile și pipeline-ul HTTP; singurul loc care referă `WorkNotes.DataAccess` și `WorkNotes.Integrations`.
+- `Pages/` — `Index.cshtml` (tabla, notele, editorul), `Contexts/Index.cshtml`, `Account/*.cshtml` (cu `Account/GitHub.cshtml`, conectarea GitHub, și callback-ul ei, `/Account/GitHub/Callback`), `Language.cshtml`; `Pages/Shared/` — layout-ul și partialele (`_NoteCard`, `_NewNoteCard`, `_NoteTypeIcon`, `_NoteEditor*`, `_DeleteNoteDialog`, `_StatusMessage`, `_MainMenu`, `_LanguageSelector`).
 - `ViewModels/` — intrările formularelor și corpul JSON al editorului; `ViewComponents/` — versiunea din footer.
 - `Localization/`, `Messages/`, `Navigation/`, `Notes/` — localizarea, mesajele de salvare, secțiunile meniului, formatele datelor și clasele cardurilor; PR #4: `Notes/NoteReferences.cs`, care afișează linkurile referințelor interne din pozițiile date de `INoteReferenceService` și construiește din ele lista sertarului referințelor din editor (fără să citească referințe din text).
+- `Git/GitHubAuthorizationCookie.cs` — cookie-ul criptat al autorizării GitHub în curs (`state` și verificatorul PKCE), citit o dată la callback.
 - `wwwroot/` — `css/`, `js/`, `images/`, `lib/codemirror/` (bundle generat).
 
 ## Reguli
@@ -15,6 +16,7 @@ Proiectul de prezentare: Razor Pages, ViewModel-uri, localizare, CSS, JavaScript
 - PageModel-urile sunt subțiri: leagă intrarea, apelează serviciul Business, mapează codul de stare la `ModelState`, la cod HTTP (404 pentru resurse din afara apartenenței, `StatusCode(403)` pentru acțiuni nepermise) sau la cheia din `TempData.SetStatusMessage`, apoi redirecționează. Nicio regulă de business, validare de domeniu sau verificare de drepturi nu se reimplementează aici, în view-uri sau în JavaScript.
 - Nu folosiți `DbContext`, `DbSet`, repository-uri concrete, `ApplicationUser`, `UserManager`, `SignInManager` sau SQL în pagini, view-uri și componente; verificarea este în [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#verificarea-regulilor-arhitecturale). `Microsoft.EntityFrameworkCore.Design` rămâne numai pentru tooling.
 - Niciun text afișat nu se scrie direct: folosiți `L["Cheie"]` sau `IStringLocalizer<SharedResources>`, iar în ViewModel-uri chei ca `ErrorMessage` și `Display(Name)`; fiecare cheie nouă se adaugă în cele patru fișiere .resx și se verifică cu `tools/Test-Resources.ps1`.
+- Tokenurile GitHub nu ajung niciodată în Web: pagina primește numai `GitConnection` și coduri de stare ([AGENTS.md](../../AGENTS.md#integrarea-github)).
 - Modelele Business se afișează direct; ViewModel-urile sunt numai pentru intrări, cu DataAnnotations.
 - Fiecare modificare folosește POST cu antiforgery: tag helper-e pentru formulare; `fetch` cu `FormData` din formularul randat de server sau cu antetul `RequestVerificationToken`. Handlerele JSON întorc `{ message }` localizat și codul HTTP potrivit.
 - Operațiile de bază funcționează fără JavaScript: starea overlay-urilor este în URL, iar scriptul preia linkul sau formularul existent.

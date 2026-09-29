@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<INoteRepository, NoteRepository>();
         services.AddScoped<INoteReferenceRepository, NoteRepository>();
         services.AddScoped<IReferenceTypeRepository, ReferenceTypeRepository>();
+        services.AddScoped<IGitConnectionRepository, GitConnectionRepository>();
         services.AddDbContext<AccountsDbContext>(options => options.UseSqlServer(connectionString));
         services.AddIdentityCore<ApplicationUser>(options =>
         {

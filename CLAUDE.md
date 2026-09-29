@@ -20,8 +20,8 @@ Aceste documente fac parte din contextul fiecărei sesiuni. Regulile obligatorii
 ## Structura soluției
 
 - Rădăcina repository-ului: `AGENTS.md`, `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `docs/` (inclusiv `docs/decisions/`), `Scripts/` (scripturi SQL versionate, `Scripts/version_0.0x`) și `Solution/`.
-- `Solution/WorkNotes.sln` conține `WorkNotes.Web`, `WorkNotes.Business`, `WorkNotes.DataAccess`, `WorkNotes.Resources` și `WorkNotes.Business.Tests`; `Solution/tools/` conține `Test-Resources.ps1` și construirea bundle-ului CodeMirror.
-- Proiectele Web, Business și DataAccess au propriul `CLAUDE.md`, cu regulile specifice, încărcat când lucrezi în folderul respectiv.
+- `Solution/WorkNotes.sln` conține `WorkNotes.Web`, `WorkNotes.Business`, `WorkNotes.DataAccess`, `WorkNotes.Integrations` (clienții serviciilor externe: GitHub), `WorkNotes.Resources` și `WorkNotes.Business.Tests`; `Solution/tools/` conține `Test-Resources.ps1` și construirea bundle-ului CodeMirror.
+- Proiectele Web, Business, DataAccess și Integrations au propriul `CLAUDE.md`, cu regulile specifice, încărcat când lucrezi în folderul respectiv.
 
 ## Comenzi
 
@@ -46,6 +46,7 @@ Rezumat de orientare; formularea obligatorie și completă este în secțiunile 
 - Acces la date asincron, cu `CancellationToken` propagat până la EF — [Acces asincron și anulare](AGENTS.md#acces-asincron-și-anulare).
 - Toate textele afișate vin din `.resx`, complete în română, engleză și poloneză, cu aceleași chei în cele patru fișiere — [Localizare obligatorie](AGENTS.md#localizare-obligatorie).
 - Baza de date se modifică numai prin scripturi SQL versionate în folderul versiunii curente; fără migrări EF; modelul EF se regenerează prin scaffolding — [EF Core și schema SQL](AGENTS.md#ef-core-și-schema-sql-database-first), [Scripturi SQL și versiuni](AGENTS.md#scripturi-sql-și-versiuni).
+- Tokenurile GitHub se tratează ca parolele: criptate în bază, niciodată în loguri, URL-uri, TempData sau pagini; conectarea se face numai prin OAuth — [Integrarea GitHub](AGENTS.md#integrarea-github).
 - Nu aplica scripturi SQL, migrări sau alte actualizări pe nicio bază de date fără cererea explicită a utilizatorului; nu modifica scripturile deja livrate și nu schimba versiunea fără cerere explicită.
 - După modificări rulează verificările din [Verificarea livrării](AGENTS.md#verificarea-livrării) și raportează exact ce nu s-a putut verifica.
 - Lucrează într-un feature branch creat din `main`; fără commit, push, pull request sau merge nesolicitate; păstrează modificările utilizatorului — [Git și limitele sarcinii](AGENTS.md#git-și-limitele-sarcinii).

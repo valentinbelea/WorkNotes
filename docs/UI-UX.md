@@ -69,7 +69,7 @@ Scripturile sunt descrise în [ARCHITECTURE.md](ARCHITECTURE.md#javascript). Nu 
 ## Navigare
 
 - [x] Titlul WorkNotes din header este un buton cu indicator de meniu care deschide un sertar modal în stânga (`navigation.css`). Dialogul nativ păstrează focusul în meniu; Escape, fundalul și butonul de închidere îl închid și readuc focusul pe buton. Fără JavaScript, navigarea rămâne vizibilă ca secțiune obișnuită.
-- [x] Meniul: Dashboard (pagina principală), Contexte (numai pentru utilizatorii autentificați) și grupul „Contul meu”: datele contului, schimbarea parolei și deconectarea (POST) pentru utilizatorul autentificat, respectiv autentificarea și înregistrarea pentru vizitatori. Pagina curentă are `aria-current`.
+- [x] Meniul: Dashboard (pagina principală), Contexte (numai pentru utilizatorii autentificați) și grupul „Contul meu”: datele contului, schimbarea parolei, Conectare GitHub (versiunea 0.03) și deconectarea (POST) pentru utilizatorul autentificat, respectiv autentificarea și înregistrarea pentru vizitatori. Pagina curentă are `aria-current`.
 - [x] Pagina principală este tabla pentru utilizatorul autentificat; vizitatorii văd panoul de bun venit, cu Autentificare și Înregistrare.
 - [!] Textul panoului de bun venit este „Aplicația este pregătită pentru dezvoltare.” (`Home_Introduction`). TODO: Necesită clarificare — textul definitiv al paginii de bun venit.
 
@@ -99,6 +99,7 @@ Scripturile sunt descrise în [ARCHITECTURE.md](ARCHITECTURE.md#javascript). Nu 
 - [x] Înregistrarea, autentificarea, „Contul meu” și schimbarea parolei folosesc `account-card postit-panel`, cu sumarul erorilor (`role=alert`) și mesajele lângă câmpuri; validarea client folosește aceleași texte ca serverul.
 - [x] Formularele de parolă afișează politica („Parola trebuie să conțină minimum 12 caractere, o literă mică, o literă mare, o cifră și un caracter special.”) ca text de ajutor; câmpurile au `autocomplete` potrivit (`username`, `current-password`, `new-password`, `given-name`, `family-name`, `email`).
 - [x] „Contul meu” afișează e-mailul ca text, fără câmp de editare.
+- [~] Conectare GitHub (versiunea 0.03) folosește `account-card postit-panel`: descrierea, apoi contul GitHub (login-ul, datele cu `time`) și acțiunile într-un rând `actions` (Verifică conexiunea și Conectează din nou `btn-secondary`, Deconectează `btn-danger`), sau Conectează GitHub (`btn-primary`) când nu este conectat, sau o notă `text-muted` când GitHub nu este configurat. Fiecare acțiune este un formular POST, deci funcționează fără JavaScript; rezultatele apar ca mesaje de salvare (succes, avertisment, eroare).
 - [x] Rezultatele (cont creat, date actualizate, parolă schimbată) apar ca mesaje de salvare după redirecționare.
 
 ## Tabla de note

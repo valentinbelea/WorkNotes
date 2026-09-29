@@ -10,14 +10,15 @@ Soluția este `Solution/WorkNotes.sln`. Toate proiectele rămân compatibile cu 
 
 | Proiect | Responsabilitate | Dependențe permise |
 | --- | --- | --- |
-| WorkNotes.Web | Razor Pages, controllere dacă devin necesare, view models, layout, CSS, JavaScript, prezentare, configurare și pornire | Business, Resources; DataAccess numai pentru compunerea DI |
+| WorkNotes.Web | Razor Pages, controllere dacă devin necesare, view models, layout, CSS, JavaScript, prezentare, configurare și pornire | Business, Resources; DataAccess și Integrations numai pentru compunerea DI |
 | WorkNotes.Business | Reguli, servicii, modele/DTO-uri și contracte de acces la date | Biblioteci independente de infrastructură; nici Web, nici DataAccess, nici EF Core, ASP.NET sau Identity |
 | WorkNotes.DataAccess | DbContext, entități și mapări EF, repository-uri, integrare SQL Server, implementarea contractelor Identity și înregistrarea lor în DI | Business și bibliotecile de persistență |
+| WorkNotes.Integrations | Clienții serviciilor externe (GitHub: OAuth și API), peste `HttpClient`, implementarea contractelor Business și înregistrarea lor în DI | Business și bibliotecile HTTP/configurare ale ASP.NET Core; nici Web, nici DataAccess, nici EF Core |
 | WorkNotes.Resources | Resurse .resx comune, complete în ro/en/pl, și clasa marker `SharedResources` | Fără dependențe către Web, Business sau DataAccess |
 | WorkNotes.Business.Tests | Teste pentru regulile și contractele Business | Business și infrastructura de testare; fără bază de date obligatorie |
 
-- Direcția referințelor este Web → Business, Web → Resources, Web → DataAccess numai pentru compunere, DataAccess → Business, Business.Tests → Business. Business nu referă Web sau DataAccess. Sunt interzise dependențele circulare.
-- Referința Web către DataAccess se utilizează numai în punctul de compunere `Program.cs`, prin extensia `AddDataAccess`. Nu injectați și nu folosiți `WorkNotesDbContext`, `AccountsDbContext`, `DbContext`, `DbSet`, repository-uri concrete, SQL ori clienți de baze de date în pagini, controllere, view models, view-uri sau alte componente Web. Înregistrarea DbContext și configurarea providerului rămân în DataAccess.
+- Direcția referințelor este Web → Business, Web → Resources, Web → DataAccess și Web → Integrations numai pentru compunere, DataAccess → Business, Integrations → Business, Business.Tests → Business. Business nu referă Web sau DataAccess. Sunt interzise dependențele circulare.
+- Referințele Web către DataAccess și Integrations se utilizează numai în punctul de compunere `Program.cs`, prin extensiile `AddDataAccess` și `AddIntegrations`. Paginile nu folosesc `HttpClient` sau clienții concreți ai serviciilor externe; consumă contractele Business. Nu injectați și nu folosiți `WorkNotesDbContext`, `AccountsDbContext`, `DbContext`, `DbSet`, repository-uri concrete, SQL ori clienți de baze de date în pagini, controllere, view models, view-uri sau alte componente Web. Înregistrarea DbContext și configurarea providerului rămân în DataAccess.
 - Excepție strict de tooling: Web păstrează `Microsoft.EntityFrameworkCore.Design`, cu `PrivateAssets=all`, deoarece este startup project pentru reverse engineering. Aceasta nu autorizează cod EF în Web. Providerul SQL Server se referă direct numai din DataAccess.
 - Business și DataAccess transmit chei de mesaj și coduri de stare, fără dependențe noi de infrastructura de localizare. `LocalizedIdentityErrorDescriber` este în `WorkNotes.Web/Localization` și se înregistrează în `Program.cs`.
 - Regulile de business (validări de domeniu, normalizări, calcule, selecții, drepturile asupra contextelor și notelor) aparțin Business. Este interzisă plasarea lor în pagini sau controllere, în view-uri Razor și în JavaScript. JavaScript adaugă numai comportament de interfață; serverul rămâne autoritar.
@@ -95,6 +96,17 @@ Repository-ul citește valorile. Business alege versiunea numerică maximă și 
 - Cookie-ul este HttpOnly, SameSite=Lax și Secure obligatoriu în afara dezvoltării. HTTPS este necesar pentru găzduire. Nu implementați roluri, confirmare e-mail sau recuperare parolă fără cerință nouă.
 - Propagați `CancellationToken` în interogările EF. `UserManager`/`SignInManager` nu oferă parametru `CancellationToken` pentru toate operațiile: verificați anularea înainte de apel; nu simulați anularea cu `Task.Run` și nu întrerupeți reîmprospătarea cookie-ului după o modificare deja salvată.
 - Scripturile Identity sunt idempotente prin verificarea obiectelor SQL (tabele și indexuri), fără istoric EF, și se păstrează în folderul versiunii curente conform regulilor de mai sus. Datele conturilor și hashurile existente nu se șterg și nu se recreează la actualizarea schemei.
+
+## Integrarea GitHub
+
+Decizia și fluxul complet sunt în [ADR-004](docs/decisions/ADR-004-github-oauth.md); protecțiile, în [docs/SECURITY.md](docs/SECURITY.md#conectarea-github).
+
+- Contul GitHub se conectează numai prin OAuth (authorization code cu `state` și PKCE S256), pentru utilizatorul WorkNotes deja autentificat; conectarea nu este o autentificare în WorkNotes. Nu se cer utilizatorului parole sau tokenuri GitHub.
+- Tokenurile GitHub (access și refresh) se tratează ca parolele: nu se salvează în clar, nu se jurnalizează și nu apar în URL-uri, mesaje, TempData, view-uri, JSON trimis browserului sau DTO-uri de rezultat (`GitConnection` nu le conține). Circulă numai între `GitHubConnectionService`, `IGitHubOAuthClient` și `IGitConnectionRepository`, care le criptează cu ASP.NET Core Data Protection înainte de SQL Server.
+- `GitHub:ClientId` și `GitHub:ClientSecret` se configurează prin User Secrets sau variabile de mediu, niciodată în fișiere versionate. Cheile Data Protection trebuie să fie persistente pe mediile găzduite (`DataProtection:KeysPath`).
+- Callback-ul OAuth (`GET /Account/GitHub/Callback`) este singurul handler GET care modifică date: îl protejează `state`, verificat în Business față de cookie-ul criptat al autorizării în curs, nu antiforgery. Toate celelalte acțiuni (conectare, verificare, deconectare) folosesc POST cu antiforgery.
+- Business definește regulile (`GitAuthorizationRules`) și contractele; `WorkNotes.Integrations` face apelurile HTTP și întoarce coduri de stare (`Succeeded`, `Rejected`, `Unavailable`), fără excepții pentru cazurile așteptate și fără texte traduse. Anularea se propagă.
+- Se cer permisiunile minime: o GitHub App numai cu citire (Contents, Metadata, Pull requests) este varianta recomandată.
 
 ## Localizare obligatorie
 

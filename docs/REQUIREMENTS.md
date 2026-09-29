@@ -122,10 +122,12 @@ Implementate în PR #4 (branch `main_task_02`), neintegrate în `main`; regulile
 
 ## Integrarea cu Git (version_0.03)
 
-Versiunea 0.03 este dedicată integrării cu Git, la cererea utilizatorului din 2026-09-29. Până acum există numai folderul `Scripts/version_0.03`, cu înregistrarea `v.0.03`.
+Versiunea 0.03 este dedicată integrării cu Git, la cererea utilizatorului din 2026-09-29: furnizorul este GitHub (deocamdată), iar WorkNotes va citi branch-urile, commit-urile și pull request-urile legate de CR-uri și buguri. Primul pas, în lucru pe branch-ul `main_task_03`, este conectarea contului GitHub ([ADR-004](decisions/ADR-004-github-oauth.md)).
 
-- [~] Versiunea 0.03: `Scripts/version_0.03/000_UpdateDatabaseVersion.sql` și documentele de versionare (branch `main_task_03`).
-- [!] Integrarea cu Git. TODO: Necesită clarificare — ce se integrează (de exemplu repository-uri, branch-uri, commit-uri sau pull request-uri legate de note, de CR-uri și buguri), cu ce furnizor (Git local, GitHub, Azure DevOps…), cum se autentifică aplicația și ce date se stochează.
+- [~] Versiunea 0.03: `Scripts/version_0.03/000_UpdateDatabaseVersion.sql` și documentele de versionare.
+- [~] Secțiunea Conectare GitHub din Contul meu (`/Account/GitHub`): conectarea prin OAuth (cu PKCE și `state`), contul afișat, verificarea conexiunii (cu reîmprospătarea tokenului), reconectarea și deconectarea (cu revocarea autorizării la GitHub); tokenurile criptate în `dbo.GitConnections` (`001_CreateGitConnections.sql`); proiectul nou `WorkNotes.Integrations`.
+- [ ] Citirea branch-urilor, commit-urilor și pull request-urilor legate de CR-uri și buguri. TODO: Necesită clarificare — ce repository-uri se citesc (configurate pe context?) și după ce se leagă de un CR sau bug (numele branch-ului, mesajul commit-ului, titlul pull request-ului).
+- [ ] Alți furnizori Git (GitLab, Azure DevOps), numai la o cerere nouă.
 
 ## Alte cerințe
 
@@ -145,5 +147,7 @@ Versiunea 0.03 este dedicată integrării cu Git, la cererea utilizatorului din 
 **Implementate** (version_0.01 și version_0.02): conturile, localizarea ro/en/pl, designul, contextele și membrii, tabla pe contexte și luni, post-it-urile cu creare, redenumire și ștergere pe loc, editorul cu paragrafe auditate, taburi și minimizare, mesajele de salvare, ordonarea prin drag-and-drop, versiunea în footer.
 
 **În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare, deschiderea și închiderea notelor fără reîncărcarea tablei, care urmează salvările din editor, schimbarea tipului unei note din editor și referințele interne CR/bug între note, cu reindexarea conținutului existent, sertarul referințelor din editor și popup-ul referinței abia scrise, plus corecția selecției din editor.
+
+**În lucru pentru version_0.03**: conectarea contului GitHub prin OAuth.
 
 **Planificate**: referințele de lucru CR/bug și asocierile lor, legăturile externe, evidențierea referințelor, salvarea automată, vizibilitatea și arhivarea din interfață, paragraful important, editarea notelor partajate, platformele și modulele ulterioare. Ordinea și dependențele sunt în [ROADMAP.md](ROADMAP.md).

@@ -15,7 +15,7 @@ Regulile obligatorii pentru conturi, parole, cookie-uri și secrete sunt în [AG
 
 ## Autorizarea
 
-- La nivel de pagină: `[Authorize]` pe `/Contexts`, `/Account` și `/Account/ChangePassword`; `[AllowAnonymous]` pe autentificare, înregistrare și schimbarea limbii. Pagina principală este publică: vizitatorul vede panoul de bun venit, iar handlerele ei cer autentificarea (redirect la autentificare sau 401 JSON).
+- La nivel de pagină: `[Authorize]` pe `/Contexts`, `/Account`, `/Account/ChangePassword` și `/Account/GitHub` (inclusiv callback-ul); `[AllowAnonymous]` pe autentificare, înregistrare și schimbarea limbii. Pagina principală este publică: vizitatorul vede panoul de bun venit, iar handlerele ei cer autentificarea (redirect la autentificare sau 401 JSON).
 - La nivel de resursă, regulile sunt în Business și sunt aplicate și în interogările repository-urilor:
   - un context este vizibil numai membrilor lui (orice rol); numai `Owner` îl editează, îl șterge și îi gestionează membrii;
   - orice membru poate crea note în context; numai proprietarul notei o editează, o redenumește, o șterge și îi schimbă locul pe tablă.
@@ -46,7 +46,7 @@ Notele noi sunt private (`Private`). O notă `Context` este citită de membri nu
 ## Protecția CSRF
 
 - Razor Pages validează automat tokenul antiforgery pentru toate handlerele POST. Formularele îl primesc prin tag helper-e; cererile `fetch` îl trimit prin `FormData` din formularele randate de server (redenumire, schimbul ordinii) sau prin antetul `RequestVerificationToken` (salvarea JSON din editor, cu tokenul din `Html.AntiForgeryToken()`).
-- Toate modificările, schimbarea limbii și deconectarea folosesc POST. Handlerele GET nu modifică date; adresele handlerelor POST deschise prin GET doar redirecționează.
+- Toate modificările, schimbarea limbii și deconectarea folosesc POST. Singura excepție este callback-ul OAuth GitHub (`GET /Account/GitHub/Callback`), protejat de `state` ([mai jos](#conectarea-github)). Handlerele GET nu modifică date; adresele handlerelor POST deschise prin GET doar redirecționează.
 - Cookie-urile de autentificare și de cultură sunt SameSite=Lax.
 
 ## Protecția XSS
@@ -79,9 +79,21 @@ Notele noi sunt private (`Private`). O notă `Context` este citită de membri nu
 ## Secretele
 
 - `appsettings.json` conține numai conexiunea locală de dezvoltare, cu Windows Authentication (`Integrated Security=True`), fără utilizator sau parolă.
-- Credențialele și alte secrete se configurează prin User Secrets sau variabile de mediu și nu se salvează în Git. Proiectul Web nu are încă `UserSecretsId`; folosirea User Secrets necesită inițializarea lor.
-- Pentru găzduire: cheile Data Protection (care protejează cookie-urile și tokenurile antiforgery) trebuie să fie persistente, protejate și comune instanțelor, dacă sunt mai multe. Aplicația nu configurează încă Data Protection. TODO: Necesită clarificare — locul și protecția cheilor în mediile găzduite.
+- Credențialele și alte secrete (inclusiv `GitHub:ClientSecret`) se configurează prin User Secrets sau variabile de mediu și nu se salvează în Git. Proiectul Web are `UserSecretsId` (versiunea 0.03).
+- Pentru găzduire: cheile Data Protection (care protejează cookie-urile și tokenurile antiforgery) trebuie să fie persistente, protejate și comune instanțelor, dacă sunt mai multe. Din versiunea 0.03 ele protejează și tokenurile GitHub stocate. `Program.cs` fixează numele aplicației (`WorkNotes`) și, cu `DataProtection:KeysPath`, păstrează cheile într-un folder (criptate cu DPAPI pe Windows); fără setare se folosește folderul implicit al utilizatorului procesului. TODO: Necesită clarificare — folderul și protecția cheilor în mediile Test și Production.
 - `AllowedHosts` este `*`. TODO: Necesită clarificare — lista de host-uri permise în producție.
+
+## Conectarea GitHub
+
+Regulile obligatorii sunt în [AGENTS.md › Integrarea GitHub](../AGENTS.md#integrarea-github); decizia este [ADR-004](decisions/ADR-004-github-oauth.md).
+
+- Fluxul este OAuth authorization code cu PKCE (S256) și `state`: 32 de octeți aleatori fiecare (`RandomNumberGenerator`), comparați în timp constant. `state` și `code_verifier` stau în cookie-ul `WorkNotes.GitHubAuthorization`, criptat și semnat cu Data Protection pentru utilizatorul curent (ID-ul lui face parte din scopul protectorului), valabil 10 minute, HttpOnly, SameSite=Lax, `Secure` în afara Development, cu calea `/Account/GitHub`, șters la callback. Un callback fără cookie, cu alt `state`, al altui utilizator sau expirat nu schimbă codul și nu salvează nimic, nici măcar o eroare.
+- Callback-ul acceptă numai o conectare pornită prin POST cu antiforgery (`Connect`) de același utilizator, în același browser. Adresa de redirecționare către GitHub este construită pe server, din configurație; nu vine din cerere.
+- Tokenurile nu ajung în browser: pagina afișează login-ul contului și datele, `GitConnection` nu conține tokenuri, iar `GitTokens` își lasă tokenurile afară din `ToString()`. Clientul HTTP trimite tokenurile numai în corpul cererilor și în antetul `Authorization`, niciodată în adrese, deci logurile `HttpClient` (care conțin adresele) nu le conțin.
+- În bază, `ProtectedAccessToken` și `ProtectedRefreshToken` sunt criptate cu Data Protection (scopul `WorkNotes.GitConnections.Tokens`); o copie a bazei fără cheile aplicației nu le dezvăluie. Tokenurile care nu se mai pot decripta cer reconectarea și se pot deconecta.
+- Accesul: fiecare utilizator vede și modifică numai conexiunea lui (`UserId` din claims, filtrul în fiecare interogare a repository-ului). Deconectarea șterge rândul și revocă autorizarea la GitHub; ștergerea unui utilizator îi șterge conexiunea în cascadă.
+- Permisiunile sunt ale aplicației GitHub înregistrate: recomandat o GitHub App numai cu citire (Contents, Metadata, Pull requests), cu tokenuri care expiră după 8 ore și se reîmprospătează. O OAuth App cere scopul `repo` pentru repository-uri private, care permite și scrierea.
+- Erorile furnizorului sunt coduri de stare (`Rejected`, `Unavailable`) traduse în mesaje localizate, fără detalii tehnice; răspunsurile GitHub nu se afișează.
 
 ## Logging
 

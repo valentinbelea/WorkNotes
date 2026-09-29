@@ -1,0 +1,43 @@
+@page "{handler?}"
+@model WorkNotes.Web.Pages.Account.GitHubModel
+@using WorkNotes.Web.Notes
+@{ ViewData["Title"] = L["Navigation_GitHub"]; }
+@* The GitHub connection of the signed-in user. Every change is a form POST, so the page works without JavaScript;
+   Connect leaves for GitHub and comes back to /Account/GitHub/Callback. No token is ever rendered. *@
+<section class="account-card postit-panel" aria-labelledby="github-title">
+<h1 id="github-title">@L["Navigation_GitHub"]</h1>
+<p class="help-text">@L["GitHub_Description"]</p>
+@if (!Model.IsConfigured)
+{
+    <p class="text-muted">@L["GitHub_NotConfiguredHelp"]</p>
+}
+else if (Model.Connection is { } connection)
+{
+    <p><strong>@L["GitHub_Account"]:</strong> @connection.AccountLogin</p>
+    <p><strong>@L["GitHub_ConnectedAt"]:</strong> <time datetime="@NoteDates.Iso(connection.ConnectedAtUtc)">@NoteDates.Full(connection.ConnectedAtUtc)</time></p>
+    <p><strong>@L["GitHub_ValidatedAt"]:</strong> <time datetime="@NoteDates.Iso(connection.ValidatedAtUtc)">@NoteDates.Full(connection.ValidatedAtUtc)</time></p>
+    @if (connection.AccessTokenExpiresAtUtc is { } expiresAtUtc)
+    {
+        <p><strong>@L["GitHub_ExpiresAt"]:</strong> <time datetime="@NoteDates.Iso(expiresAtUtc)">@NoteDates.Full(expiresAtUtc)</time></p>
+        <p class="help-text">@L["GitHub_ExpiresHelp"]</p>
+    }
+    <div class="actions">
+        <form method="post" asp-page-handler="Verify">
+            <button type="submit" class="btn btn-secondary">@L["Button_VerifyGitHub"]</button>
+        </form>
+        <form method="post" asp-page-handler="Connect">
+            <button type="submit" class="btn btn-secondary">@L["Button_ReconnectGitHub"]</button>
+        </form>
+        <form method="post" asp-page-handler="Disconnect">
+            <button type="submit" class="btn btn-danger">@L["Button_DisconnectGitHub"]</button>
+        </form>
+    </div>
+}
+else
+{
+    <p>@L["GitHub_NotConnectedInfo"]</p>
+    <form method="post" asp-page-handler="Connect">
+        <button type="submit" class="btn btn-primary">@L["Button_ConnectGitHub"]</button>
+    </form>
+}
+</section>

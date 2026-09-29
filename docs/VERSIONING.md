@@ -17,7 +17,7 @@ Regulile obligatorii sunt în [AGENTS.md](../AGENTS.md#scripturi-sql-și-versiun
 | --- | --- | --- |
 | 0.01 | Conturi, localizare, design „Hârtie & salvie”, contexte și membri, note pe tablă, editorul cu paragrafe, taburi și minimizare | PR #1 (2026-09-22), PR #2 (2026-09-25) |
 | 0.02 | Înregistrarea `v.0.02`; ordonarea post-it-urilor prin drag-and-drop (`Notes.[Order]`) | PR #3 (2026-09-25), PR #4 (2026-09-29) |
-| 0.03 | Înregistrarea `v.0.03`; integrarea cu Git (TODO: Necesită clarificare — conținutul funcțional) | în dezvoltare, branch `main_task_03` |
+| 0.03 | Înregistrarea `v.0.03`; integrarea cu GitHub: conectarea contului prin OAuth (`GitConnections`), apoi citirea branch-urilor, commit-urilor și pull request-urilor | în dezvoltare, branch `main_task_03` |
 
 Detaliile sunt în [CHANGELOG.md](../CHANGELOG.md). Nu se creează o versiune nouă fără solicitare explicită.
 

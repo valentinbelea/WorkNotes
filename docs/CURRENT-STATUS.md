@@ -15,7 +15,7 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 
 ## În dezvoltare
 
-- **Versiunea 0.03** — branch `main_task_03`, creată la cererea utilizatorului din 2026-09-29 pentru integrarea cu Git: folderul `Scripts/version_0.03`, cu `000_UpdateDatabaseVersion.sql` (inserează `v.0.03`, neaplicat pe nicio bază), și documentele de versionare actualizate. Nu există încă cod pentru integrarea cu Git. TODO: Necesită clarificare — conținutul funcțional al integrării ([REQUIREMENTS.md](REQUIREMENTS.md#integrarea-cu-git-version_003)).
+- **Versiunea 0.03** — branch `main_task_03`, creată la cererea utilizatorului din 2026-09-29 pentru integrarea cu Git: folderul `Scripts/version_0.03`, cu `000_UpdateDatabaseVersion.sql` (inserează `v.0.03`, neaplicat pe nicio bază), și documentele de versionare actualizate. Primul pas al integrării, conectarea contului GitHub prin OAuth ([ADR-004](decisions/ADR-004-github-oauth.md)): pagina `/Account/GitHub`, `GitHubConnectionService`, proiectul nou `WorkNotes.Integrations` (`GitHubOAuthClient`), `GitConnectionRepository` (tokenurile criptate cu Data Protection) și `001_CreateGitConnections.sql` (neaplicat pe nicio bază). Entitatea `GitConnection` și maparea ei au fost scrise manual, în forma generată de scaffolding, pentru că sesiunea nu avea SQL Server: scaffolding-ul trebuie rulat după aplicarea scriptului, ca verificare. Urmează citirea branch-urilor, commit-urilor și pull request-urilor ([REQUIREMENTS.md](REQUIREMENTS.md#integrarea-cu-git-version_003)).
 - **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main` (care a fost adus în branch prin merge), cu commit-urile:
   - „Board: the next drag is no longer refused while a swap is being saved” — schimburile se aplică la `dragend` și se salvează pe rând;
   - „Editor and board: internal references between notes” — primul model al referințelor interne (legătura în text, `[[note:{id}|{număr}]]`), tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`; modelul este înlocuit (vezi mai jos);
@@ -139,6 +139,18 @@ PR #4 modifică `Solution/AGENTS.md`, `Solution/README.md`, `Solution/docs/desig
 Fișierele vechi au fost eliminate după integrare, ca să nu existe două surse pentru aceleași reguli; conținutul lor rămâne în istoricul Git.
 
 ## Ultimul build și ultimele teste
+
+### 2026-09-29 — versiunea 0.03, conectarea GitHub (branch `main_task_03`, sesiune cloud Linux)
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet build WorkNotes.sln` (SDK 10.0.112) | reușit, fără avertismente |
+| `dotnet test WorkNotes.sln --no-build` | 320 de teste, toate trecute (65 noi: `GitAuthorizationRulesTests`, `GitHubConnectionServiceTests`) |
+| `tools/Test-Resources.ps1` (PowerShell 7.6, instalat ca dotnet tool) | `PASS: 202 keys` |
+| Clientul HTTP GitHub, cu un handler simulat | cererile și răspunsurile verificate (vezi [TESTING.md](TESTING.md)) |
+| Pornirea aplicației (Development) | DI validat; `/Account/GitHub` și callback-ul redirecționează la autentificare; paginile care citesc baza dau eroare, fără SQL Server |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale) | niciun rezultat (și cu `--untracked`, pentru fișierele noi) |
+| Neefectuate | aplicarea `001_CreateGitConnections.sql` și scaffolding-ul (fără SQL Server); fluxul real cu GitHub (fără aplicație GitHub înregistrată și fără `ClientId` / `ClientSecret`); pagina în browser, în cele trei limbi și la 320px |
 
 Rulate pe 2026-09-25, în sesiunea cloud de documentare (Linux, .NET SDK 10.0.112, runtime 10.0.12), din folderul `Solution`, înainte și după modificările de documentație:
 

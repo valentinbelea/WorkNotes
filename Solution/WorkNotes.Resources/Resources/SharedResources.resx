@@ -180,4 +180,28 @@
 <data name="Editor_ReferenceMissing" xml:space="preserve"><value>Referință inexistentă: nicio notă nu are {0} în titlu.</value></data>
 <data name="Editor_ReferenceCreate" xml:space="preserve"><value>Transformă în referință</value></data>
 <data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab transformă · Esc închide</value></data>
+<data name="Navigation_GitHub" xml:space="preserve"><value>Conectare GitHub</value></data>
+<data name="GitHub_Description" xml:space="preserve"><value>Conectați contul GitHub, pentru ca WorkNotes să citească branch-urile, commit-urile și pull request-urile legate de CR-uri și buguri. Autorizarea se face pe GitHub: WorkNotes nu vă vede parola GitHub.</value></data>
+<data name="GitHub_NotConfiguredHelp" xml:space="preserve"><value>Conectarea GitHub nu este configurată pe acest server. Administratorul trebuie să înregistreze aplicația pe GitHub și să seteze GitHub:ClientId și GitHub:ClientSecret.</value></data>
+<data name="GitHub_Account" xml:space="preserve"><value>Cont GitHub</value></data>
+<data name="GitHub_ConnectedAt" xml:space="preserve"><value>Conectat la</value></data>
+<data name="GitHub_ValidatedAt" xml:space="preserve"><value>Verificat ultima dată</value></data>
+<data name="GitHub_ExpiresAt" xml:space="preserve"><value>Accesul expiră</value></data>
+<data name="GitHub_ExpiresHelp" xml:space="preserve"><value>Accesul se reînnoiește automat la verificare, cât timp autorizarea este valabilă pe GitHub.</value></data>
+<data name="GitHub_NotConnectedInfo" xml:space="preserve"><value>Contul nu este conectat la GitHub.</value></data>
+<data name="GitHub_Connected" xml:space="preserve"><value>Contul GitHub a fost conectat.</value></data>
+<data name="GitHub_NotConfigured" xml:space="preserve"><value>Conectarea GitHub nu este configurată pe acest server.</value></data>
+<data name="GitHub_InvalidState" xml:space="preserve"><value>Conectarea nu a putut fi confirmată: a expirat sau nu a pornit din această pagină. Încercați din nou.</value></data>
+<data name="GitHub_Denied" xml:space="preserve"><value>Autorizarea a fost refuzată pe GitHub; contul nu a fost conectat.</value></data>
+<data name="GitHub_Rejected" xml:space="preserve"><value>GitHub a refuzat conectarea. Încercați din nou.</value></data>
+<data name="GitHub_Unavailable" xml:space="preserve"><value>GitHub nu răspunde momentan. Încercați din nou mai târziu.</value></data>
+<data name="GitHub_Valid" xml:space="preserve"><value>Conexiunea GitHub funcționează.</value></data>
+<data name="GitHub_NotConnected" xml:space="preserve"><value>Contul nu este conectat la GitHub.</value></data>
+<data name="GitHub_ReconnectRequired" xml:space="preserve"><value>Accesul la GitHub a expirat sau a fost revocat. Conectați din nou contul.</value></data>
+<data name="GitHub_Disconnected" xml:space="preserve"><value>Contul GitHub a fost deconectat.</value></data>
+<data name="GitHub_NotRevoked" xml:space="preserve"><value>Contul a fost deconectat din WorkNotes, dar GitHub nu a putut revoca autorizarea. O puteți revoca din setările GitHub (Applications).</value></data>
+<data name="Button_ConnectGitHub" xml:space="preserve"><value>Conectează GitHub</value></data>
+<data name="Button_ReconnectGitHub" xml:space="preserve"><value>Conectează din nou</value></data>
+<data name="Button_VerifyGitHub" xml:space="preserve"><value>Verifică conexiunea</value></data>
+<data name="Button_DisconnectGitHub" xml:space="preserve"><value>Deconectează</value></data>
 </root>

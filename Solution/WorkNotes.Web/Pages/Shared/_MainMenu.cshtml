@@ -22,6 +22,7 @@
                 {
                     <a class="menu-item" asp-page="/Account/Index" aria-current="@(currentPage == "/Account/Index" ? "page" : null)">@L["Navigation_AccountDetails"]</a>
                     <a class="menu-item" asp-page="/Account/ChangePassword" aria-current="@(currentPage == "/Account/ChangePassword" ? "page" : null)">@L["Navigation_ChangePassword"]</a>
+                    <a class="menu-item" asp-page="/Account/GitHub" aria-current="@(currentPage == "/Account/GitHub" ? "page" : null)">@L["Navigation_GitHub"]</a>
                     <form method="post" asp-page="/Account/Logout">
                         <button type="submit" class="menu-item menu-logout">@L["Navigation_Logout"]</button>
                     </form>

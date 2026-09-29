@@ -9,17 +9,19 @@ Harta a ceea ce există în cod pe `main`. Regulile obligatorii sunt în [AGENTS
 | `WorkNotes.Web` | Prezentare Razor Pages, configurare, pornire, compunerea DI | `Program.cs`, `Pages/`, `Pages/Shared/` (layout, partiale), `ViewComponents/`, `ViewModels/`, `Localization/`, `Messages/`, `Navigation/`, `Notes/` (formate și clase de prezentare), `wwwroot/` (css, js, images, lib/codemirror) |
 | `WorkNotes.Business` | Reguli, servicii, modele și contracte de acces la date | `Abstractions/` (interfețe de servicii și repository-uri), `Services/`, `Models/` (DTO-uri `record`, reguli `*Rules`, coduri de stare `*Status`, constante `NoteTypes`, `NoteVisibilities`, `ContextRoles`) |
 | `WorkNotes.DataAccess` | Persistență SQL Server prin EF Core, implementarea Identity, înregistrarea DI | `Context/` (`WorkNotesDbContext` generat, `AccountsDbContext` manual), `Entities/`, `Repositories/`, `Identity/`, `DependencyInjection.cs` (`AddDataAccess`) |
+| `WorkNotes.Integrations` | Clienții serviciilor externe (versiunea 0.03: GitHub OAuth și API), înregistrarea lor în DI | `GitHub/GitHubOAuthClient.cs` (implementează `IGitHubOAuthClient` peste `HttpClient`), `GitHub/GitHubOptions.cs` (secțiunea `GitHub`), `DependencyInjection.cs` (`AddIntegrations`) |
 | `WorkNotes.Resources` | Catalogul de texte localizate | `Resources/SharedResources.cs` (clasa marker) și `SharedResources.resx` / `.ro` / `.en` / `.pl` |
 | `WorkNotes.Business.Tests` | Teste xUnit pentru Business, fără bază de date | `*Tests.cs`, cu stub-uri scrise manual |
 
-Pachete NuGet: DataAccess — `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Design` (numai tooling), toate 10.0.12, plus `FrameworkReference Microsoft.AspNetCore.App`; Web — `Microsoft.EntityFrameworkCore.Design` 10.0.12 cu `PrivateAssets=all`; Business și Resources — niciun pachet; testele — vezi [TESTING.md](TESTING.md).
+Pachete NuGet: DataAccess — `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Design` (numai tooling), toate 10.0.12, plus `FrameworkReference Microsoft.AspNetCore.App`; Web — `Microsoft.EntityFrameworkCore.Design` 10.0.12 cu `PrivateAssets=all`; Integrations — numai `FrameworkReference Microsoft.AspNetCore.App` (HTTP, opțiuni, configurare); Business și Resources — niciun pachet; testele — vezi [TESTING.md](TESTING.md).
 
 ## Direcția dependențelor
 
 ```text
 WorkNotes.Web ─────► WorkNotes.Business ◄───── WorkNotes.DataAccess
    │   └──────────► WorkNotes.Resources
-   └──────────────► WorkNotes.DataAccess   (numai Program.cs → AddDataAccess)
+   ├──────────────► WorkNotes.DataAccess   (numai Program.cs → AddDataAccess)
+   └──────────────► WorkNotes.Integrations (numai Program.cs → AddIntegrations) ─► WorkNotes.Business
 WorkNotes.Business.Tests ─► WorkNotes.Business
 ```
 
@@ -43,6 +45,9 @@ Business nu are nicio referință de proiect sau pachet. Interfețele de acces l
 | `INoteRepository` | `WorkNotes.DataAccess/Repositories/NoteRepository.cs` | `NoteService` |
 | `INoteReferenceRepository` (PR #4) | `WorkNotes.DataAccess/Repositories/NoteRepository.cs` | `NoteReferenceService` |
 | `IReferenceTypeRepository` (PR #4) | `WorkNotes.DataAccess/Repositories/ReferenceTypeRepository.cs` | `ReferenceTypeService` |
+| `IGitHubConnectionService` (0.03) | `WorkNotes.Business/Services/GitHubConnectionService.cs` | `Pages/Account/GitHub` |
+| `IGitHubOAuthClient` (0.03) | `WorkNotes.Integrations/GitHub/GitHubOAuthClient.cs` (typed `HttpClient`) | `GitHubConnectionService` |
+| `IGitConnectionRepository` (0.03) | `WorkNotes.DataAccess/Repositories/GitConnectionRepository.cs` (criptează tokenurile cu Data Protection) | `GitHubConnectionService` |
 
 Contractele de cont sunt implementate direct în DataAccess, peste `UserManager` / `SignInManager`; regulile independente de infrastructură sunt în `WorkNotes.Business/Models/AccountRules.cs`. Serviciile Business verifică apartenența la context și proprietatea prin `IWorkContextRepository` și `INoteRepository` înainte de orice modificare.
 
@@ -54,6 +59,7 @@ Contractele de cont sunt implementate direct în DataAccess, peste `UserManager`
 - `AddProblemDetails`, autentificarea cu cookie-urile Identity (`AddIdentityCookies`), `AddAuthorization` și `ConfigureApplicationCookie` (vezi [SECURITY.md](SECURITY.md));
 - serviciile Business, scoped: `IApplicationVersionService`, `IWorkContextService`, `IContextMemberService`, `INoteService` și, cu PR #4, `INoteReferenceService` și `IReferenceTypeService`; cu PR #4, `ReferenceTypeCache` ca singleton (numai parserul tipurilor de referință și momentul citirii lor, fără dependențe); `TimeProvider.System` ca singleton;
 - `AddDataAccess(connectionString)`, cu `ConnectionStrings:WorkNotes` obligatoriu (excepție la pornire dacă lipsește);
+- versiunea 0.03: `IGitHubConnectionService` scoped, `GitHubAuthorizationCookie` singleton (Web, cookie-ul autorizării GitHub în curs), `AddIntegrations(Configuration.GetSection("GitHub"))` (opțiunile `GitHubOptions` și clientul tipizat `IGitHubOAuthClient`, cu `User-Agent: WorkNotes` și timeout 20 s) și `AddDataProtection().SetApplicationName("WorkNotes")`, cu folderul cheilor din `DataProtection:KeysPath` (DPAPI pe Windows) când este setat; `AddDataAccess` înregistrează și `IGitConnectionRepository`;
 - `IdentityErrorDescriber` → `LocalizedIdentityErrorDescriber`, scoped.
 
 `AddDataAccess` (DataAccess): `WorkNotesDbContext` și `AccountsDbContext` cu `UseSqlServer` pe același connection string; repository-urile, scoped (cu PR #4, `NoteRepository` și pentru `INoteReferenceRepository`, plus `ReferenceTypeRepository`); `AddIdentityCore<ApplicationUser>` cu politica de parolă și blocare, `AddEntityFrameworkStores<AccountsDbContext>`, `AddSignInManager`, `AccountClaimsPrincipalFactory` (adaugă prenumele și numele în claims); `IdentityAccountService` scoped, expus prin `IAccountService` și `IAuthenticationService`.
@@ -118,6 +124,12 @@ Căutarea referinței abia scrise (PR #4), `POST /?handler=ReferenceLookup&note=
 3. `INoteReferenceService.LookUpAsync` citește, cu tipurile configurate, referința cu care se termină textul (`NoteReferenceRules.EndingReference`) și îi caută notele ca la salvare (`INoteReferenceRepository.GetCandidatesAsync`, fără nota însăși).
 4. Răspunsul JSON: `found` (locul referinței în text, mesajul localizat și notele, cu titlul, tipul și tooltipul lor), `missing` (mesajul „Referință inexistentă…”) sau `none`.
 
+Conectarea GitHub (0.03), `POST /Account/GitHub/Connect`, apoi `GET /Account/GitHub/Callback`:
+
+1. `GitHubModel.OnPostConnect` → `IGitHubConnectionService.StartAuthorization`: un `state` și un `code_verifier` noi (`GitAuthorizationRules`) și adresa de autorizare GitHub, cu provocarea PKCE (`IGitHubOAuthClient.GetAuthorizationUrl`). `GitHubAuthorizationCookie` le păstrează 10 minute, criptate pentru utilizator; browserul pleacă la GitHub.
+2. GitHub întoarce browserul la callback. `OnGetCallbackAsync` citește și șterge cookie-ul, apoi `CompleteAuthorizationAsync` verifică `state`, schimbă codul pe tokenuri, citește contul (`GET /user`) și salvează conexiunea (`IGitConnectionRepository.SaveAsync`, tokenurile criptate). Rezultatul devine un mesaj în TempData și un redirect la `/Account/GitHub`.
+3. `Verify` reîmprospătează tokenul care expiră și verifică contul; `Disconnect` șterge rândul și revocă autorizarea la GitHub.
+
 Fluxurile principale:
 
 ```text
@@ -128,6 +140,8 @@ note-references.js → POST ?handler=ReferenceLookup → INoteService.LookUpRefe
 Pages/Contexts → IWorkContextService → WorkContextService → IWorkContextRepository → WorkContextRepository → WorkNotesDbContext
 Pages/Contexts → IContextMemberService → ContextMemberService → IContextMemberRepository → ContextMemberRepository → WorkNotesDbContext (ContextMembers) + AccountsDbContext (Users)
 Pages/Account  → IAccountService / IAuthenticationService → IdentityAccountService → UserManager / SignInManager → AccountsDbContext
+Pages/Account/GitHub → IGitHubConnectionService → GitHubConnectionService → IGitHubOAuthClient → GitHubOAuthClient → github.com / api.github.com (0.03)
+                                                                          → IGitConnectionRepository → GitConnectionRepository → WorkNotesDbContext (GitConnections)
 Footer         → ApplicationVersionViewComponent → IApplicationVersionService → … → DatabaseVersion
 ```
 
@@ -149,6 +163,8 @@ Footer         → ApplicationVersionViewComponent → IApplicationVersionServic
 | `/?handler=ReferenceLookup&note={id}` (POST JSON, PR #4) | Referința cu care se termină textul abia scris în notă (numai proprietarul): `found` cu locul ei și notele, `missing` sau `none` |
 | `/Contexts`, `?add=true`, `?edit={id}`, `?delete={id}`, `?members={id}` | Contextele și overlay-urile lor; handlerele POST `Delete`, `AddMember`, `RemoveMember` |
 | `/Account/Register`, `/Account/Login`, `/Account`, `/Account/ChangePassword`, `/Account/Logout` | Conturile; deconectarea numai prin POST |
+| `/Account/GitHub` | Conexiunea GitHub a utilizatorului (0.03); handlerele POST `Connect` (pleacă la GitHub), `Verify`, `Disconnect` (`/Account/GitHub/Connect` etc.) |
+| `/Account/GitHub/Callback` (GET) | Întoarcerea de la GitHub, cu `code` și `state`: URL-ul de callback înregistrat pe GitHub |
 | `/Language` (POST) | Schimbarea limbii |
 
 Starea overlay-urilor este în URL: fiecare dialog se poate deschide și fără JavaScript, iar `modal.js` îl transformă în dialog modal.
@@ -192,8 +208,12 @@ Comenzi reproductibile din rădăcina repository-ului; fiecare trebuie să nu re
 git grep -n -E "EntityFrameworkCore|DbContext|DbSet|UserManager|SignInManager|ApplicationUser" -- 'Solution/WorkNotes.Web/*.cs' 'Solution/WorkNotes.Web/*.cshtml'
 # Business nu are referințe de pachete sau proiecte
 git grep -n -E "PackageReference|ProjectReference" -- Solution/WorkNotes.Business/WorkNotes.Business.csproj
+# Web nu face apeluri HTTP directe și nu folosește clientul GitHub concret
+git grep -n -E "HttpClient|GitHubOAuthClient" -- 'Solution/WorkNotes.Web/*.cs' 'Solution/WorkNotes.Web/*.cshtml'
+# Integrations nu referă DataAccess, Web sau EF Core
+git grep -n -E "DataAccess|WorkNotes.Web|EntityFrameworkCore" -- 'Solution/WorkNotes.Integrations/*'
 # Fără stiluri inline în view-uri și în scripturi
 git grep -n -E "style=|\.style\." -- 'Solution/WorkNotes.Web/*.cshtml' 'Solution/WorkNotes.Web/wwwroot/js/*.js'
 ```
 
-Singura referință la DataAccess din Web este `using WorkNotes.DataAccess;` din `Program.cs`, pentru `AddDataAccess`. Comenzile au fost rulate pe 2026-09-25, fără rezultate.
+Singurele referințe la DataAccess și Integrations din Web sunt `using WorkNotes.DataAccess;` și `using WorkNotes.Integrations;` din `Program.cs`, pentru `AddDataAccess` și `AddIntegrations`. Comenzile au fost rulate pe 2026-09-25 și, cu cele două noi, pe 2026-09-29, fără rezultate.

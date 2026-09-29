@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>worknotes-web-3f6c2a9e</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\WorkNotes.Business\WorkNotes.Business.csproj" />
     <ProjectReference Include="..\WorkNotes.DataAccess\WorkNotes.DataAccess.csproj" />
+    <ProjectReference Include="..\WorkNotes.Integrations\WorkNotes.Integrations.csproj" />
     <ProjectReference Include="..\WorkNotes.Resources\WorkNotes.Resources.csproj" />
   </ItemGroup>
 
