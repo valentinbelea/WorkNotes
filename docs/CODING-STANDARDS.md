@@ -98,6 +98,7 @@ Patru niveluri, fiecare cu rolul lui:
 - Progressive enhancement: operațiile de bază funcționează fără JavaScript; scriptul preia un link sau un formular randat de server (`event.preventDefault()`) și păstrează aceeași adresă ca rezervă.
 - Punctele de legătură sunt atributele `data-*` (`data-note-open`, `data-editor-save`), nu clasele CSS.
 - Fără stiluri inline și fără poziționare din script: se adaugă sau se elimină numai clase CSS definite în foile de stil.
+- Popup-urile din editor sunt tooltip-uri CodeMirror (`showTooltip`), pe care le poziționează biblioteca; scriptul le dă numai conținutul (dintr-un template) și clasele (PR #4: popup-ul referinței abia scrise).
 - Fără texte sau traduceri în JavaScript: textele vin din atribute `data-*`, din template-uri și din JSON-ul randat de server; textul se scrie cu `textContent`.
 - Cererile `fetch` trimit tokenul antiforgery (prin `FormData` din formularul randat de server sau prin antetul `RequestVerificationToken`) și `Accept: application/json` când așteaptă JSON.
 - Modulele comunică prin evenimente (`note-editor:open`, `note-board:versions`), nu prin variabile globale.

@@ -16,7 +16,7 @@ Baza existentă, livrată în version_0.01 și version_0.02:
 
 ## În lucru
 
-- PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; deschiderea notelor fără reîncărcarea tablei; referințele interne CR/bug între note, cu destinațiile aflate din titluri (toate notele cu referința în titlu), relații pe paragraf în `NoteReferences`, cu notele fiecărei referințe în `NoteReferenceTargets` și cu ID-ul fiecărei referințe din catalogul `WorkReferences`, tipurile configurabile din `ReferenceTypes` (ținute în memorie), sertarul referințelor din editor și reindexarea conținutului existent prin `version_0.02/004_ReplaceNoteReferences.sql`–`012_RefreshNoteReferences.sql` ([ADR-003](decisions/ADR-003-internal-references.md)); corecția selecției din editor.
+- PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; deschiderea notelor fără reîncărcarea tablei; referințele interne CR/bug între note, cu destinațiile aflate din titluri (toate notele cu referința în titlu), relații pe paragraf în `NoteReferences`, cu notele fiecărei referințe în `NoteReferenceTargets` și cu ID-ul fiecărei referințe din catalogul `WorkReferences`, tipurile configurabile din `ReferenceTypes` (ținute în memorie), sertarul referințelor din editor, popup-ul referinței abia scrise și reindexarea conținutului existent prin `version_0.02/004_ReplaceNoteReferences.sql`–`012_RefreshNoteReferences.sql` ([ADR-003](decisions/ADR-003-internal-references.md)); corecția selecției din editor.
 
 ## Etapele următoare
 
@@ -29,7 +29,7 @@ Pașii rămași din planul inițial, în ordinea lui:
 5. **Editor** — evidențierea referințelor în text (ancore actualizate la editare), autocomplete și popup-uri pentru referințe.
 6. **Ulterior**, când există modulele: clienți, proiecte, branch-uri, evenimente, release-uri și publish-uri.
 7. Lista „Referințe către această notă” în editor, din `NoteReferenceTargets` (indexul pe `TargetNoteId`) și `NoteReferences`, cu paragrafele sursă pe care cititorul le poate vedea (propusă în PR #4; depinde de integrarea lui).
-8. Semnalarea în editor a referințelor fără destinație (propusă după PR #4; acum le listează doar `012_RefreshNoteReferences.sql`). Referințele cu mai multe note sunt link către toate, din 2026-09-28.
+8. Semnalarea în editor a referințelor fără destinație din textul deja scris (acum le listează doar `012_RefreshNoteReferences.sql`). O referință fără notă abia scrisă este semnalată de popup-ul referinței abia scrise (PR #4, 2026-09-29). Referințele cu mai multe note sunt link către toate, din 2026-09-28.
 
 ## Îmbunătățiri
 
