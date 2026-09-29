@@ -201,6 +201,13 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
             changed = true;
         }
         if (note.Title != changes.Title) { note.Title = changes.Title; changed = true; }
+        // Like the title, the type is a change of the note; a journal has its date, an article none (CK_Notes_JournalDate).
+        if (note.NoteType != changes.NoteType || note.JournalDate != changes.JournalDate)
+        {
+            note.NoteType = changes.NoteType;
+            note.JournalDate = changes.JournalDate;
+            changed = true;
+        }
 
         if (!changed)
             return note.RowVersion.AsSpan().SequenceEqual(expectedVersion)

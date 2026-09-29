@@ -11,7 +11,7 @@
    The Open link (/?note={id}) and double-click open the editor over the board (openNoteEditor in notes-board.js).
    On the owner's cards the tape on top is the handle for dragging the card onto another card of the same month, to
    swap their places (notes-board.js makes it draggable); on other cards it is only drawn by postit.css.
-   A save in the editor refreshes the title (field, heading, labels), the preview and the last change in place
+   A save in the editor refreshes the title (field, heading, labels), the type (colour and name), the preview and the last change in place
    (notes-board.js, from the save's answer); the preview paragraph is always there, hidden while the note has no text. *@
 <li class="note-cell">
     <article class="note-card @NoteCardStyle.TypeClass(Model.NoteType) @NoteCardStyle.TiltClass(Model.Id)" data-note-id="@Model.Id" aria-labelledby="@titleId">
@@ -20,7 +20,7 @@
             <span class="note-card__tape" aria-hidden="true" data-note-drag-handle></span>
         }
         <p class="note-card__meta note-card__meta--dates">
-            <span class="visually-hidden">@(Model.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
+            <span class="visually-hidden" data-note-type>@(Model.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
             <span class="note-card__date">
                 <span class="visually-hidden">@L["Notes_Created"]</span>
                 <time datetime="@NoteDates.Iso(Model.CreatedAtUtc)">@NoteDates.Card(Model.CreatedAtUtc)</time>

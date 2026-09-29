@@ -10,12 +10,12 @@
                 <legend class="visually-hidden">@L["Field_NoteType"]</legend>
                 <label class="note-type-switch__option">
                     <input type="radio" asp-for="Input.NoteType" value="@NoteTypes.Journal" />
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4M8 14h3" /></svg>
+                    <partial name="_NoteTypeIcon" model="NoteTypes.Journal" />
                     <span class="note-type-switch__tip">@L["NoteType_Journal"]</span>
                 </label>
                 <label class="note-type-switch__option">
                     <input type="radio" asp-for="Input.NoteType" value="@NoteTypes.Article" />
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3.5h7l4 4v13H7z" /><path d="M14 3.5v4h4M10 12h5M10 15.5h5" /></svg>
+                    <partial name="_NoteTypeIcon" model="NoteTypes.Article" />
                     <span class="note-type-switch__tip">@L["NoteType_Article"]</span>
                 </label>
             </fieldset>

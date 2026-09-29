@@ -158,6 +158,9 @@ function createNoteEditor(panel, data, shared) {
     const infoElement = panel.querySelector("[data-editor-info]");
     const saveButton = panel.querySelector("[data-editor-save]");
     const titleInput = panel.querySelector("[data-editor-title]");
+    // The owner's type switch in the footer (journal / article); a read-only editor has none.
+    const typeSwitch = panel.querySelector("[data-editor-type]");
+    const chosenType = () => typeSwitch?.querySelector("input:checked")?.value ?? null;
     const messages = shared.messages;
     const drawerElement = panel.querySelector("[data-editor-references]");
     // The drawer of the note's references: its links open notes in the tabs, and each save brings its list.
@@ -181,11 +184,13 @@ function createNoteEditor(panel, data, shared) {
     let version = data.version;
     let savedDoc = null;
     let savedTitle = titleInput?.value ?? "";
+    let savedType = chosenType();
     let saving = false;
     let problem = null;     // message of the last failed save
     let conflict = false;   // the note changed elsewhere: saving stays blocked until the page is reloaded
 
-    const isDirty = () => !data.readOnly && (!view.state.doc.eq(savedDoc) || (titleInput !== null && titleInput.value !== savedTitle));
+    const isDirty = () => !data.readOnly && (!view.state.doc.eq(savedDoc) || (titleInput !== null && titleInput.value !== savedTitle)
+        || chosenType() !== savedType);
 
     function updateStatus() {
         if (data.readOnly) return; // nothing is saved from a read-only editor
@@ -222,6 +227,7 @@ function createNoteEditor(panel, data, shared) {
             annotations: Transaction.addToHistory.of(false)
         });
         const title = titleInput?.value ?? "";
+        const noteType = chosenType();
         const blocks = paragraphs.map(paragraph => ({ id: paragraph.id, content: state.sliceDoc(paragraph.from, paragraph.to) }));
         saving = true;
         updateStatus();
@@ -229,7 +235,7 @@ function createNoteEditor(panel, data, shared) {
             const response = await fetch(data.saveUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "RequestVerificationToken": shared.token },
-                body: JSON.stringify({ version, title, blocks })
+                body: JSON.stringify({ version, title, noteType, blocks })
             });
             const body = await response.json().catch(() => ({}));
             if (!response.ok) {
@@ -241,6 +247,7 @@ function createNoteEditor(panel, data, shared) {
             version = body.version;
             savedDoc = state.doc;
             savedTitle = title;
+            savedType = noteType;
             problem = null;
             showStatusMessage(messages, "success", body.message);
             // The note's last change, shown by the minimized form when this tab is active.
@@ -326,9 +333,16 @@ function createNoteEditor(panel, data, shared) {
 
     saveButton?.addEventListener("click", save);
     titleInput?.addEventListener("input", updateStatus);
+    typeSwitch?.addEventListener("change", updateStatus);
 
     // Without JavaScript the page shows the text read-only; these parts only make sense with the editor running.
     if (saveButton) saveButton.hidden = false;
+    if (typeSwitch) {
+        // The switch takes the place of the type's name.
+        typeSwitch.hidden = false;
+        const typeName = panel.querySelector("[data-editor-type-name]");
+        if (typeName) typeName.hidden = true;
+    }
     const infoBar = panel.querySelector("[data-editor-info-bar]");
     if (infoBar) infoBar.hidden = false;
     updateStatus();
@@ -433,6 +447,20 @@ function initializeEditorWindow(dialog, settings, dataElement) {
         });
     }
 
+    // A note's type as chosen in its footer (the radio has the classes and the name of its type): its tab and, while it is
+    // the active one, the window show it at once; the minimized form takes it from the panel. It is saved with the note.
+    function showType(id, option) {
+        const tab = tabs.get(id);
+        if (!tab || !option.checked) return;
+        tab.panel.dataset.typeClass = option.dataset.sheetClass;
+        tab.panel.dataset.typeName = option.dataset.typeName;
+        tab.item.classList.remove("note-editor-tab--journal", "note-editor-tab--article");
+        tab.item.classList.add(option.dataset.tabClass);
+        const name = tab.item.querySelector("[data-editor-tab-type]");
+        if (name) name.textContent = option.dataset.typeName;
+        if (id === activeId) setSheetType(option.dataset.sheetClass);
+    }
+
     function addTab(item, panel) {
         const id = item.dataset.editorTab;
         const data = JSON.parse(panel.querySelector("[data-editor-note]").textContent);
@@ -444,6 +472,7 @@ function initializeEditorWindow(dialog, settings, dataElement) {
             label.textContent = editor.title();
             label.title = label.textContent;
         });
+        panel.querySelector("[data-editor-type]")?.addEventListener("change", event => showType(id, event.target));
         item.querySelector("[data-editor-tab-select]").addEventListener("click", () => activate(id));
         const close = item.querySelector("[data-editor-tab-close]");
         close.hidden = false;

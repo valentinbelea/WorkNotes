@@ -60,12 +60,13 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         return document is null ? null : await references.WithLinksAsync(document, userId, cancellationToken);
     }
 
-    public async Task<NoteSaveResult> SaveAsync(string userId, int noteId, string expectedVersion, string? title,
+    public async Task<NoteSaveResult> SaveAsync(string userId, int noteId, string expectedVersion, string? title, string? noteType,
         IReadOnlyList<NoteBlockInput> blocks, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
         if (!NoteRules.ValidTitle(title)) return new(NoteSaveStatus.InvalidTitle);
+        if (noteType is not null && !NoteTypes.IsValid(noteType)) return new(NoteSaveStatus.InvalidType);
         if (Normalize(blocks) is not { } paragraphs) return new(NoteSaveStatus.InvalidContent);
 
         // The note as its card showed it: the paragraphs themselves are read by the repository's save.
@@ -75,16 +76,22 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (!note.IsOwner) return new(NoteSaveStatus.Forbidden);
         if (string.IsNullOrWhiteSpace(expectedVersion)) return new(NoteSaveStatus.Conflict);
 
+        // A note that becomes a journal is dated with the local day it was created (the day a journal created then would
+        // have); an article has no date. A note that keeps its type keeps its date.
+        var type = noteType ?? note.NoteType;
+        var journalDate = type == note.NoteType ? note.JournalDate : type == NoteTypes.Journal ? LocalDay(note.CreatedAtUtc) : null;
+
         // The references of the paragraphs are stored with them, in the same transaction.
         var normalized = NoteRules.NormalizeTitle(title);
         var resolution = await references.ResolveAsync(userId, note.ContextId, noteId, paragraphs, cancellationToken);
         var result = await notes.SaveAsync(
-            new NoteChanges(noteId, userId, expectedVersion, normalized, paragraphs, resolution.References, SavedAtUtc()),
+            new NoteChanges(noteId, userId, expectedVersion, normalized, type, journalDate, paragraphs, resolution.References, SavedAtUtc()),
             cancellationToken);
         if (result.Status != NoteSaveStatus.Saved) return result;
         // Other paragraphs of the board may name the note by its old or its new title.
         if (normalized != note.Title) await references.RefreshAsync(note.ContextId, note.Title, normalized, cancellationToken);
-        return await WithCardAsync(WithLinks(result, resolution), userId, note, normalized, paragraphs, cancellationToken);
+        return await WithCardAsync(WithLinks(result, resolution), userId, note, note with { Title = normalized, NoteType = type, JournalDate = journalDate },
+            paragraphs, cancellationToken);
     }
 
     public async Task<NoteReferenceLookup> LookUpReferenceAsync(string userId, int noteId, string? text, CancellationToken cancellationToken)
@@ -170,15 +177,14 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
     }
 
     // The saved note as its card on the board shows it now, from what was just stored (the board would read the same),
-    // so the board behind the editor follows the save without being read again. Only a save that moved the note to
-    // another month (a change made in the current month) reads the board, for that month's order; within a month a
-    // note keeps its place (its Order).
-    private async Task<NoteSaveResult> WithCardAsync(NoteSaveResult result, string userId, NoteSummary note, string? title,
+    // so the board behind the editor follows the save without being read again: note is the card as it was, stored the
+    // same card with the title and type just saved. Only a save that moved the note to another month (a change made in
+    // the current month) reads the board, for that month's order; within a month a note keeps its place (its Order).
+    private async Task<NoteSaveResult> WithCardAsync(NoteSaveResult result, string userId, NoteSummary note, NoteSummary stored,
         IReadOnlyList<NoteBlockInput> paragraphs, CancellationToken cancellationToken)
     {
-        var saved = note with
+        var saved = stored with
         {
-            Title = title,
             Preview = NoteRules.PreviewOf(paragraphs.Select(paragraph => paragraph.Content)),
             // As on the board: the note counts as changed once its last change is later than its creation.
             ModifiedAtUtc = result.ModifiedAtUtc > note.CreatedAtUtc ? result.ModifiedAtUtc : note.ModifiedAtUtc,
@@ -218,7 +224,11 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
 
     private (int Year, int Month) LocalMonth(DateTime utc)
     {
-        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), time.LocalTimeZone);
+        var local = LocalTime(utc);
         return (local.Year, local.Month);
     }
+
+    private DateOnly LocalDay(DateTime utc) => DateOnly.FromDateTime(LocalTime(utc));
+
+    private DateTime LocalTime(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), time.LocalTimeZone);
 }

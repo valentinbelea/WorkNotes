@@ -29,7 +29,8 @@
 }
 @* One note in the editor: its title, its own CodeMirror editor (with its own scroll) and its footer: the paragraph info,
    the type, context and visibility, the save status and Save. Each tab keeps its state independently.
-   The data-* values fill the minimized form when this tab is the active one. *@
+   The data-* values fill the minimized form when this tab is the active one; note-editor.js changes the type's once
+   another type is chosen. *@
 <section class="note-editor-panel" role="tabpanel" id="note-@note.Id-panel" aria-labelledby="note-@note.Id-tab" data-editor-panel="@note.Id"
          data-type-class="@(note.NoteType == NoteTypes.Article ? "note-sheet--article" : "note-sheet--journal")" data-type-name="@typeName"
          data-created-text="@NoteDates.Card(note.CreatedAtUtc)" data-created-iso="@NoteDates.Iso(note.CreatedAtUtc)"
@@ -93,8 +94,28 @@
             <p class="note-editor-info__help">@(note.IsOwner ? L["Editor_Help"] : L["Editor_ReadOnly"])</p>
         </div>
         <div class="note-editor-toolbar">
+            @if (note.IsOwner)
+            {
+                @* The owner chooses the type here, journal or article, like on the new-note card: saved with the note (Save,
+                   Ctrl+S), like the title; the sheet, the tab and the minimized form show it at once. Shown only once the
+                   editor runs, in place of the type's name; each radio has the classes and the name that show its type. *@
+                <fieldset class="note-type-switch note-editor-type" data-editor-type hidden>
+                    <legend class="visually-hidden">@L["Field_NoteType"]</legend>
+                    @foreach (var type in new[] { NoteTypes.Journal, NoteTypes.Article })
+                    {
+                        var name = type == NoteTypes.Article ? L["NoteType_Article"].Value : L["NoteType_Journal"].Value;
+                        <label class="note-type-switch__option">
+                            <input type="radio" name="note-@note.Id-type" value="@type" checked="@(note.NoteType == type)" data-type-name="@name"
+                                   data-sheet-class="@(type == NoteTypes.Article ? "note-sheet--article" : "note-sheet--journal")"
+                                   data-tab-class="@(type == NoteTypes.Article ? "note-editor-tab--article" : "note-editor-tab--journal")" />
+                            <partial name="_NoteTypeIcon" model="type" />
+                            <span class="note-type-switch__tip">@name</span>
+                        </label>
+                    }
+                </fieldset>
+            }
             <p class="note-editor-toolbar__meta">
-                <span>@typeName</span>
+                <span data-editor-type-name>@typeName</span>
                 <span>@note.ContextName</span>
                 <span>@(note.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>
             </p>

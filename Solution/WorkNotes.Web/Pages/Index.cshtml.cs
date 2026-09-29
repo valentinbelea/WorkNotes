@@ -105,7 +105,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
         if (request is null) return EditorFailure(StatusCodes.Status400BadRequest, "Editor_InvalidContent");
         var blocks = (request.Blocks ?? []).Select(block => new NoteBlockInput(block.Id, block.Content)).ToList();
-        var result = await notes.SaveAsync(UserId, note, request.Version, request.Title, blocks, cancellationToken);
+        var result = await notes.SaveAsync(UserId, note, request.Version, request.Title, request.NoteType, blocks, cancellationToken);
         return result.Status switch
         {
             // The updated audit texts refresh the editor's info bar without reloading the note.
@@ -133,6 +133,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
             NoteSaveStatus.Forbidden => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
             NoteSaveStatus.NotFound => EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound"),
             NoteSaveStatus.InvalidTitle => EditorFailure(StatusCodes.Status400BadRequest, "Validation_InvalidNoteTitle"),
+            NoteSaveStatus.InvalidType => EditorFailure(StatusCodes.Status400BadRequest, "Validation_InvalidValue"),
             _ => EditorFailure(StatusCodes.Status400BadRequest, "Editor_InvalidContent")
         };
     }
@@ -265,8 +266,8 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
     };
 
     // A saved note's card with the texts _NoteCard shows for it: the title (null when untitled) and the name standing for
-    // it, the labels of Open and Delete, the preview (null without text) and the last change; when the save moved the note
-    // to another month, that month's key and its notes in their board order.
+    // it, the labels of Open and Delete, the type (its colour class and its name), the preview (null without text) and the
+    // last change; when the save moved the note to another month, that month's key and its notes in their board order.
     private object BoardCard(NoteSummary note, NoteMonthGroup? month)
     {
         var name = note.Title ?? localizer["Notes_Untitled"].Value;
@@ -277,6 +278,8 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
             name,
             open = localizer["Notes_OpenNamed", name].Value,
             delete = localizer["Notes_DeleteNamed", name].Value,
+            typeClass = NoteCardStyle.TypeClass(note.NoteType),
+            typeName = note.NoteType == NoteTypes.Article ? localizer["NoteType_Article"].Value : localizer["NoteType_Journal"].Value,
             preview = note.Preview,
             modified = LastChange(note),
             month = month is null ? null : new { key = NoteDates.MonthKey(month.Year, month.Month), notes = month.Notes.Select(item => item.Id) }

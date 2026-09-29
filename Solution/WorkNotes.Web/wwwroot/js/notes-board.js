@@ -131,11 +131,11 @@ function showLastChange(card, modified) {
 }
 
 // The editor over the board (note-editor.js). After each save the note's card shows what was saved, as the page would
-// draw it again (_NoteCard): the title and the start of the text where they changed, the last change always. A save that
-// moved the note to another month (the current one) moves the card to that month's list, in the order the server
-// returned. The event is marked handled once the card shows the save, so the editor closes without loading the page
-// again; a card the page does not have, or a month it does not show (a page from an earlier month), leaves it unhandled
-// and closing the editor loads the board. When the editor closes, the focus goes to the card of its active note.
+// draw it again (_NoteCard): the title, the type and the start of the text where they changed, the last change always.
+// A save that moved the note to another month (the current one) moves the card to that month's list, in the order the
+// server returned. The event is marked handled once the card shows the save, so the editor closes without loading the
+// page again; a card the page does not have, or a month it does not show (a page from an earlier month), leaves it
+// unhandled and closing the editor loads the board. When the editor closes, the focus goes to the card of its active note.
 function followEditor(dashboard, reorder) {
     const cardOf = id => [...dashboard.querySelectorAll(".note-card[data-note-id]")].find(card => card.dataset.noteId === String(id));
     document.addEventListener("note-editor:saved", event => {
@@ -151,8 +151,8 @@ function followEditor(dashboard, reorder) {
     });
 }
 
-// A saved note's title (in the rename field, the heading read out and the labels of Open and Delete) and the start of
-// its text, each only where it changed, and its last change.
+// A saved note's title (in the rename field, the heading read out and the labels of Open and Delete), its type (the
+// card's colour and the name read out) and the start of its text, each only where it changed, and its last change.
 function showSaved(card, saved) {
     const title = saved.title ?? "";
     const field = card.querySelector("[data-note-title]");
@@ -167,6 +167,12 @@ function showSaved(card, saved) {
         if (!link || link.getAttribute("aria-label") === label) continue;
         link.setAttribute("aria-label", label);
         link.title = label;
+    }
+    if (saved.typeClass && !card.classList.contains(saved.typeClass)) {
+        card.classList.remove("note-card--journal", "note-card--article");
+        card.classList.add(saved.typeClass);
+        const type = card.querySelector("[data-note-type]");
+        if (type) type.textContent = saved.typeName;
     }
     const preview = card.querySelector("[data-note-preview]");
     const text = saved.preview ?? "";
