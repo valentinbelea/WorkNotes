@@ -49,6 +49,7 @@ Statusurile sunt stabilite după codul de pe `main` (commit `504c01e`, 2026-09-2
 - [~] Deschiderea unei note de pe tablă fără reîncărcarea paginii — implementată în PR #4, neintegrată în `main`.
 - [x] Paragrafe cu identitate stabilă și audit propriu; bara de informații arată data creării și a modificării paragrafului de sub mouse sau de la cursor.
 - [x] Căutare/înlocuire, undo/redo, rândul activ, Ctrl+S, avertizare la părăsirea paginii cu modificări nesalvate.
+- [~] Selecția textului vizibilă în editor, pe foaia jurnalului și pe cea a articolului, inclusiv pe rândul activ și în titlu — corecție în PR #4, neintegrată în `main`.
 - [x] Detectarea salvărilor concurente (`RowVersion`): o salvare dintr-un editor învechit este refuzată, fără să suprascrie.
 - [x] Note partajate numai pentru citire pentru ceilalți membri; fără JavaScript, conținutul se afișează numai pentru citire.
 - [x] Contextul se alege pe tablă, înainte de deschiderea editorului; editorul îl afișează, nu îl schimbă.
@@ -84,6 +85,7 @@ Implementate în PR #4 (branch `main_task_02`), neintegrate în `main`; regulile
 - [~] Legăturile stocate pe paragraf (`NoteReferences`), cu notele fiecărei referințe într-o tabelă separată (`NoteReferenceTargets`, legătură 1–M), recalculate automat la salvarea paragrafelor (creare, modificare, ștergere), la schimbarea titlului unei note și la crearea sau ștergerea unei note; textul paragrafelor nu se modifică.
 - [~] Catalogul referințelor (`WorkReferences`): fiecare referință stocată, tipul CR sau bug și numărul, o singură dată (cheia unică tip + număr), cu ID propriu, care însoțește în `NoteReferences` textul fiecărei referințe (`WorkReferenceId`); o referință nouă intră în catalog la prima ei salvare.
 - [~] Afișarea în editor: fiecare apariție a unei referințe cu destinație, oricare îi este forma, este link către notele ei; click sau Ctrl+Enter le deschide pe toate, fiecare într-un tab nou sau în tabul ei existent, și o arată pe prima; readuce editorul minimizat și păstrează celelalte taburi cu modificările lor; fără JavaScript, linkuri HTML (câte unul pentru fiecare notă).
+- [~] Sertarul referințelor din editor, în dreapta textului: fiecare referință a notei care este link, o singură dată, în ordinea din text, cu notele pe care le deschide; click pe o referință le deschide pe toate în taburi, click pe o notă numai pe ea; lista urmează fiecare salvare; fără JavaScript, linkuri către `/?note={id}`; pe ecranele înguste, sub text.
 - [~] Reindexarea conținutului existent, inclusiv a jurnalului „CRs”, cu `Scripts/version_0.02/004_ReplaceNoteReferences.sql`, apoi, pentru mai multe note pe referință, cu `005_CreateNoteReferenceTargets.sql`, iar catalogul referințelor existente cu `006_CreateWorkReferences.sql`, `007_InsertWorkReferences.sql` și `008_UpdateNoteReferencesWorkReferenceId.sql`, tipurile cu `009_CreateReferenceTypes.sql`–`011_UpdateReferenceTypeKeys.sql`, iar după o schimbare a tipurilor, textele deja scrise cu `012_RefreshNoteReferences.sql` (aplicate numai la cerere explicită).
 - [!] Previzualizarea cardurilor afișează textul fără linkuri; o referință nou scrisă devine link abia după salvare.
 - [ ] Lista „Referințe către această notă” (backlog-ul PR #4).
@@ -132,6 +134,6 @@ Implementate în PR #4 (branch `main_task_02`), neintegrate în `main`; regulile
 
 **Implementate** (version_0.01 și version_0.02): conturile, localizarea ro/en/pl, designul, contextele și membrii, tabla pe contexte și luni, post-it-urile cu creare, redenumire și ștergere pe loc, editorul cu paragrafe auditate, taburi și minimizare, mesajele de salvare, ordonarea prin drag-and-drop, versiunea în footer.
 
-**În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare, deschiderea notelor fără reîncărcarea tablei și referințele interne CR/bug între note, cu reindexarea conținutului existent.
+**În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare, deschiderea notelor fără reîncărcarea tablei și referințele interne CR/bug între note, cu reindexarea conținutului existent și sertarul referințelor din editor, plus corecția selecției din editor.
 
 **Planificate**: referințele de lucru CR/bug și asocierile lor, legăturile externe, evidențierea referințelor, salvarea automată, vizibilitatea și arhivarea din interfață, paragraful important, editarea notelor partajate, platformele și modulele ulterioare. Ordinea și dependențele sunt în [ROADMAP.md](ROADMAP.md).

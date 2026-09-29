@@ -64,7 +64,7 @@ Starea overlay-urilor este în URL: fiecare dialog se poate deschide și fără 
 | --- | --- |
 | `notes-board.js` | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există, altfel aducând fereastra editorului peste tablă), schimbul a două carduri prin drag-and-drop, prinse de bandă |
 | `note-editor.js` | Editorul: câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; după un schimb pe tablă, taburile notelor mutate primesc versiunile noi (`note-board:versions`) |
-| `note-references.js` | Linkurile referințelor interne în editor, desenate din pozițiile trimise de server (după încărcare și după fiecare salvare); click și Ctrl+Enter deschid nota în tab; nu citește referințe din text |
+| `note-references.js` | Linkurile referințelor interne în editor, desenate din pozițiile trimise de server (după încărcare și după fiecare salvare); click și Ctrl+Enter deschid notele linkului în taburi; sertarul referințelor (`referenceDrawer`), a cărui listă urmează salvările; nu citește referințe din text |
 | `status-messages.js` | Afișarea mesajelor de salvare din scripturi, din template-uri randate de server |
 | `modal.js` | Dialogurile modale (Escape și click în afară revin la adresa de închidere), inclusiv cele adăugate ulterior în pagină (evenimentul `modal:open`) |
 | `navigation.js`, `language.js`, `validation.js` | Meniul, selectorul de limbă, validarea client |

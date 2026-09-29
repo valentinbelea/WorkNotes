@@ -24,7 +24,7 @@ Solution/
 └── tools/Test-Resources.ps1
 ```
 
-`WorkNotes.Resources` nu are dependențe; îl referă numai Web. Catalogul are 168 de chei (2026-09-25), aceleași în toate cele patru fișiere; PR #4 adaugă `Notes_ReferenceTarget` (tooltipul unui link către altă notă: titlul și tipul ei; un link către mai multe note are câte un rând pentru fiecare), deci 169 (verificat cu `Test-Resources.ps1` pe 2026-09-28), și schimbă `Editor_Help` (Ctrl+Enter deschide referința de la cursor).
+`WorkNotes.Resources` nu are dependențe; îl referă numai Web. Catalogul are 168 de chei (2026-09-25), aceleași în toate cele patru fișiere; PR #4 adaugă `Notes_ReferenceTarget` (tooltipul unui link către altă notă: titlul și tipul ei; un link către mai multe note are câte un rând pentru fiecare), deci 169 (verificat cu `Test-Resources.ps1` pe 2026-09-28), și schimbă `Editor_Help` (Ctrl+Enter deschide referința de la cursor); apoi adaugă cheile sertarului referințelor din editor, `Editor_References` (numele sertarului), `Editor_ReferencesHelp` (textul explicativ de deasupra listei) și `Editor_ReferencesEmpty` (nota fără referințe), deci 172 (verificat cu `Test-Resources.ps1` pe 2026-09-29).
 
 ## Limbile
 
@@ -53,8 +53,8 @@ Solution/
 | `Validation_` | mesajele de validare | 14 |
 | `Message_` | mesajele de salvare și tipul lor (`Message_Kind*`) | 17 |
 | `Identity_` | erorile Identity localizate | 8 |
-| `Notes_`, `NoteType_`, `NoteVisibility_` | tabla, cardurile, tipurile și vizibilitățile notelor | 14 + 2 + 2 |
-| `Editor_` | editorul, taburile, forma minimizată, frazele căutării | 44 |
+| `Notes_`, `NoteType_`, `NoteVisibility_` | tabla, cardurile, tipurile și vizibilitățile notelor | 14 (15 cu PR #4) + 2 + 2 |
+| `Editor_` | editorul, taburile, forma minimizată, frazele căutării; cu PR #4, sertarul referințelor | 44 (47 cu PR #4) |
 | `Contexts_`, `ContextRole_` | contextele, membrii și rolurile | 11 + 2 |
 | `Dashboard_`, `Home_`, `Language_`, `Footer_` | tabla, pagina de bun venit, selectorul de limbă, footerul | 3 + 1 + 4 + 2 |
 
@@ -87,6 +87,7 @@ JavaScript nu conține texte. Textele ajung la scripturi randate de server:
 - tabla primește textele în atribute `data-*` pe `[data-notes-dashboard]` (`data-rename-failed`, `data-reorder-failed`, `data-drag-hint`);
 - mesajele de salvare sunt copiate din template-urile `_StatusMessage` randate în pagină (`status-messages.js`);
 - editorul citește textele comune și frazele CodeMirror (`EditorState.phrases`) din JSON-ul `#note-editor-data`, iar datele fiecărui tab din JSON-ul panoului;
+- PR #4: sertarul referințelor din editor este randat de server, cu textele lui; după o salvare, intrările lui sunt copii ale template-urilor randate în sertar, completate cu numele referințelor și etichetele notelor din răspunsul JSON (`referenceList`, `references`);
 - răspunsurile JSON ale handlerelor conțin deja mesajul localizat (`message`).
 
 ## Texte care nu se traduc
