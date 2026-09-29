@@ -15,6 +15,8 @@ public partial class WorkReference
 
     public DateTime CreatedAtUtc { get; set; }
 
+    public virtual ICollection<NoteBlockGitReference> NoteBlockGitReferences { get; set; } = new List<NoteBlockGitReference>();
+
     public virtual ICollection<NoteReference> NoteReferences { get; set; } = new List<NoteReference>();
 
     public virtual ReferenceType ReferenceTypeNavigation { get; set; } = null!;

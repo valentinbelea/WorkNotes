@@ -6,6 +6,9 @@ namespace WorkNotes.Business.Abstractions;
 // the user's own (dbo.GitRepositories).
 public interface IGitRepositoryService
 {
+    // The repositories the user imported, by name, as they were stored; only the database is read (no call to GitHub).
+    Task<IReadOnlyList<GitRepositoryInfo>> GetImportedAsync(string userId, CancellationToken cancellationToken);
+
     // Every repository GitHub lists for the user, each marked imported or not, plus the imported ones it no longer lists.
     Task<GitRepositorySelection> GetSelectionAsync(string userId, CancellationToken cancellationToken);
 

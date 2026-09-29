@@ -5,5 +5,6 @@ public sealed record GitProviderResult<T>(GitProviderStatus Status, T? Value) wh
 {
     public static GitProviderResult<T> Succeeded(T value) => new(GitProviderStatus.Succeeded, value);
     public static GitProviderResult<T> Rejected { get; } = new(GitProviderStatus.Rejected, null);
+    public static GitProviderResult<T> NotFound { get; } = new(GitProviderStatus.NotFound, null);
     public static GitProviderResult<T> Unavailable { get; } = new(GitProviderStatus.Unavailable, null);
 }

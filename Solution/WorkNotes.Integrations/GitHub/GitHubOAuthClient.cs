@@ -18,6 +18,7 @@ namespace WorkNotes.Integrations.GitHub;
 public sealed class GitHubOAuthClient(HttpClient http, IOptions<GitHubOptions> options, TimeProvider time) : IGitHubOAuthClient
 {
     private const string ApiVersion = "2022-11-28";
+    private const string HeadsPrefix = "refs/heads/";
     private readonly GitHubOptions settings = options.Value;
 
     public bool IsConfigured =>
@@ -93,15 +94,59 @@ public sealed class GitHubOAuthClient(HttpClient http, IOptions<GitHubOptions> o
                 item.Id.ToString(CultureInfo.InvariantCulture), item.FullName ?? "", item.Description, item.Private,
                 item.DefaultBranch, item.HtmlUrl ?? "")));
 
-            // GitHub announces a further page in the Link header (rel="next").
-            var hasNext = response.Headers.TryGetValues("Link", out var links)
-                && links.Any(link => link.Contains("rel=\"next\"", StringComparison.Ordinal));
-            if (!hasNext || items.Count == 0)
+            if (!HasNextPage(response) || items.Count == 0)
                 return GitProviderResult<GitRepositoryCatalog>.Succeeded(new GitRepositoryCatalog(repositories, false));
             if (repositories.Count >= GitRepositoryRules.MaxListed)
                 return GitProviderResult<GitRepositoryCatalog>.Succeeded(
                     new GitRepositoryCatalog(repositories.Take(GitRepositoryRules.MaxListed).ToList(), true));
         }
+    }
+
+    public async Task<GitProviderResult<GitBranchCatalog>> GetBranchesAsync(string accessToken, string repositoryFullName,
+        CancellationToken cancellationToken)
+    {
+        if (RepositoryPath(repositoryFullName) is not { } repository) return GitProviderResult<GitBranchCatalog>.NotFound;
+        var names = new List<string>();
+        for (var page = 1; ; page++)
+        {
+            using var request = ApiRequest(HttpMethod.Get, $"repos/{repository}/branches?per_page={GitRepositoryRules.PageSize}&page={page}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await SendAsync(request, cancellationToken);
+            if (response is null || Unavailable(response.StatusCode)) return GitProviderResult<GitBranchCatalog>.Unavailable;
+            if (response.StatusCode == HttpStatusCode.NotFound) return GitProviderResult<GitBranchCatalog>.NotFound;
+            if (!response.IsSuccessStatusCode) return GitProviderResult<GitBranchCatalog>.Rejected;
+
+            var (read, items) = await ReadAsync<List<BranchResponse>>(response, cancellationToken);
+            if (!read || items is null) return GitProviderResult<GitBranchCatalog>.Unavailable;
+            names.AddRange(items.Select(item => item.Name ?? ""));
+
+            if (!HasNextPage(response) || items.Count == 0)
+                return GitProviderResult<GitBranchCatalog>.Succeeded(new GitBranchCatalog(names, false));
+            if (names.Count >= GitReferenceRules.MaxBranchesRead)
+                return GitProviderResult<GitBranchCatalog>.Succeeded(new GitBranchCatalog(names.Take(GitReferenceRules.MaxBranchesRead).ToList(), true));
+        }
+    }
+
+    public async Task<GitProviderResult<string>> GetBranchAsync(string accessToken, string repositoryFullName, string branchName,
+        CancellationToken cancellationToken)
+    {
+        if (RepositoryPath(repositoryFullName) is not { } repository || !GitReferenceRules.ValidBranchName(branchName))
+            return GitProviderResult<string>.NotFound;
+        // The ref of a branch is heads/<name>; its slashes are part of the path, the rest of each part is encoded.
+        var branch = string.Join('/', branchName.Split('/').Select(Uri.EscapeDataString));
+        using var request = ApiRequest(HttpMethod.Get, $"repos/{repository}/git/ref/heads/{branch}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await SendAsync(request, cancellationToken);
+        if (response is null || Unavailable(response.StatusCode)) return GitProviderResult<string>.Unavailable;
+        if (response.StatusCode == HttpStatusCode.NotFound) return GitProviderResult<string>.NotFound;
+        if (!response.IsSuccessStatusCode) return GitProviderResult<string>.Rejected;
+
+        var (read, body) = await ReadAsync<RefResponse>(response, cancellationToken);
+        if (!read) return GitProviderResult<string>.Unavailable;
+        // An exact ref: refs/heads/<name>.
+        return body?.Ref is { } reference && reference.StartsWith(HeadsPrefix, StringComparison.Ordinal) && reference.Length > HeadsPrefix.Length
+            ? GitProviderResult<string>.Succeeded(reference[HeadsPrefix.Length..])
+            : GitProviderResult<string>.NotFound;
     }
 
     public async Task<GitProviderStatus> RevokeAsync(string accessToken, CancellationToken cancellationToken)
@@ -185,6 +230,19 @@ public sealed class GitHubOAuthClient(HttpClient http, IOptions<GitHubOptions> o
         }
     }
 
+    // GitHub announces a further page in the Link header (rel="next").
+    private static bool HasNextPage(HttpResponseMessage response) =>
+        response.Headers.TryGetValues("Link", out var links) && links.Any(link => link.Contains("rel=\"next\"", StringComparison.Ordinal));
+
+    // owner/name with each part encoded, or null when the name is not of that form.
+    private static string? RepositoryPath(string fullName)
+    {
+        var parts = fullName.Split('/');
+        return parts.Length == 2 && parts.All(part => part.Length > 0 && part != "." && part != "..")
+            ? string.Join('/', parts.Select(Uri.EscapeDataString))
+            : null;
+    }
+
     // 403 and 429 are GitHub's rate limits: the request may succeed later, so they are not a refusal.
     private static bool Unavailable(HttpStatusCode status) =>
         (int)status >= 500 || status is HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests;
@@ -215,6 +273,10 @@ public sealed class GitHubOAuthClient(HttpClient http, IOptions<GitHubOptions> o
         [property: JsonPropertyName("private")] bool Private,
         [property: JsonPropertyName("default_branch")] string? DefaultBranch,
         [property: JsonPropertyName("html_url")] string? HtmlUrl);
+
+    private sealed record BranchResponse([property: JsonPropertyName("name")] string? Name);
+
+    private sealed record RefResponse([property: JsonPropertyName("ref")] string? Ref);
 
     private sealed record RevokeRequest([property: JsonPropertyName("access_token")] string AccessToken);
 }

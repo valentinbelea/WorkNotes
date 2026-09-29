@@ -178,8 +178,8 @@
 <data name="Editor_ReferenceSearching" xml:space="preserve"><value>Se caută referința…</value></data>
 <data name="Editor_ReferenceFound" xml:space="preserve"><value>Referința {0} deschide:</value></data>
 <data name="Editor_ReferenceMissing" xml:space="preserve"><value>Referință inexistentă: nicio notă nu are {0} în titlu.</value></data>
-<data name="Editor_ReferenceCreate" xml:space="preserve"><value>Transformă în referință</value></data>
-<data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab transformă · Esc închide</value></data>
+<data name="Editor_ReferenceCreate" xml:space="preserve"><value>Referință aplicație</value></data>
+<data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab: referință aplicație · Shift+Tab: Git · Esc închide</value></data>
 <data name="Navigation_GitHub" xml:space="preserve"><value>Conectare GitHub</value></data>
 <data name="GitHub_Description" xml:space="preserve"><value>Conectați contul GitHub, pentru ca WorkNotes să citească branch-urile, commit-urile și pull request-urile legate de CR-uri și buguri. Autorizarea se face pe GitHub: WorkNotes nu vă vede parola GitHub.</value></data>
 <data name="GitHub_NotConfiguredHelp" xml:space="preserve"><value>Conectarea GitHub nu este configurată pe acest server. Administratorul trebuie să înregistreze aplicația pe GitHub și să seteze GitHub:ClientId și GitHub:ClientSecret.</value></data>
@@ -223,4 +223,24 @@
 <data name="GitHub_RepositoryPublic" xml:space="preserve"><value>Public</value></data>
 <data name="GitHub_RepositoriesSaved" xml:space="preserve"><value>Selecția repository-urilor a fost salvată.</value></data>
 <data name="GitHub_RepositoriesConflict" xml:space="preserve"><value>Selecția a fost schimbată între timp în altă fereastră. Verificați lista și salvați din nou.</value></data>
+<data name="Editor_ReferenceGit" xml:space="preserve"><value>Referință Git</value></data>
+<data name="Editor_GitRepository" xml:space="preserve"><value>Repository</value></data>
+<data name="Editor_GitSearching" xml:space="preserve"><value>Se caută branch-uri…</value></data>
+<data name="Editor_GitAdding" xml:space="preserve"><value>Se adaugă referința Git…</value></data>
+<data name="Editor_GitFailed" xml:space="preserve"><value>Operația cu GitHub nu a reușit. Încercați din nou.</value></data>
+<data name="Editor_GitNoRepositories" xml:space="preserve"><value>Nu aveți repository-uri importate. Importați-le din</value></data>
+<data name="Editor_GitBranchesFound" xml:space="preserve"><value>Branch-uri care conțin {0}:</value></data>
+<data name="Editor_GitNoBranches" xml:space="preserve"><value>Niciun branch al repository-ului nu conține {0}.</value></data>
+<data name="Editor_GitTruncated" xml:space="preserve"><value>Repository-ul are mai mult de {0} de branch-uri; au fost căutate doar primele.</value></data>
+<data name="Editor_GitReferences" xml:space="preserve"><value>Referințe Git</value></data>
+<data name="Editor_GitReferenceAdded" xml:space="preserve"><value>Referința Git a fost adăugată.</value></data>
+<data name="Editor_GitReferenceRemoved" xml:space="preserve"><value>Referința Git a fost eliminată.</value></data>
+<data name="Editor_GitReferenceRemoveNamed" xml:space="preserve"><value>Elimină branch-ul {1} al referinței {0}</value></data>
+<data name="Editor_GitSaveFirst" xml:space="preserve"><value>Salvați nota înainte de a adăuga o referință Git, apoi încercați din nou.</value></data>
+<data name="Editor_GitChanged" xml:space="preserve"><value>Textul s-a schimbat; deschideți din nou opțiunea Referință Git.</value></data>
+<data name="Editor_GitInvalidReference" xml:space="preserve"><value>Referința nu este scrisă în paragraful salvat sau nu este validă. Salvați nota și încercați din nou.</value></data>
+<data name="Editor_GitRepositoryNotFound" xml:space="preserve"><value>Repository-ul nu este printre cele importate.</value></data>
+<data name="Editor_GitBranchNotFound" xml:space="preserve"><value>Branch-ul nu există în repository sau numele lui nu conține referința.</value></data>
+<data name="Editor_ReferenceHintGit" xml:space="preserve"><value>Shift+Tab: Git · Esc închide</value></data>
+<data name="Editor_GitReferenceGone" xml:space="preserve"><value>Referința Git nu mai există.</value></data>
 </root>

@@ -34,7 +34,8 @@ Scripts/
 └── version_0.03/                         # versiunea curentă
     ├── 000_UpdateDatabaseVersion.sql
     ├── 001_CreateGitConnections.sql
-    └── 002_CreateGitRepositories.sql
+    ├── 002_CreateGitRepositories.sql
+    └── 003_CreateGitReferences.sql
 ```
 
 ## Convenții de denumire
@@ -74,6 +75,7 @@ Baza `WorkNotes.db` trebuie să existe. Se aplică întâi `version_0.01`, apoi 
 | 22 | `version_0.03/000_UpdateDatabaseVersion.sql` | Inserează `v.0.03`, dacă lipsește; `v.0.01` și `v.0.02` rămân, iar footerul afișează `v.0.03` |
 | 23 | `version_0.03/001_CreateGitConnections.sql` | Creează `dbo.GitConnections` (conturile GitHub conectate, cu tokenurile criptate de aplicație; cheia `UserId` + `Provider`, cascadă cu `Users`), dacă lipsește; afișează coloanele |
 | 24 | `version_0.03/002_CreateGitRepositories.sql` | Creează `dbo.GitRepositories` (repository-urile importate de fiecare utilizator, cascadă cu `Users`) și indexul unic `UX_GitRepositories_UserId_Provider_ExternalId`, dacă lipsesc; afișează coloanele |
+| 25 | `version_0.03/003_CreateGitReferences.sql` | Creează `dbo.GitReferences` (catalogul branch-urilor: furnizor, repository, tip `Branch`, nume în colație BIN2, unic pe cele patru) și `dbo.NoteBlockGitReferences` (paragraf ↔ referință Git ↔ referință din catalog `WorkReferences`, cascadă cu paragraful, cheie unică pe cele trei ID-uri), cu indexurile lor, dacă lipsesc; afișează coloanele |
 
 Comentariul din antetul `006_CreateNotes.sql` („A Journal is daily: one per owner, context and date”) descrie regula inițială, înlocuită de `007_AllowSeveralJournalsPerDay.sql`; scriptul livrat nu se modifică.
 
@@ -82,31 +84,34 @@ Comentariul din antetul `006_CreateNotes.sql` („A Journal is daily: one per ow
 În SQL Server Management Studio, conectat prin Windows Authentication la instanță, executați scripturile în ordinea de mai sus. Alternativ, cu `sqlcmd`, din folderul `Solution`:
 
 ```powershell
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\000_CreateDatabaseVersion.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\001_InsertDatabaseVersion.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\002_AddIdentityUsers.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\004_CreateWorkContexts.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\005_CreateContextMembers.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\006_CreateNotes.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\007_AllowSeveralJournalsPerDay.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.01\008_CreateNoteBlocks.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\000_UpdateDatabaseVersion.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\001_AddNoteOrder.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\002_CreateNoteReferences.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\003_InsertNoteReferences.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\004_ReplaceNoteReferences.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\005_CreateNoteReferenceTargets.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\006_CreateWorkReferences.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\007_InsertWorkReferences.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\008_UpdateNoteReferencesWorkReferenceId.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\009_CreateReferenceTypes.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\010_InsertReferenceTypes.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\011_UpdateReferenceTypeKeys.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\012_RefreshNoteReferences.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.03\000_UpdateDatabaseVersion.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.03\001_CreateGitConnections.sql'
-sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.03\002_CreateGitRepositories.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.01\000_CreateDatabaseVersion.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.01\001_InsertDatabaseVersion.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.01\002_AddIdentityUsers.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.01\004_CreateWorkContexts.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.01\005_CreateContextMembers.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.01\006_CreateNotes.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.01\007_AllowSeveralJournalsPerDay.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.01\008_CreateNoteBlocks.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\000_UpdateDatabaseVersion.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\001_AddNoteOrder.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\002_CreateNoteReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\003_InsertNoteReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\004_ReplaceNoteReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\005_CreateNoteReferenceTargets.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\006_CreateWorkReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\007_InsertWorkReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\008_UpdateNoteReferencesWorkReferenceId.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\009_CreateReferenceTypes.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\010_InsertReferenceTypes.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\011_UpdateReferenceTypeKeys.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\012_RefreshNoteReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\000_UpdateDatabaseVersion.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\001_CreateGitConnections.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\002_CreateGitRepositories.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\003_CreateGitReferences.sql'
 ```
+
+`sqlcmd` are nevoie de opțiunea `-I` (`QUOTED_IDENTIFIER ON`): fără ea, scripturile cu indecși filtrați sau coloane calculate se opresc cu eroarea 1934; SSMS o setează implicit.
 
 Pe o bază la care `002` și `003` au fost deja aplicate se rulează numai `004`–`011`; pe una la care și `004` a fost aplicat, `005`–`011`; pe una la care s-a ajuns până la `008`, `009`–`011`. `012` se rulează apoi oricând este nevoie. Scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea versiunii de cod care le folosește: codul PR #4 scrie `WorkReferenceId` la fiecare referință stocată, iar codul anterior nu îl scrie, deci după `008` nu mai poate salva o referință nouă (și nici nu citește catalogul). `005` afișează rezultatele sub formă de liste (rezumatul, referințele fără notă, cele cu mai multe note, cu fiecare notă, și jurnalul „CRs”), ca `004`. `004` afișează rezultatele sub formă de liste (în SSMS, în fila Results; cu `sqlcmd`, în consolă): rezumatul, referințele fără destinație, cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele ale căror legături vechi au devenit text. Cu `DECLARE @Save bit = 0;` în loc de `1`, `004`, `005`, `007`, `008` și `012` nu salvează nimic, nici tabelele sau coloana: listele arată ce ar face. `007` și `008` încep prin a verifica existența `dbo.WorkReferences` și se opresc cu un mesaj dacă `006` nu a fost aplicat; `010`–`012` verifică la fel scripturile de care depind.
 
@@ -189,6 +194,9 @@ SELECT [name], [is_nullable] FROM sys.columns WHERE [object_id] = OBJECT_ID(N'db
 SELECT [name] FROM sys.foreign_keys WHERE [parent_object_id] = OBJECT_ID(N'dbo.GitConnections');
 -- Versiunea 0.03: GitRepositories, PK_GitRepositories și UX_GitRepositories_UserId_Provider_ExternalId
 SELECT [name] FROM sys.indexes WHERE [object_id] = OBJECT_ID(N'dbo.GitRepositories') AND [name] IS NOT NULL;
+-- Versiunea 0.03: GitReferences și NoteBlockGitReferences, cheile și indexurile lor
+SELECT [name] FROM sys.indexes WHERE [object_id] IN (OBJECT_ID(N'dbo.GitReferences'), OBJECT_ID(N'dbo.NoteBlockGitReferences')) AND [name] IS NOT NULL;
+SELECT [name] FROM sys.foreign_keys WHERE [parent_object_id] = OBJECT_ID(N'dbo.NoteBlockGitReferences');
 -- Nicio legătură veche rămasă în text
 SELECT COUNT(*) AS [OldLinks] FROM [dbo].[NoteBlocks] WHERE CHARINDEX(N'[[note:', [Content]) > 0;
 ```

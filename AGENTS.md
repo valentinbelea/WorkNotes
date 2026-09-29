@@ -107,6 +107,7 @@ Decizia și fluxul complet sunt în [ADR-004](docs/decisions/ADR-004-github-oaut
 - Callback-ul OAuth (`GET /Account/GitHub/Callback`) este singurul handler GET care modifică date: îl protejează `state`, verificat în Business față de cookie-ul criptat al autorizării în curs, nu antiforgery. Toate celelalte acțiuni (conectare, verificare, deconectare) folosesc POST cu antiforgery.
 - Business definește regulile (`GitAuthorizationRules`) și contractele; `WorkNotes.Integrations` face apelurile HTTP și întoarce coduri de stare (`Succeeded`, `Rejected`, `Unavailable`), fără excepții pentru cazurile așteptate și fără texte traduse. Anularea se propagă.
 - Repository-urile importate sunt ale utilizatorului care le-a importat (`dbo.GitRepositories`): lista vine de la GitHub, cu tokenul lui, iar serverul salvează numai repository-uri pe care GitHub i le arată (sau importate deja); formularul trimite doar ID-uri.
+- Referințele Git (`dbo.GitReferences`, `dbo.NoteBlockGitReferences`): un branch se leagă de un paragraf numai de proprietarul notei, numai dacă paragraful scrie încă referința (`GitReferenceRules`, aceeași regulă ca pentru referințele interne), numai într-un repository importat de utilizator și numai dacă GitHub arată branch-ul, cu tokenul lui; serverul verifică toate acestea, formularul trimite doar ID-ul repository-ului, referința și numele branch-ului.
 - Se cer permisiunile minime: o GitHub App numai cu citire (Contents, Metadata, Pull requests) este varianta recomandată.
 
 ## Localizare obligatorie

@@ -455,6 +455,8 @@ public sealed class GitHubConnectionServiceTests
             return Task.FromResult(Account);
         }
 
+        public Task<GitProviderResult<GitBranchCatalog>> GetBranchesAsync(string accessToken, string repositoryFullName, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<GitProviderResult<string>> GetBranchAsync(string accessToken, string repositoryFullName, string branchName, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<GitProviderResult<GitRepositoryCatalog>> GetRepositoriesAsync(string accessToken,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException("The connection does not list repositories.");

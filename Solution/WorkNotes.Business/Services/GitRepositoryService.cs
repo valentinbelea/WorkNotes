@@ -8,6 +8,15 @@ public sealed class GitRepositoryService(IGitHubTokenService tokens, IGitHubOAut
 {
     private const string Provider = GitProviders.GitHub;
 
+    public async Task<IReadOnlyList<GitRepositoryInfo>> GetImportedAsync(string userId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        var imported = await repositories.GetImportedAsync(userId, Provider, cancellationToken);
+        return imported.Select(repository => repository.Info)
+            .OrderBy(info => info.FullName, StringComparer.OrdinalIgnoreCase).ThenBy(info => info.Id, StringComparer.Ordinal).ToList();
+    }
+
     public async Task<GitRepositorySelection> GetSelectionAsync(string userId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);

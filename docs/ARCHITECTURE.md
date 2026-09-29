@@ -50,6 +50,8 @@ Business nu are nicio referință de proiect sau pachet. Interfețele de acces l
 | `IGitHubTokenService` (0.03) | `WorkNotes.Business/Services/GitHubTokenService.cs` (tokenul valid, cu reîmprospătare) | `GitHubConnectionService`, `GitRepositoryService` |
 | `IGitRepositoryService` (0.03) | `WorkNotes.Business/Services/GitRepositoryService.cs` | `Pages/Repositories/Index` |
 | `IGitRepositoryRepository` (0.03) | `WorkNotes.DataAccess/Repositories/GitRepositoryRepository.cs` | `GitRepositoryService` |
+| `INoteGitReferenceService` (0.03) | `WorkNotes.Business/Services/NoteGitReferenceService.cs` (căutarea branch-urilor și legarea lor de paragrafe) | `Pages/Index` (handlerele `GitBranches`, `AddGitReference`, `RemoveGitReference`) |
+| `INoteGitReferenceRepository` (0.03) | `WorkNotes.DataAccess/Repositories/NoteGitReferenceRepository.cs` (catalogul `GitReferences` și legăturile `NoteBlockGitReferences`) | `NoteGitReferenceService` |
 | `IGitConnectionRepository` (0.03) | `WorkNotes.DataAccess/Repositories/GitConnectionRepository.cs` (criptează tokenurile cu Data Protection) | `GitHubConnectionService` |
 
 Contractele de cont sunt implementate direct în DataAccess, peste `UserManager` / `SignInManager`; regulile independente de infrastructură sunt în `WorkNotes.Business/Models/AccountRules.cs`. Serviciile Business verifică apartenența la context și proprietatea prin `IWorkContextRepository` și `INoteRepository` înainte de orice modificare.
@@ -138,6 +140,13 @@ Importul repository-urilor (0.03), `GET /Repositories`, apoi `POST /Repositories
 1. `IndexModel.OnGetAsync` → `IGitRepositoryService.GetSelectionAsync`: repository-urile importate (`IGitRepositoryRepository.GetImportedAsync`), tokenul valid (`IGitHubTokenService`) și lista GitHub (`GetRepositoriesAsync`, pagină cu pagină), normalizată (`GitRepositoryRules.Normalize`); fiecare rând știe dacă este importat și dacă GitHub îl mai arată. Fără token sau fără răspuns, numai cele importate, fără bife.
 2. `OnPostAsync` trimite ID-urile bifate (`Selected`) la `SaveSelectionAsync`, care citește din nou lista GitHub, păstrează numai ID-urile cunoscute și înlocuiește selecția (`ReplaceAsync`, un singur `SaveChangesAsync`); rezultatul devine un mesaj în TempData și un redirect.
 
+Referința Git (0.03), din popup-ul referinței abia scrise, `POST /?handler=GitBranches&note={id}`, apoi `AddGitReference` și `RemoveGitReference` (JSON, numai proprietarul):
+
+1. Popup-ul are două opțiuni: „Referință aplicație” (nota care are referința în titlu, ca înainte) și „Referință Git”: repository-urile importate (`gitRepositories` din JSON-ul editorului) și, pentru cel ales, branch-urile al căror nume conține referința.
+2. `GitBranches` → `INoteGitReferenceService.SearchBranchesAsync`: nota trebuie să fie a utilizatorului; repository-ul trebuie să fie printre cele importate de el; tokenul vine de la `IGitHubTokenService`, iar `IGitHubOAuthClient.GetBranchesAsync` citește branch-urile (cel mult 1000, paginat după `Link: rel="next"`); `GitReferenceRules.BranchMatches` păstrează numai numele care conțin referința cu aceeași regulă ca textele (tipurile din `IReferenceTypeService`); se arată cel mult 50.
+3. `AddGitReference` (după salvarea notei, ca paragraful să existe): serverul verifică proprietarul, că paragraful aparține notei și scrie referința, repository-ul importat și că `GetBranchAsync` găsește branch-ul, apoi `INoteGitReferenceRepository` adaugă în catalog (`GitReferences`, o singură dată) și leagă (`NoteBlockGitReferences`); repetarea este idempotentă. Răspunsul are lista legăturilor notei.
+4. Linkurile nu se șterg la salvare: `NoteDocument.GitReferences` le arată numai cât timp paragraful scrie încă referința (filtru la citire); `RemoveGitReference` șterge o legătură. Sertarul referințelor le arată sub „Referințe Git”; răspunsul unei salvări conține lista actualizată (`gitReferences`).
+
 Fluxurile principale:
 
 ```text
@@ -152,6 +161,8 @@ Pages/Account/GitHub → IGitHubConnectionService → GitHubConnectionService �
                                                                           → IGitConnectionRepository → GitConnectionRepository → WorkNotesDbContext (GitConnections)
 Pages/Repositories → IGitRepositoryService → GitRepositoryService → IGitHubTokenService (tokenul) → IGitHubOAuthClient.GetRepositoriesAsync (GET /user/repos)
                                                               → IGitRepositoryRepository → GitRepositoryRepository → WorkNotesDbContext (GitRepositories) (0.03)
+Pages/Index (Git) → INoteGitReferenceService → NoteGitReferenceService → IGitRepositoryRepository (repository-urile importate) + IGitHubTokenService → IGitHubOAuthClient.GetBranchesAsync / GetBranchAsync
+                                              → INoteGitReferenceRepository → NoteGitReferenceRepository → WorkNotesDbContext (GitReferences, NoteBlockGitReferences) (0.03)
 Footer         → ApplicationVersionViewComponent → IApplicationVersionService → … → DatabaseVersion
 ```
 
@@ -175,6 +186,7 @@ Footer         → ApplicationVersionViewComponent → IApplicationVersionServic
 | `/Account/Register`, `/Account/Login`, `/Account`, `/Account/ChangePassword`, `/Account/Logout` | Conturile; deconectarea numai prin POST |
 | `/Account/GitHub` | Conexiunea GitHub a utilizatorului (0.03); handlerele POST `Connect` (pleacă la GitHub), `Verify`, `Disconnect` (`/Account/GitHub/Connect` etc.) |
 | `/Account/GitHub/Callback` (GET) | Întoarcerea de la GitHub, cu `code` și `state`: URL-ul de callback înregistrat pe GitHub |
+| `/?handler=GitBranches`, `AddGitReference`, `RemoveGitReference` (POST JSON, 0.03) | Referința Git din editor (numai proprietarul): branch-urile unui repository importat care conțin referința, legarea unui branch de un paragraf, scoaterea legăturii |
 | `/Repositories` | Importul repository-urilor GitHub (0.03): toate repository-urile contului conectat, cu câte o bifă; POST salvează selecția |
 | `/Language` (POST) | Schimbarea limbii |
 

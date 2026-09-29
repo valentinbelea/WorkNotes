@@ -466,11 +466,7 @@ public sealed class NoteRepository(WorkNotesDbContext dbContext) : INoteReposito
         public List<string> FirstParagraphs { get; init; } = [];
     }
 
-    // Every note requires membership of its context; shared notes are visible to all its members.
-    private IQueryable<NoteEntity> VisibleTo(string userId) =>
-        dbContext.Notes.Where(note => note.ArchivedAtUtc == null
-            && note.Context.ContextMembers.Any(member => member.UserId == userId)
-            && (note.OwnerUserId == userId || note.Visibility == NoteVisibilities.Context));
+    private IQueryable<NoteEntity> VisibleTo(string userId) => dbContext.VisibleNotes(userId);
 
     private static bool TryReadVersion(string value, out byte[] version)
     {

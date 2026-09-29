@@ -18,11 +18,15 @@ public partial class WorkNotesDbContext : DbContext
 
     public virtual DbSet<GitConnection> GitConnections { get; set; }
 
+    public virtual DbSet<GitReference> GitReferences { get; set; }
+
     public virtual DbSet<GitRepository> GitRepositories { get; set; }
 
     public virtual DbSet<Note> Notes { get; set; }
 
     public virtual DbSet<NoteBlock> NoteBlocks { get; set; }
+
+    public virtual DbSet<NoteBlockGitReference> NoteBlockGitReferences { get; set; }
 
     public virtual DbSet<NoteReference> NoteReferences { get; set; }
 
@@ -75,6 +79,23 @@ public partial class WorkNotesDbContext : DbContext
             entity.Property(e => e.RefreshTokenExpiresAtUtc).HasPrecision(0);
             entity.Property(e => e.Scopes).HasMaxLength(500);
             entity.Property(e => e.ValidatedAtUtc).HasPrecision(0);
+        });
+
+        modelBuilder.Entity<GitReference>(entity =>
+        {
+            entity.HasIndex(e => new { e.Provider, e.RepositoryExternalId, e.Kind, e.Name }, "UX_GitReferences_Provider_RepositoryExternalId_Kind_Name").IsUnique();
+
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_GitReferences_CreatedAtUtc");
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .UseCollation("Latin1_General_100_BIN2");
+            entity.Property(e => e.Provider).HasMaxLength(20);
+            entity.Property(e => e.RepositoryExternalId).HasMaxLength(50);
+            entity.Property(e => e.RepositoryFullName).HasMaxLength(200);
+            entity.Property(e => e.RepositoryUrl).HasMaxLength(300);
         });
 
         modelBuilder.Entity<GitRepository>(entity =>
@@ -142,6 +163,30 @@ public partial class WorkNotesDbContext : DbContext
                 .IsConcurrencyToken();
 
             entity.HasOne(d => d.Note).WithMany(p => p.NoteBlocks).HasForeignKey(d => d.NoteId);
+        });
+
+        modelBuilder.Entity<NoteBlockGitReference>(entity =>
+        {
+            entity.HasIndex(e => e.GitReferenceId, "IX_NoteBlockGitReferences_GitReferenceId");
+
+            entity.HasIndex(e => e.WorkReferenceId, "IX_NoteBlockGitReferences_WorkReferenceId");
+
+            entity.HasIndex(e => new { e.NoteBlockId, e.GitReferenceId, e.WorkReferenceId }, "UX_NoteBlockGitReferences_NoteBlockId_GitReferenceId_WorkReferenceId").IsUnique();
+
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_NoteBlockGitReferences_CreatedAtUtc");
+            entity.Property(e => e.CreatedByUserId).HasMaxLength(128);
+
+            entity.HasOne(d => d.GitReference).WithMany(p => p.NoteBlockGitReferences)
+                .HasForeignKey(d => d.GitReferenceId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            entity.HasOne(d => d.NoteBlock).WithMany(p => p.NoteBlockGitReferences).HasForeignKey(d => d.NoteBlockId);
+
+            entity.HasOne(d => d.WorkReference).WithMany(p => p.NoteBlockGitReferences)
+                .HasForeignKey(d => d.WorkReferenceId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<NoteReference>(entity =>

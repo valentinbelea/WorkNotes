@@ -46,6 +46,7 @@ builder.Services.AddScoped<IReferenceTypeService, ReferenceTypeService>();
 builder.Services.AddScoped<IGitHubTokenService, GitHubTokenService>();
 builder.Services.AddScoped<IGitHubConnectionService, GitHubConnectionService>();
 builder.Services.AddScoped<IGitRepositoryService, GitRepositoryService>();
+builder.Services.AddScoped<INoteGitReferenceService, NoteGitReferenceService>();
 builder.Services.AddSingleton<GitHubAuthorizationCookie>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDataAccess(builder.Configuration.GetConnectionString("WorkNotes")

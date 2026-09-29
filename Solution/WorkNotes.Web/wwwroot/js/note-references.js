@@ -6,8 +6,10 @@
 // that link until the text is saved (the answer of the save brings the links of the saved text); a word end typed right
 // next to it (a space, punctuation) leaves it, since the reference stays the same.
 // A word ended right after a number (by one of wordEnds, or by Tab) asks the server whether the text before it ends with
-// a reference, unless a link ends there; a popup above it shows the answer (referenceLookup). The drawer beside the text
-// lists the note's references (referenceDrawer). Appearance comes from note-editor.css; texts come from the page.
+// a reference, unless a link ends there; a popup above it shows the answer (referenceLookup) and offers two ways to add
+// the reference: the application reference (a link to the notes that name it) and the Git reference (a branch of one of
+// the imported repositories whose name contains it). The drawer beside the text lists the note's references and the
+// branches linked to them (referenceDrawer). Appearance comes from note-editor.css; texts come from the page.
 import { StateField, StateEffect, EditorView, Decoration, keymap, showTooltip, tooltips, Transaction } from "../lib/codemirror/codemirror.js";
 
 // The links of the text after a save, in positions of the current document: { links: [{ from, to, notes }], labels }
@@ -134,14 +136,21 @@ const closeLookup = StateEffect.define();
 // length: how much of the line before the end of the word is sent; find(text, signal): the server's answer, or null;
 // template, noteTemplate: the popup and one of its notes; linkEndsAt(state, to): whether a link ends at to (the text
 // before is a link already: nothing to ask).
-function referenceLookup({ length, find, template, noteTemplate }, linkEndsAt) {
+// git: the Git reference option, or null (no option): { repositories: [{ id, name }], choice: { repository }, search, add }.
+// search({ repository, reference }, signal) gives { message, note, branches: [{ name, url }] } (it throws only when
+// aborted); add({ repository, reference, branch, position }) gives { ok, message }, where position() is where the
+// reference starts now (null once the popup is gone). branchTemplate: one branch of the popup's list. The option opens
+// with its button or Shift+Tab; picking a branch links it to the paragraph and closes the popup.
+function referenceLookup({ length, find, template, noteTemplate, branchTemplate, git }, linkEndsAt) {
     let tokens = 0;
     let request = null;     // the lookup on its way: { token, controller }
     let closing = 0;        // the timer that closes a popup that found no note
     let tabbed = null;      // where Tab last asked ({ doc, head }): the next Tab there moves the focus on
+    let shown = null;       // the open popup's Git option ({ open }), for Shift+Tab
 
-    // { token, from, to, anchor, state, message, notes, tooltip }: from and to are the text asked about, then the reference
-    // found in it; anchor is where the cursor was when the word ended; state is "searching", "found" or "missing".
+    // { token, from, to, anchor, state, message, notes, reference, tooltip }: from and to are the text asked about, then
+    // the reference found in it (reference: as CR:30080); anchor is where the cursor was when the word ended; state is
+    // "searching", "found" or "missing".
     const lookup = StateField.define({
         create: () => null,
         update(value, transaction) {
@@ -192,9 +201,18 @@ function referenceLookup({ length, find, template, noteTemplate }, linkEndsAt) {
         const dom = template.content.firstElementChild.cloneNode(true);
         const message = dom.querySelector("[data-lookup-message]");
         const list = dom.querySelector("[data-lookup-notes]");
+        const gitButton = dom.querySelector("[data-lookup-git-open]");
+        const gitPanel = dom.querySelector("[data-lookup-git]");
+        const gitOption = git && gitButton && gitPanel ? gitOptionOf(view, dom, gitButton, gitPanel) : null;
+        if (!gitOption) { gitButton?.remove(); gitPanel?.remove(); }
         let state = "searching";
+        let token = null;
+        const api = { open: () => gitOption?.open(true) ?? false };
         const render = value => {
-            if (!value || value.state === state) return;
+            if (!value) return;
+            // Another lookup in the same popup: the Git option starts again for its reference.
+            if (value.token !== token) { token = value.token; gitOption?.reset(); }
+            if (value.state === state) return;
             dom.classList.replace(`note-reference-lookup--${state}`, `note-reference-lookup--${value.state}`);
             state = value.state;
             message.textContent = value.message;
@@ -206,8 +224,10 @@ function referenceLookup({ length, find, template, noteTemplate }, linkEndsAt) {
                 return item;
             }));
         };
-        // A click keeps the focus in the text, so the typing goes on.
-        dom.addEventListener("mousedown", event => event.preventDefault());
+        // A click keeps the focus in the text, so the typing goes on; only the repository list needs the focus to open.
+        dom.addEventListener("mousedown", event => {
+            if (!(event.target instanceof Element && event.target.closest("select"))) event.preventDefault();
+        });
         dom.querySelector("[data-lookup-create]").addEventListener("click", () => accept(view));
         dom.addEventListener("keydown", event => {
             if (event.key !== "Escape") return;
@@ -216,8 +236,129 @@ function referenceLookup({ length, find, template, noteTemplate }, linkEndsAt) {
             close(view, view.state.field(lookup, false)?.token);
             view.focus();
         });
+        shown = api;
         render(view.state.field(lookup, false));
-        return { dom, offset: { x: 0, y: 4 }, update: update => render(update.state.field(lookup, false)) };
+        return {
+            dom, offset: { x: 0, y: 4 },
+            update: update => render(update.state.field(lookup, false)),
+            destroy() {
+                if (shown === api) shown = null;
+                gitOption?.reset();
+            }
+        };
+    }
+
+    // The Git reference option of one popup: its button opens a panel with the imported repositories to choose from and
+    // the branches of the chosen one whose name contains the reference, read from GitHub when it opens and when the
+    // repository changes. A branch button links it (git.add). reset() closes the panel and forgets what it showed.
+    function gitOptionOf(view, dom, button, panel) {
+        const select = panel.querySelector("[data-lookup-git-repository]");
+        const none = panel.querySelector("[data-lookup-git-none]");
+        const messageElement = panel.querySelector("[data-lookup-git-message]");
+        const branches = panel.querySelector("[data-lookup-git-branches]");
+        const texts = panel.dataset;
+        let searching = null;   // the AbortController of the search on its way
+        let adding = false;
+
+        select.replaceChildren(...git.repositories.map(repository => {
+            const option = document.createElement("option");
+            option.value = repository.id;
+            option.textContent = repository.name;
+            return option;
+        }));
+        const noRepositories = git.repositories.length === 0;
+        select.closest("label").hidden = noRepositories;
+        none.hidden = !noRepositories;
+        if (!noRepositories && git.repositories.some(repository => repository.id === git.choice.repository))
+            select.value = git.choice.repository;
+        button.hidden = false;
+
+        const setBusy = busy => {
+            select.disabled = busy;
+            for (const branch of branches.querySelectorAll("button")) branch.disabled = busy;
+        };
+
+        function search() {
+            const value = view.state.field(lookup, false);
+            searching?.abort();
+            branches.replaceChildren();
+            if (noRepositories || !value?.reference || !select.value) { messageElement.textContent = ""; return; }
+            git.choice.repository = select.value;
+            const controller = new AbortController();
+            searching = controller;
+            messageElement.textContent = texts.textSearching;
+            git.search({ repository: select.value, reference: value.reference }, controller.signal).then(result => {
+                if (controller.signal.aborted) return;
+                messageElement.textContent = [result.message, result.note].filter(Boolean).join(" ");
+                branches.replaceChildren(...(result.branches ?? []).map(branch => {
+                    const item = branchTemplate.content.firstElementChild.cloneNode(true);
+                    item.querySelector("[data-lookup-git-name]").textContent = branch.name;
+                    const choose = item.querySelector("[data-lookup-git-branch]");
+                    choose.title = branch.name;
+                    choose.addEventListener("click", () => link(branch));
+                    return item;
+                }));
+            }, () => { if (!controller.signal.aborted) messageElement.textContent = texts.textFailed; });
+        }
+
+        // Links the branch to the reference of the paragraph; on success the popup closes, otherwise it says why.
+        async function link(branch) {
+            const value = view.state.field(lookup, false);
+            if (adding || !value?.reference) return;
+            adding = true;
+            setBusy(true);
+            messageElement.textContent = texts.textAdding;
+            let result;
+            try {
+                result = await git.add({ repository: select.value, reference: value.reference, branch: branch.name,
+                    position: () => view.state.field(lookup, false)?.from ?? null });
+            } catch {
+                result = { ok: false, message: texts.textFailed };
+            }
+            adding = false;
+            if (!alive(view)) return;
+            if (result.ok) {
+                close(view, value.token);
+                view.focus();
+                return;
+            }
+            // Still the same popup: it stays open with the reason; otherwise the status message has shown it.
+            if (view.state.field(lookup, false)?.token === value.token) {
+                setBusy(false);
+                messageElement.textContent = result.message ?? texts.textFailed;
+            }
+        }
+
+        select.addEventListener("change", search);
+        button.addEventListener("click", () => (panel.hidden ? open(false) : reset()));
+
+        // Opens the panel (focus: moves the focus to the repository list, for the keyboard) and searches.
+        function open(focus) {
+            if (adding) return true;
+            clearTimeout(closing);
+            if (panel.hidden) {
+                panel.hidden = false;
+                button.setAttribute("aria-expanded", "true");
+                // The popup is no longer one status message: its parts announce themselves.
+                dom.setAttribute("role", "group");
+                dom.removeAttribute("aria-atomic");
+                search();
+            }
+            if (focus) (noRepositories ? panel.querySelector("a") : select)?.focus();
+            return true;
+        }
+
+        function reset() {
+            searching?.abort();
+            searching = null;
+            panel.hidden = true;
+            button.setAttribute("aria-expanded", "false");
+            branches.replaceChildren();
+            messageElement.textContent = "";
+            setBusy(false);
+        }
+
+        return { open, reset };
     }
 
     // Asks about the text of the line before to (at most length characters), where a word has just ended.
@@ -243,9 +384,11 @@ function referenceLookup({ length, find, template, noteTemplate }, linkEndsAt) {
             }
             const notes = status === "found" ? (answer.notes ?? []).filter(note => Number.isInteger(note.id)) : [];
             if (status === "found" && notes.length === 0) { close(view, token); return; }
+            const reference = typeof answer.reference === "string" ? answer.reference : null;
             view.dispatch({ effects: answerLookup.of({ token, from: referenceFrom, to: value.to, state: status, message: answer.message,
-                notes }) });
-            if (status === "missing") closing = setTimeout(() => close(view, token), missingShownFor);
+                notes, reference }) });
+            // A reference no note has stays for a few seconds, unless the Git option can be used (it has repositories to look in).
+            if (status === "missing" && !(git && git.repositories.length > 0 && reference)) closing = setTimeout(() => close(view, token), missingShownFor);
         }, () => close(view, token));
     }
 
@@ -268,6 +411,15 @@ function referenceLookup({ length, find, template, noteTemplate }, linkEndsAt) {
                     tabbed = { doc: view.state.doc, head: main.head };
                     start(view, main.head);
                     return true;
+                }
+            },
+            {
+                // Opens the Git reference option of the popup once it has its answer, with the focus on the repositories.
+                key: "Shift-Tab",
+                run(view) {
+                    const value = view.state.field(lookup, false);
+                    if (!git || !shown || !value?.reference || value.state === "searching") return false;
+                    return shown.open();
                 }
             },
             {
@@ -310,14 +462,42 @@ function referenceLookup({ length, find, template, noteTemplate }, linkEndsAt) {
 // in the order of the text (label: the reference as its first link writes it; notes: the ids of the notes it opens),
 // labels maps a note id to its "title" (type), one line of the tooltip. The entries are copies of the drawer's template,
 // filled with textContent.
-export function referenceDrawer(drawer, { open, noteUrl }) {
+// Below it the branches linked to the references of the text (the Git references): showGit(list) replaces them, list is
+// [{ id, reference, repository, branch, url, remove }] as the server sends it after adding or removing one (remove: the
+// name of the button that removes the link, which the owner has: removeGit(id) is given only to the owner's editor).
+// The number on the drawer's strip counts both lists.
+export function referenceDrawer(drawer, { open, noteUrl, removeGit }) {
     const list = drawer.querySelector("[data-references-list]");
     const count = drawer.querySelector("[data-references-count]");
     const empty = drawer.querySelector("[data-references-empty]");
     const entryTemplate = drawer.querySelector("template[data-references-entry]");
+    const gitSection = drawer.querySelector("[data-references-git]");
+    const gitList = drawer.querySelector("[data-references-git-list]");
+    const gitTemplate = drawer.querySelector("template[data-references-git-entry]");
+    let applicationCount = list.children.length;
+    let gitCount = gitList?.children.length ?? 0;
+
+    function refresh() {
+        const total = applicationCount + gitCount;
+        count.textContent = String(total);
+        count.classList.toggle("note-references__count--none", total === 0);
+        empty.hidden = total > 0;
+    }
+
+    // The remove buttons work with JavaScript only: they show once it runs, and only in the owner's editor.
+    const showRemoveButtons = () => {
+        for (const button of gitList?.querySelectorAll("[data-git-remove]") ?? []) button.hidden = !removeGit;
+    };
+    showRemoveButtons();
 
     drawer.addEventListener("click", event => {
-        const link = event.target instanceof Element ? event.target.closest("a[data-note-reference]") : null;
+        if (!(event.target instanceof Element)) return;
+        const remove = removeGit ? event.target.closest("button[data-git-remove]") : null;
+        if (remove) {
+            removeGit(Number(remove.dataset.gitRemove), remove);
+            return;
+        }
+        const link = event.target.closest("a[data-note-reference]");
         if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
         open(link.dataset.noteReference.split(" "));
@@ -337,10 +517,35 @@ export function referenceDrawer(drawer, { open, noteUrl }) {
             entries.push(entry);
         }
         list.replaceChildren(...entries);
-        count.textContent = String(entries.length);
-        count.classList.toggle("note-references__count--none", entries.length === 0);
-        empty.hidden = entries.length > 0;
+        applicationCount = entries.length;
+        refresh();
     }
 
-    return { show };
+    function showGit(references) {
+        if (!gitList || !gitTemplate) return;
+        const entries = [];
+        for (const reference of references ?? []) {
+            // A branch is only ever linked to a https address.
+            if (typeof reference.url !== "string" || !reference.url.startsWith("https://")) continue;
+            const entry = gitTemplate.content.firstElementChild.cloneNode(true);
+            entry.querySelector("[data-git-reference]").textContent = reference.reference;
+            entry.querySelector("[data-git-repository]").textContent = reference.repository;
+            const branch = entry.querySelector("[data-git-branch]");
+            branch.textContent = reference.branch;
+            branch.href = reference.url;
+            branch.title = `${reference.repository}: ${reference.branch}`;
+            const remove = entry.querySelector("[data-git-remove]");
+            remove.dataset.gitRemove = String(reference.id);
+            remove.setAttribute("aria-label", reference.remove);
+            remove.title = reference.remove;
+            remove.hidden = !removeGit;
+            entries.push(entry);
+        }
+        gitList.replaceChildren(...entries);
+        gitSection.hidden = entries.length === 0;
+        gitCount = entries.length;
+        refresh();
+    }
+
+    return { show, showGit };
 }

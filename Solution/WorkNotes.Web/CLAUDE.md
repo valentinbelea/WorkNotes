@@ -8,6 +8,7 @@ Proiectul de prezentare: Razor Pages, ViewModel-uri, localizare, CSS, JavaScript
 - `Pages/` — `Index.cshtml` (tabla, notele, editorul), `Contexts/Index.cshtml`, `Account/*.cshtml` (cu `Account/GitHub.cshtml`, conectarea GitHub, și callback-ul ei, `/Account/GitHub/Callback`), `Repositories/Index.cshtml` (importul repository-urilor GitHub), `Language.cshtml`; `Pages/Shared/` — layout-ul și partialele (`_NoteCard`, `_NewNoteCard`, `_NoteTypeIcon`, `_NoteEditor*`, `_DeleteNoteDialog`, `_StatusMessage`, `_MainMenu`, `_LanguageSelector`).
 - `ViewModels/` — intrările formularelor și corpul JSON al editorului; `ViewComponents/` — versiunea din footer.
 - `Localization/`, `Messages/`, `Navigation/`, `Notes/` — localizarea, mesajele de salvare, secțiunile meniului, formatele datelor și clasele cardurilor; PR #4: `Notes/NoteReferences.cs`, care afișează linkurile referințelor interne din pozițiile date de `INoteReferenceService` și construiește din ele lista sertarului referințelor din editor (fără să citească referințe din text).
+- `Notes/NoteGitReferences.cs` — etichetele și datele referințelor Git din sertarul editorului (0.03); handlerele `GitBranches`, `AddGitReference`, `RemoveGitReference` din `Pages/Index.cshtml.cs` traduc doar codurile de stare ale `INoteGitReferenceService`.
 - `Git/GitHubAuthorizationCookie.cs` — cookie-ul criptat al autorizării GitHub în curs (`state` și verificatorul PKCE), citit o dată la callback.
 - `wwwroot/` — `css/`, `js/`, `images/`, `lib/codemirror/` (bundle generat).
 

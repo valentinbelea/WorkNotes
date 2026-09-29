@@ -15,7 +15,7 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 
 ## În dezvoltare
 
-- **Versiunea 0.03** — branch `main_task_03`, creată la cererea utilizatorului din 2026-09-29 pentru integrarea cu Git: folderul `Scripts/version_0.03`, cu `000_UpdateDatabaseVersion.sql` (inserează `v.0.03`, neaplicat pe nicio bază), și documentele de versionare actualizate. Primul pas al integrării, conectarea contului GitHub prin OAuth ([ADR-004](decisions/ADR-004-github-oauth.md)): pagina `/Account/GitHub`, `GitHubConnectionService`, proiectul nou `WorkNotes.Integrations` (`GitHubOAuthClient`), `GitConnectionRepository` (tokenurile criptate cu Data Protection) și `001_CreateGitConnections.sql` (neaplicat pe nicio bază). Entitatea `GitConnection` și maparea ei au fost scrise manual, în forma generată de scaffolding, pentru că sesiunea nu avea SQL Server: scaffolding-ul trebuie rulat după aplicarea scriptului, ca verificare. Al doilea pas, importul repository-urilor: pagina `/Repositories` (toate repository-urile GitHub ale contului, cu câte o bifă), `GitRepositoryService`, `GitHubTokenService` (tokenul valid, comun), `GitRepositoryRepository` și `002_CreateGitRepositories.sql` (neaplicat; entitatea `GitRepository` scrisă tot manual, în forma scaffolding-ului). Urmează citirea branch-urilor, commit-urilor și pull request-urilor ([REQUIREMENTS.md](REQUIREMENTS.md#integrarea-cu-git-version_003)).
+- **Versiunea 0.03** — branch `main_task_03`, creată la cererea utilizatorului din 2026-09-29 pentru integrarea cu Git: folderul `Scripts/version_0.03`, cu `000_UpdateDatabaseVersion.sql` (inserează `v.0.03`, neaplicat pe nicio bază), și documentele de versionare actualizate. Primul pas al integrării, conectarea contului GitHub prin OAuth ([ADR-004](decisions/ADR-004-github-oauth.md)): pagina `/Account/GitHub`, `GitHubConnectionService`, proiectul nou `WorkNotes.Integrations` (`GitHubOAuthClient`), `GitConnectionRepository` (tokenurile criptate cu Data Protection) și `001_CreateGitConnections.sql` (neaplicat pe nicio bază). Entitatea `GitConnection` și maparea ei au fost scrise manual, în forma generată de scaffolding, pentru că sesiunea nu avea SQL Server: scaffolding-ul trebuie rulat după aplicarea scriptului, ca verificare. Al doilea pas, importul repository-urilor: pagina `/Repositories` (toate repository-urile GitHub ale contului, cu câte o bifă), `GitRepositoryService`, `GitHubTokenService` (tokenul valid, comun), `GitRepositoryRepository` și `002_CreateGitRepositories.sql` (neaplicat; entitatea `GitRepository` scrisă tot manual, în forma scaffolding-ului). Al treilea pas, referința Git din editor: opțiunea „Referință Git” a popup-ului referinței abia scrise (repository importat, branch-uri care conțin referința), `NoteGitReferenceService`, `GitReferenceRules`, `NoteGitReferenceRepository`, `GitBranches` / `AddGitReference` / `RemoveGitReference` și `003_CreateGitReferences.sql` (aplicat numai pe o bază temporară de verificare, nu pe baza utilizatorului; entitățile `GitReference` și `NoteBlockGitReference` coincid cu ieșirea scaffolding-ului rulat pe acea bază, dar scaffolding-ul trebuie rulat și pe baza utilizatorului). Urmează citirea commit-urilor și pull request-urilor ([REQUIREMENTS.md](REQUIREMENTS.md#integrarea-cu-git-version_003)).
 - **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main` (care a fost adus în branch prin merge), cu commit-urile:
   - „Board: the next drag is no longer refused while a swap is being saved” — schimburile se aplică la `dragend` și se salvează pe rând;
   - „Editor and board: internal references between notes” — primul model al referințelor interne (legătura în text, `[[note:{id}|{număr}]]`), tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`; modelul este înlocuit (vezi mai jos);
@@ -139,6 +139,19 @@ PR #4 modifică `Solution/AGENTS.md`, `Solution/README.md`, `Solution/docs/desig
 Fișierele vechi au fost eliminate după integrare, ca să nu existe două surse pentru aceleași reguli; conținutul lor rămâne în istoricul Git.
 
 ## Ultimul build și ultimele teste
+
+### 2026-09-29 — versiunea 0.03, referința Git din editor (branch `main_task_03`, sesiune cloud Linux)
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet build WorkNotes.sln --no-restore` | reușit, fără avertismente |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 450 de teste, toate trecute (93 noi: `GitReferenceRulesTests` 47, `NoteGitReferenceServiceTests` 46) |
+| `tools/Test-Resources.ps1` (PowerShell 7 instalat ca instrument .NET) | `PASS: 241 keys` |
+| SQL Server 2022 într-un container temporar, cu o bază creată pentru verificare | scripturile `version_0.01`–`003` aplicate (`003` de două ori); `sqlcmd` cere `-I` |
+| Scaffolding pe acea bază | entitățile și contextul coincid cu cele din repository |
+| Aplicația pornită pe acea bază, cu un GitHub simulat și Chromium | fluxul popup → branch → legătură → sertar → eliminare, refuzurile serverului, 320×640 |
+| Verificările arhitecturale | niciun rezultat |
+| Neefectuate | baza și contul GitHub reale ale utilizatorului (nici `003`, nici scaffolding-ul pe baza lui); GitHub real (numai un server simulat); Windows/forced-colors; Firefox/Safari |
 
 ### 2026-09-29 — versiunea 0.03, importul repository-urilor (branch `main_task_03`, sesiune cloud Linux)
 

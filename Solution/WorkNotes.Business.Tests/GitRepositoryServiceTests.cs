@@ -247,6 +247,8 @@ public sealed class GitRepositoryServiceTests
             });
         }
 
+        public Task<GitProviderResult<GitBranchCatalog>> GetBranchesAsync(string accessToken, string repositoryFullName, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<GitProviderResult<string>> GetBranchAsync(string accessToken, string repositoryFullName, string branchName, CancellationToken cancellationToken) => throw new NotSupportedException();
         public string GetAuthorizationUrl(string state, string codeChallenge, string redirectUri) => throw new NotSupportedException();
         public Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<GitProviderResult<GitTokens>> RefreshAsync(string refreshToken, CancellationToken cancellationToken) => throw new NotSupportedException();

@@ -251,6 +251,10 @@ Scripturile sunt descrise în [ARCHITECTURE.md](ARCHITECTURE.md#javascript). Nu 
 - [!] Previzualizarea cardurilor de pe tablă este text simplu, fără linkuri.
 - Descrierea se mută aici, ca implementată, la integrarea PR-ului.
 
+### Referința Git
+
+Popup-ul referinței abia scrise are două opțiuni: „Referință aplicație” (butonul primar, Tab) și „Referință Git” (butonul secundar, Shift+Tab; numai în editorul proprietarului). Al doilea deschide în același popup un selector de repository (dintre cele importate; fără ele, mesajul cu linkul spre `/Repositories`) și lista branch-urilor care conțin referința, fiecare un buton cu numele lui; alegerea leagă branch-ul de paragraf, iar nota se salvează întâi dacă are modificări. Starea ocupată, mesajele și erorile sunt în `role="status"`. Clasele `note-reference-lookup__git*`; popup-ul are `max-height: min(24rem, 45dvh)`, iar la înălțimi mici (≤700px) lista nu are derulare proprie. În sertarul referințelor, secțiunea „Referințe Git” listează referința, repository-ul și un link către branch (`target="_blank"`, `rel="noopener noreferrer"`), cu un buton de eliminare (numai proprietarul, numai cu JavaScript); lista urmează fiecare salvare.
+
 ## Stări: loading, empty, error
 
 - **Loading** — [x] Nu există indicatoare de încărcare: paginile sunt randate de server. În editor starea „Se salvează…” apare în bara de stare, iar lista unei luni primește `aria-busy` cât timp se salvează un schimb. [~] PR #4: popup-ul referinței abia scrise arată iconul de căutare cât timp răspunsul serverului întârzie.

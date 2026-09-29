@@ -25,6 +25,15 @@ public interface IGitHubOAuthClient
     // GitHub App only those it is installed on), page by page up to GitRepositoryRules.MaxListed.
     Task<GitProviderResult<GitRepositoryCatalog>> GetRepositoriesAsync(string accessToken, CancellationToken cancellationToken);
 
+    // The names of the branches of a repository (GET /repos/{full name}/branches), page by page up to
+    // GitReferenceRules.MaxBranchesRead; NotFound when the token cannot see the repository.
+    Task<GitProviderResult<GitBranchCatalog>> GetBranchesAsync(string accessToken, string repositoryFullName, CancellationToken cancellationToken);
+
+    // One branch of a repository, with the name GitHub gives it (GET /repos/{full name}/git/ref/heads/{branch}); NotFound
+    // when the repository has no such branch or the token cannot see it.
+    Task<GitProviderResult<string>> GetBranchAsync(string accessToken, string repositoryFullName, string branchName,
+        CancellationToken cancellationToken);
+
     // Revokes the user's authorization of the application, with all its tokens.
     Task<GitProviderStatus> RevokeAsync(string accessToken, CancellationToken cancellationToken);
 }

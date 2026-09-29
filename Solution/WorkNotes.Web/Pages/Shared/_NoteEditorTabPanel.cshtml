@@ -6,6 +6,8 @@
     var title = note.Title ?? L["Notes_Untitled"].Value;
     var typeName = note.NoteType == NoteTypes.Article ? L["NoteType_Article"].Value : L["NoteType_Journal"].Value;
     var referenceList = NoteReferences.List(note.Blocks.Select(block => block.Links), note.References);
+    // The branches linked to the references of the paragraphs (INoteGitReferenceService).
+    var gitList = note.GitReferences ?? [];
     // The note's own data; the texts shared by all tabs are in the dialog (#note-editor-data).
     var noteData = new
     {
@@ -14,6 +16,11 @@
         saveUrl = Url.Page("/Index", "SaveNote", new { note = note.Id }),
         // Only its owner writes in a note, so only the owner looks up the references just typed.
         lookupUrl = note.IsOwner ? Url.Page("/Index", "ReferenceLookup", new { note = note.Id }) : null,
+        // The same for the Git option of that popup: the branches of a repository that contain the reference, linking one
+        // to a paragraph, and removing a link (from the drawer).
+        gitBranchesUrl = note.IsOwner ? Url.Page("/Index", "GitBranches", new { note = note.Id }) : null,
+        gitAddUrl = note.IsOwner ? Url.Page("/Index", "AddGitReference", new { note = note.Id }) : null,
+        gitRemoveUrl = note.IsOwner ? Url.Page("/Index", "RemoveGitReference", new { note = note.Id }) : null,
         // The notes the links of the text open, with their tooltips.
         references = NoteReferences.Targets(L, note.References),
         // Each paragraph with its audit text (created / modified), shown in the info bar, and where it shows links.
@@ -65,11 +72,11 @@
             <summary class="note-references__toggle">
                 <svg class="note-references__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 6.5 9 12l5.5 5.5" /></svg>
                 <span class="note-references__label">@L["Editor_References"]</span>
-                <span class="note-references__count@(referenceList.Count == 0 ? " note-references__count--none" : "")" data-references-count>@referenceList.Count</span>
+                <span class="note-references__count@(referenceList.Count + gitList.Count == 0 ? " note-references__count--none" : "")" data-references-count>@(referenceList.Count + gitList.Count)</span>
             </summary>
             <div class="note-references__content">
                 <p class="note-references__help">@L["Editor_ReferencesHelp"]</p>
-                <p class="note-references__empty" data-references-empty hidden="@(referenceList.Count > 0)">@L["Editor_ReferencesEmpty"]</p>
+                <p class="note-references__empty" data-references-empty hidden="@(referenceList.Count + gitList.Count > 0)">@L["Editor_ReferencesEmpty"]</p>
                 <ul class="note-references__list" data-references-list>
                     @foreach (var entry in referenceList)
                     {
@@ -83,6 +90,43 @@
                 <template data-references-entry>
                     <li class="note-references__item"><a class="note-references__reference" data-references-reference></a></li>
                 </template>
+                @* The branches linked to the references of the text (the Git option of the popup of a reference just typed):
+                   the reference, the repository and the branch, a link to the branch on GitHub. The owner removes a link
+                   with its button, which works with JavaScript only (shown once the editor runs). *@
+                <section class="note-references__git" data-references-git hidden="@(gitList.Count == 0)">
+                    <h3 class="note-references__subtitle">@L["Editor_GitReferences"]</h3>
+                    <ul class="note-references__list" data-references-git-list>
+                        @foreach (var git in gitList)
+                        {
+                            <li class="note-references__item note-references__git-item">
+                                <span class="note-references__reference">@NoteGitReferences.Label(git.NormalizedReference)</span>
+                                <span class="note-references__git-target">
+                                    <span class="note-references__repository">@git.RepositoryFullName</span>
+                                    <a class="note-references__branch" href="@git.Url" target="_blank" rel="noopener noreferrer">@git.Name</a>
+                                </span>
+                                @if (note.IsOwner)
+                                {
+                                    <button type="button" class="note-references__remove" data-git-remove="@git.Id" aria-label="@NoteGitReferences.RemoveLabel(L, git)"
+                                            title="@NoteGitReferences.RemoveLabel(L, git)" hidden>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
+                                    </button>
+                                }
+                            </li>
+                        }
+                    </ul>
+                    <template data-references-git-entry>
+                        <li class="note-references__item note-references__git-item">
+                            <span class="note-references__reference" data-git-reference></span>
+                            <span class="note-references__git-target">
+                                <span class="note-references__repository" data-git-repository></span>
+                                <a class="note-references__branch" data-git-branch target="_blank" rel="noopener noreferrer"></a>
+                            </span>
+                            <button type="button" class="note-references__remove" data-git-remove>
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
+                            </button>
+                        </li>
+                    </template>
+                </section>
             </div>
         </details>
     </div>

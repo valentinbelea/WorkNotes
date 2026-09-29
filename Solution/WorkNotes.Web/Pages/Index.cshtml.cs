@@ -14,7 +14,8 @@ namespace WorkNotes.Web.Pages;
 // Guests see the welcome panel; signed-in users see one board per context (?context={id}, the first one by default).
 // ?new=true opens the new-note card without JavaScript; ?note={id} opens the note's editor over its board;
 // ?delete={id} asks, over the board, to confirm deleting a note.
-public sealed class IndexModel(INoteService notes, IWorkContextService contexts, IStringLocalizer<SharedResources> localizer) : PageModel
+public sealed class IndexModel(INoteService notes, IWorkContextService contexts, INoteGitReferenceService gitReferences,
+    IGitRepositoryService gitRepositories, IStringLocalizer<SharedResources> localizer) : PageModel
 {
     public IReadOnlyList<WorkContext> Contexts { get; private set; } = [];
     public WorkContext? SelectedContext { get; private set; }
@@ -25,6 +26,8 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
     public bool IsNewNoteOpen { get; private set; }
     // The note shown in the editor dialog, when ?note={id} names a note the user may see.
     public NoteDocument? OpenNote { get; private set; }
+    // The repositories the user imported, for the Git option of the popup of a reference just typed (the owner's editor).
+    public IReadOnlyList<GitRepositoryInfo> GitRepositories { get; private set; } = [];
     // The note whose deletion is being confirmed (?delete={id}); only its owner gets there.
     public NoteSummary? DeletingNote { get; private set; }
 
@@ -37,8 +40,9 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         if (!IsSignedIn) return Page();
         if (note is { } noteId)
         {
-            OpenNote = await notes.GetDocumentAsync(noteId, UserId, cancellationToken);
+            OpenNote = await LoadDocumentAsync(noteId, cancellationToken);
             if (OpenNote is null) return NotFound();
+            await LoadGitRepositoriesAsync(cancellationToken);
             // The editor opens over the board the note belongs to.
             context = OpenNote.ContextId;
         }
@@ -87,15 +91,17 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
     public async Task<IActionResult> OnGetNoteEditorAsync(int note, CancellationToken cancellationToken)
     {
         if (!IsSignedIn) return Unauthorized();
-        OpenNote = await notes.GetDocumentAsync(note, UserId, cancellationToken);
-        return OpenNote is null ? NotFound() : Partial("_NoteEditorDialog", this);
+        OpenNote = await LoadDocumentAsync(note, cancellationToken);
+        if (OpenNote is null) return NotFound();
+        await LoadGitRepositoriesAsync(cancellationToken);
+        return Partial("_NoteEditorDialog", this);
     }
 
     // A note opened from the board while the editor is already on the page: note-editor.js adds it as a new tab.
     public async Task<IActionResult> OnGetNoteTabAsync(int note, CancellationToken cancellationToken)
     {
         if (!IsSignedIn) return Unauthorized();
-        var document = await notes.GetDocumentAsync(note, UserId, cancellationToken);
+        var document = await LoadDocumentAsync(note, cancellationToken);
         return document is null ? NotFound() : Partial("_NoteEditorTab", document);
     }
 
@@ -106,6 +112,8 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         if (request is null) return EditorFailure(StatusCodes.Status400BadRequest, "Editor_InvalidContent");
         var blocks = (request.Blocks ?? []).Select(block => new NoteBlockInput(block.Id, block.Content)).ToList();
         var result = await notes.SaveAsync(UserId, note, request.Version, request.Title, request.NoteType, blocks, cancellationToken);
+        // The branches linked to the references the saved text still writes (a reference taken out of the text hides its branches).
+        var gitLinks = result.Status == NoteSaveStatus.Saved ? await gitReferences.GetAsync(UserId, note, cancellationToken) : [];
         return result.Status switch
         {
             // The updated audit texts refresh the editor's info bar without reloading the note.
@@ -126,6 +134,8 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                 references = NoteReferences.Targets(localizer, result.References),
                 // The references drawer of the saved text: each reference once, with the notes it opens.
                 referenceList = NoteReferences.ListData(NoteReferences.List((result.Blocks ?? []).Select(block => block.Links), result.References)),
+                // The Git references of the drawer, which follow the saved text too.
+                gitReferences = NoteGitReferences.Data(localizer, gitLinks),
                 // The note's card on the board behind the editor, which follows the save (notes-board.js).
                 card = result.Note is { } saved ? BoardCard(saved, result.Month) : null
             }),
@@ -153,6 +163,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                 status = "found",
                 start = found.Start,
                 length = found.Length,
+                reference = found.NormalizedReference,
                 message = localizer["Editor_ReferenceFound", found.Text].Value,
                 // Each note with its tooltip line, its title and its type, for the popup and for the link it makes.
                 notes = targets.Select(target => new
@@ -169,12 +180,64 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                 status = "missing",
                 start = missing.Start,
                 length = missing.Length,
+                reference = missing.NormalizedReference,
                 message = localizer["Editor_ReferenceMissing", missing.Text].Value
             }),
             { Status: NoteReferenceLookupStatus.Forbidden } => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
             { Status: NoteReferenceLookupStatus.NotFound } => EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound"),
             _ => new JsonResult(new { status = "none" })
         };
+    }
+
+    // Called by note-references.js when the owner opens the Git option of the popup, and when they pick another
+    // repository, with a JSON body: the branches of the repository whose name contains the reference, by the rules of
+    // the notes, read from GitHub now.
+    public async Task<IActionResult> OnPostGitBranchesAsync(int note, [FromBody] GitBranchesRequest? request, CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
+        if (request is null) return EditorFailure(StatusCodes.Status400BadRequest, "Validation_InvalidValue");
+        var search = await gitReferences.SearchBranchesAsync(UserId, note, request.Repository ?? "", request.Reference ?? "", cancellationToken);
+        if (search.Status != GitReferenceStatus.Succeeded) return GitFailure(search.Status);
+        var reference = NoteGitReferences.Label(request.Reference ?? "");
+        return new JsonResult(new
+        {
+            branches = search.Branches.Select(branch => new { name = branch.Name, url = branch.Url }),
+            message = localizer[search.Branches.Count == 0 ? "Editor_GitNoBranches" : "Editor_GitBranchesFound", reference].Value,
+            // A repository with more branches than are read may have more matches than are listed.
+            note = search.Truncated ? localizer["Editor_GitTruncated", GitReferenceRules.MaxBranchesRead].Value : null
+        });
+    }
+
+    // Called by note-editor.js when the owner picks a branch: it is linked to the reference of the paragraph. The answer has
+    // the note's Git references now, for the drawer.
+    public async Task<IActionResult> OnPostAddGitReferenceAsync(int note, [FromBody] GitReferenceRequest? request, CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
+        if (request is null) return EditorFailure(StatusCodes.Status400BadRequest, "Validation_InvalidValue");
+        var result = await gitReferences.AddAsync(UserId, note, request.BlockId, request.Repository ?? "", request.Reference ?? "",
+            request.Branch ?? "", cancellationToken);
+        return result.Status == GitReferenceStatus.Succeeded
+            ? new JsonResult(new
+            {
+                message = localizer["Editor_GitReferenceAdded"].Value,
+                gitReferences = NoteGitReferences.Data(localizer, result.References)
+            })
+            : GitFailure(result.Status);
+    }
+
+    // Called by note-editor.js when the owner removes a branch from the drawer.
+    public async Task<IActionResult> OnPostRemoveGitReferenceAsync(int note, [FromBody] GitReferenceRemoveRequest? request, CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
+        if (request is null) return EditorFailure(StatusCodes.Status400BadRequest, "Validation_InvalidValue");
+        var result = await gitReferences.RemoveAsync(UserId, note, request.Id, cancellationToken);
+        return result.Status == GitReferenceStatus.Succeeded
+            ? new JsonResult(new
+            {
+                message = localizer["Editor_GitReferenceRemoved"].Value,
+                gitReferences = NoteGitReferences.Data(localizer, result.References)
+            })
+            : GitFailure(result.Status, removing: true);
     }
 
     // The title field of a card. With JavaScript it posts in the background and gets JSON back (Accept: application/json);
@@ -253,6 +316,36 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
     public IActionResult OnGetRenameNote(int? context) => RedirectToPage(new { context });
     public IActionResult OnGetDeleteNote(int? context) => RedirectToPage(new { context });
     public IActionResult OnGetSwapNotes(int? context) => RedirectToPage(new { context });
+    // The Git handlers are called by the editor only.
+    public IActionResult OnGetGitBranches(int? context) => RedirectToPage(new { context });
+    public IActionResult OnGetAddGitReference(int? context) => RedirectToPage(new { context });
+    public IActionResult OnGetRemoveGitReference(int? context) => RedirectToPage(new { context });
+
+    // Why a Git reference operation failed, as the editor shows it: a code and a localized message.
+    private JsonResult GitFailure(GitReferenceStatus status, bool removing = false) => status switch
+    {
+        GitReferenceStatus.NotFound => EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound"),
+        GitReferenceStatus.Forbidden => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
+        // Removing: the link is not there (removed meanwhile, or not this note's).
+        GitReferenceStatus.InvalidReference => EditorFailure(StatusCodes.Status400BadRequest, removing ? "Editor_GitReferenceGone" : "Editor_GitInvalidReference"),
+        GitReferenceStatus.RepositoryNotFound => EditorFailure(StatusCodes.Status400BadRequest, "Editor_GitRepositoryNotFound"),
+        GitReferenceStatus.BranchNotFound => EditorFailure(StatusCodes.Status400BadRequest, "Editor_GitBranchNotFound"),
+        GitReferenceStatus.NotConfigured => EditorFailure(StatusCodes.Status409Conflict, "GitHub_NotConfigured"),
+        GitReferenceStatus.NotConnected => EditorFailure(StatusCodes.Status409Conflict, "GitHub_NotConnected"),
+        GitReferenceStatus.ReconnectRequired => EditorFailure(StatusCodes.Status409Conflict, "GitHub_ReconnectRequired"),
+        _ => EditorFailure(StatusCodes.Status503ServiceUnavailable, "GitHub_Unavailable")
+    };
+
+    // The note with the branches linked to the references its paragraphs write.
+    private async Task<NoteDocument?> LoadDocumentAsync(int noteId, CancellationToken cancellationToken)
+    {
+        var document = await notes.GetDocumentAsync(noteId, UserId, cancellationToken);
+        return document is null ? null : document with { GitReferences = await gitReferences.GetAsync(UserId, noteId, cancellationToken) };
+    }
+
+    // Only the owner links branches, so only the owner's editor needs the repositories.
+    private async Task LoadGitRepositoriesAsync(CancellationToken cancellationToken) =>
+        GitRepositories = OpenNote is { IsOwner: true } ? await gitRepositories.GetImportedAsync(UserId, cancellationToken) : [];
 
     private JsonResult EditorFailure(int statusCode, string messageKey) =>
         new(new { message = localizer[messageKey].Value }) { StatusCode = statusCode };

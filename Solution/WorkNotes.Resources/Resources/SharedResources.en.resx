@@ -178,8 +178,8 @@
 <data name="Editor_ReferenceSearching" xml:space="preserve"><value>Looking for the reference…</value></data>
 <data name="Editor_ReferenceFound" xml:space="preserve"><value>The reference {0} opens:</value></data>
 <data name="Editor_ReferenceMissing" xml:space="preserve"><value>Reference not found: no note has {0} in its title.</value></data>
-<data name="Editor_ReferenceCreate" xml:space="preserve"><value>Make it a reference</value></data>
-<data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab makes it · Esc closes</value></data>
+<data name="Editor_ReferenceCreate" xml:space="preserve"><value>Application reference</value></data>
+<data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab: application reference · Shift+Tab: Git · Esc closes</value></data>
 <data name="Navigation_GitHub" xml:space="preserve"><value>GitHub connection</value></data>
 <data name="GitHub_Description" xml:space="preserve"><value>Connect your GitHub account so WorkNotes can read the branches, commits and pull requests linked to CRs and bugs. You authorize it on GitHub: WorkNotes never sees your GitHub password.</value></data>
 <data name="GitHub_NotConfiguredHelp" xml:space="preserve"><value>The GitHub connection is not configured on this server. The administrator has to register the application on GitHub and set GitHub:ClientId and GitHub:ClientSecret.</value></data>
@@ -223,4 +223,24 @@
 <data name="GitHub_RepositoryPublic" xml:space="preserve"><value>Public</value></data>
 <data name="GitHub_RepositoriesSaved" xml:space="preserve"><value>Your repository selection has been saved.</value></data>
 <data name="GitHub_RepositoriesConflict" xml:space="preserve"><value>The selection was changed meanwhile in another window. Check the list and save again.</value></data>
+<data name="Editor_ReferenceGit" xml:space="preserve"><value>Git reference</value></data>
+<data name="Editor_GitRepository" xml:space="preserve"><value>Repository</value></data>
+<data name="Editor_GitSearching" xml:space="preserve"><value>Searching for branches…</value></data>
+<data name="Editor_GitAdding" xml:space="preserve"><value>Adding the Git reference…</value></data>
+<data name="Editor_GitFailed" xml:space="preserve"><value>The operation with GitHub failed. Please try again.</value></data>
+<data name="Editor_GitNoRepositories" xml:space="preserve"><value>You have no imported repositories. Import them from</value></data>
+<data name="Editor_GitBranchesFound" xml:space="preserve"><value>Branches that contain {0}:</value></data>
+<data name="Editor_GitNoBranches" xml:space="preserve"><value>No branch of the repository contains {0}.</value></data>
+<data name="Editor_GitTruncated" xml:space="preserve"><value>The repository has more than {0} branches; only the first ones were searched.</value></data>
+<data name="Editor_GitReferences" xml:space="preserve"><value>Git references</value></data>
+<data name="Editor_GitReferenceAdded" xml:space="preserve"><value>The Git reference has been added.</value></data>
+<data name="Editor_GitReferenceRemoved" xml:space="preserve"><value>The Git reference has been removed.</value></data>
+<data name="Editor_GitReferenceRemoveNamed" xml:space="preserve"><value>Remove branch {1} of reference {0}</value></data>
+<data name="Editor_GitSaveFirst" xml:space="preserve"><value>Save the note before adding a Git reference, then try again.</value></data>
+<data name="Editor_GitChanged" xml:space="preserve"><value>The text changed; open the Git reference option again.</value></data>
+<data name="Editor_GitInvalidReference" xml:space="preserve"><value>The reference is not written in the saved paragraph or is not valid. Save the note and try again.</value></data>
+<data name="Editor_GitRepositoryNotFound" xml:space="preserve"><value>The repository is not among the imported ones.</value></data>
+<data name="Editor_GitBranchNotFound" xml:space="preserve"><value>The branch does not exist in the repository or its name does not contain the reference.</value></data>
+<data name="Editor_ReferenceHintGit" xml:space="preserve"><value>Shift+Tab: Git · Esc closes</value></data>
+<data name="Editor_GitReferenceGone" xml:space="preserve"><value>The Git reference no longer exists.</value></data>
 </root>

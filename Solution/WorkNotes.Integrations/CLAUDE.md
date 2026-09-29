@@ -5,6 +5,7 @@ Clienții serviciilor externe (versiunea 0.03: GitHub OAuth și API), peste `Htt
 ## Conținut
 
 - `GitHub/GitHubOAuthClient.cs` — implementează `IGitHubOAuthClient` (Business): adresa de autorizare, schimbul codului și reîmprospătarea tokenului (`/login/oauth/access_token`), contul (`GET /user`), repository-urile (`GET /user/repos`, pagină cu pagină după antetul `Link`, cel mult `GitRepositoryRules.MaxListed`) și revocarea (`DELETE /applications/{client_id}/grant`).
+- `GitHubOAuthClient` citește și branch-urile unui repository (`GetBranchesAsync`, paginat după `Link: rel="next"`, cel mult 1000) și verifică un branch (`GetBranchAsync`, `NotFound` când nu există).
 - `GitHub/GitHubOptions.cs` — secțiunea de configurare `GitHub` (`ClientId`, `ClientSecret`, `Scopes`, adresele, timeout-ul).
 - `DependencyInjection.cs` — `AddIntegrations`: opțiunile și clientul tipizat, apelat numai din `Program.cs`.
 

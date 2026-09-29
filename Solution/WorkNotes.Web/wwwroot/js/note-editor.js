@@ -163,8 +163,12 @@ function createNoteEditor(panel, data, shared) {
     const chosenType = () => typeSwitch?.querySelector("input:checked")?.value ?? null;
     const messages = shared.messages;
     const drawerElement = panel.querySelector("[data-editor-references]");
-    // The drawer of the note's references: its links open notes in the tabs, and each save brings its list.
-    const drawer = drawerElement ? referenceDrawer(drawerElement, { open: ids => shared.openNotes(ids), noteUrl: shared.noteUrl }) : null;
+    // The drawer of the note's references: its links open notes in the tabs, and each save brings its list. The owner's
+    // drawer also removes the branches linked to the references (removeGitReference, below).
+    const drawer = drawerElement
+        ? referenceDrawer(drawerElement, { open: ids => shared.openNotes(ids), noteUrl: shared.noteUrl,
+            removeGit: !data.readOnly && data.gitRemoveUrl ? id => removeGitReference(id) : null })
+        : null;
 
     // Audit texts (as stored, and with unsaved changes) and last saved content of each stored paragraph, by id.
     const auditById = new Map(data.blocks.map(block => [block.id, block]));
@@ -263,6 +267,7 @@ function createNoteEditor(panel, data, shared) {
             const labels = new Map((body.references ?? []).map(target => [String(target.id), target.label]));
             showSavedLinks(body, labels);
             drawer?.show(body.referenceList, labels);
+            drawer?.showGit(body.gitReferences);
             // The note's card on the board behind the window shows the save.
             shared.showOnBoard(body.card);
         } catch {
@@ -282,6 +287,62 @@ function createNoteEditor(panel, data, shared) {
         body: JSON.stringify({ text }),
         signal
     }).then(response => response.ok ? response.json() : null);
+
+    const gitHeaders = { "Content-Type": "application/json", "Accept": "application/json", "RequestVerificationToken": shared.token };
+
+    // The branches of a repository whose name contains a reference (INoteGitReferenceService.SearchBranchesAsync), for the
+    // Git option of the lookup's popup: { message, note, branches }; a failure is only a message. An aborted search throws.
+    async function searchBranches({ repository, reference }, signal) {
+        try {
+            const response = await fetch(data.gitBranchesUrl, { method: "POST", headers: gitHeaders, body: JSON.stringify({ repository, reference }), signal });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) return { message: body.message ?? texts.gitFailed, branches: [] };
+            return { message: body.message, note: body.note, branches: body.branches ?? [] };
+        } catch (error) {
+            if (error?.name === "AbortError") throw error;
+            return { message: texts.gitFailed, branches: [] };
+        }
+    }
+
+    // Links a branch to the reference of the paragraph where the popup is: { ok, message }. The paragraph must be stored
+    // for the link, so an unsaved note is saved first; the answer brings the note's branches for the drawer.
+    async function addGitReference({ repository, reference, branch, position }) {
+        if (saving) return { ok: false, message: texts.gitSaveFirst };
+        if (isDirty()) await save();
+        if (problem !== null || conflict) return { ok: false, message: problem ?? texts.failed };
+        const at = position();
+        if (at === null) return { ok: false, message: texts.gitChanged };
+        const place = view.state.field(trackedParagraphs).find(item => at >= item.from && at <= item.to);
+        if (!place || !auditById.has(place.id)) return { ok: false, message: texts.gitSaveFirst };
+        try {
+            const response = await fetch(data.gitAddUrl, {
+                method: "POST", headers: gitHeaders, body: JSON.stringify({ blockId: place.id, repository, reference, branch })
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) return { ok: false, message: body.message ?? texts.gitFailed };
+            drawer?.showGit(body.gitReferences);
+            showStatusMessage(messages, "success", body.message);
+            return { ok: true };
+        } catch {
+            return { ok: false, message: texts.gitFailed };
+        }
+    }
+
+    // Removes a branch from the drawer (its button); the answer brings the note's branches now.
+    async function removeGitReference(id) {
+        try {
+            const response = await fetch(data.gitRemoveUrl, { method: "POST", headers: gitHeaders, body: JSON.stringify({ id }) });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                showStatusMessage(messages, "error", body.message ?? texts.gitFailed);
+                return;
+            }
+            drawer?.showGit(body.gitReferences);
+            showStatusMessage(messages, "success", body.message);
+        } catch {
+            showStatusMessage(messages, "error", texts.gitFailed);
+        }
+    }
 
     // The links of the saved text, drawn where its paragraphs are now. A paragraph edited while the save was on its way
     // gets its links at the next save.
@@ -316,7 +377,13 @@ function createNoteEditor(panel, data, shared) {
         noteReferences({
             links: initialLinks, targets: data.references ?? [], open: ids => shared.openNotes(ids),
             // The owner's editor asks about the references it types.
-            lookup: data.readOnly || !data.lookupUrl || !shared.lookup ? null : { ...shared.lookup, find: findReference }
+            lookup: data.readOnly || !data.lookupUrl || !shared.lookup ? null : {
+                ...shared.lookup, find: findReference,
+                // The Git option of the popup, when this note can link branches.
+                git: data.gitBranchesUrl && data.gitAddUrl
+                    ? { repositories: shared.gitRepositories, choice: shared.gitChoice, search: searchBranches, add: addGitReference }
+                    : null
+            }
         }),
         keymap.of([...searchKeymap, ...historyKeymap, ...defaultKeymap]),
         EditorView.updateListener.of(update => {
@@ -380,8 +447,12 @@ function initializeEditorWindow(dialog, settings, dataElement) {
         noteUrl,
         // The popup of a reference just typed (note-references.js), common to all tabs.
         lookup: lookupTemplate && lookupNoteTemplate
-            ? { length: settings.lookupLength, template: lookupTemplate, noteTemplate: lookupNoteTemplate }
+            ? { length: settings.lookupLength, template: lookupTemplate, noteTemplate: lookupNoteTemplate,
+                branchTemplate: dialog.querySelector("template[data-reference-lookup-branch]") }
             : null,
+        // The repositories the Git option of that popup offers, and the one chosen last, kept for all tabs.
+        gitRepositories: settings.gitRepositories ?? [],
+        gitChoice: { repository: null },
         // A saved note's card (the save's answer) goes to the board, which marks the event handled once the card shows
         // it; a save the board could not show makes closing the window load the board again.
         showOnBoard: card => {

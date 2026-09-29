@@ -7,6 +7,7 @@ Proiectul de persistență: EF Core pe SQL Server, repository-uri și implementa
 - `Context/WorkNotesDbContext.cs` și `Entities/{DatabaseVersion, WorkContext, ContextMember, Note, NoteBlock}.cs` (cu PR #4 și `NoteReference.cs`, `NoteReferenceTarget.cs`, `WorkReference.cs`, `ReferenceType.cs`; în 0.03, `GitConnection.cs` și `GitRepository.cs`) — generate prin scaffolding; `--force` le suprascrie.
 - `Context/AccountsDbContext.cs` și `Entities/ApplicationUser.cs` — scrise manual (Identity).
 - `Repositories/` — implementările interfețelor din `WorkNotes.Business/Abstractions`; `GitConnectionRepository` (0.03) criptează tokenurile GitHub cu Data Protection înainte de salvare și le decriptează la citire.
+- `NoteGitReferenceRepository` (0.03) — catalogul `GitReferences` (adăugare idempotentă cu `UPDLOCK, HOLDLOCK`) și legăturile `NoteBlockGitReferences`, citite numai cât paragraful scrie referința; `Repositories/NoteAccess.cs` — filtrul de vizibilitate al notelor, comun cu `NoteRepository`; `GitReferences.Name` are colația `Latin1_General_100_BIN2`.
 - `Identity/` — `IdentityAccountService` (contractele de cont, peste `UserManager` / `SignInManager`) și `AccountClaimsPrincipalFactory`.
 - `DependencyInjection.cs` — `AddDataAccess`: DbContext-urile, repository-urile și configurarea Identity.
 

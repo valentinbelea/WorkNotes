@@ -29,5 +29,7 @@ public partial class NoteBlock
 
     public virtual Note Note { get; set; } = null!;
 
+    public virtual ICollection<NoteBlockGitReference> NoteBlockGitReferences { get; set; } = new List<NoteBlockGitReference>();
+
     public virtual ICollection<NoteReference> NoteReferences { get; set; } = new List<NoteReference>();
 }

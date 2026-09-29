@@ -11,7 +11,7 @@ Regulile obligatorii (Database First, fără migrări, scripturi versionate, apl
 ## Strategia EF Core
 
 - Database First: schema este scrisă în scripturi SQL; clasele EF sunt generate din baza existentă prin reverse engineering. Nu există migrări EF, snapshot-uri sau tabele de istoric, iar aplicația nu creează schema la pornire.
-- `WorkNotesDbContext` și entitățile `ContextMember`, `DatabaseVersion`, `Note`, `NoteBlock`, `WorkContext` sunt generate prin scaffolding; PR #4 adaugă `NoteReference`, `NoteReferenceTarget`, `WorkReference` și `ReferenceType`, iar versiunea 0.03 `GitConnection` și `GitRepository`.
+- `WorkNotesDbContext` și entitățile `ContextMember`, `DatabaseVersion`, `Note`, `NoteBlock`, `WorkContext` sunt generate prin scaffolding; PR #4 adaugă `NoteReference`, `NoteReferenceTarget`, `WorkReference` și `ReferenceType`, iar versiunea 0.03 `GitConnection`, `GitRepository`, `GitReference` și `NoteBlockGitReference`.
 - `AccountsDbContext` (`IdentityUserContext<ApplicationUser>`) și `ApplicationUser` sunt scrise manual și mapează `Users`, `AspNetUserClaims`, `AspNetUserLogins`, `AspNetUserTokens`, păstrând integrarea standard Identity; mapările se actualizează manual după modificarea SQL și nu se regenerează prin scaffolding.
 - Cheile externe către `Users` există numai în SQL: `Users` aparține `AccountsDbContext`, iar scaffolding-ul contextului principal le omite (mesaj informativ).
 
@@ -19,7 +19,7 @@ Regenerarea după modificarea schemei, din folderul `Solution`:
 
 ```powershell
 dotnet tool restore
-dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --table dbo.ContextMembers --table dbo.Notes --table dbo.NoteBlocks --table dbo.NoteReferences --table dbo.NoteReferenceTargets --table dbo.WorkReferences --table dbo.ReferenceTypes --table dbo.GitConnections --table dbo.GitRepositories --no-onconfiguring --force
+dotnet ef dbcontext scaffold 'Name=ConnectionStrings:WorkNotes' Microsoft.EntityFrameworkCore.SqlServer --project WorkNotes.DataAccess --startup-project WorkNotes.Web --context WorkNotesDbContext --context-dir Context --output-dir Entities --namespace WorkNotes.DataAccess.Entities --context-namespace WorkNotes.DataAccess.Context --table dbo.DatabaseVersion --table dbo.WorkContexts --table dbo.ContextMembers --table dbo.Notes --table dbo.NoteBlocks --table dbo.NoteReferences --table dbo.NoteReferenceTargets --table dbo.WorkReferences --table dbo.ReferenceTypes --table dbo.GitConnections --table dbo.GitRepositories --table dbo.GitReferences --table dbo.NoteBlockGitReferences --no-onconfiguring --force
 dotnet build WorkNotes.sln
 dotnet test WorkNotes.sln --no-build --no-restore
 ```
@@ -195,6 +195,38 @@ Repository-urile Git importate de fiecare utilizator, alese dintre cele pe care 
 
 `UX_GitRepositories_UserId_Provider_ExternalId` (unic) păstrează un rând pe utilizator, furnizor și repository și servește citirea repository-urilor unui utilizator. Un repository importat rămâne după deconectarea contului GitHub; nu are cheie externă către `GitConnections`.
 
+### GitReferences (versiunea 0.03)
+
+Catalogul referințelor Git: un branch al unui repository, o singură dată, oricâte paragrafe îl leagă. Tabela este creată de `version_0.03/003_CreateGitReferences.sql`.
+
+| Coloană | Tip | Note |
+| --- | --- | --- |
+| `Id` | int IDENTITY | `PK_GitReferences` |
+| `Provider` | nvarchar(20) NOT NULL | `GitHub` (`CK_GitReferences_Provider`) |
+| `RepositoryExternalId` | nvarchar(50) NOT NULL | ID-ul stabil al repository-ului la furnizor |
+| `RepositoryFullName` | nvarchar(200) NOT NULL | `owner/name` la ultima legare |
+| `RepositoryUrl` | nvarchar(300) NOT NULL | adresa https a repository-ului, din care se face linkul branch-ului |
+| `Kind` | nvarchar(20) NOT NULL | `Branch` (`CK_GitReferences_Kind`, constantele `GitReferenceKinds`); pregătit pentru commit-uri și pull request-uri |
+| `Name` | nvarchar(255) NOT NULL | numele branch-ului, cu colația `Latin1_General_100_BIN2`: Git face diferența dintre majuscule și minuscule |
+| `CreatedAtUtc` | datetime2(0) NOT NULL | implicit `SYSUTCDATETIME()` |
+
+Cheia unică `UX_GitReferences_Provider_RepositoryExternalId_Kind_Name` păstrează un rând pe branch. Catalogul nu depinde de utilizator: un rând conține numai date publice ale repository-ului și numele branch-ului.
+
+### NoteBlockGitReferences (versiunea 0.03)
+
+Legăturile dintre un paragraf, referința pe care o scrie (`WorkReferences`, de exemplu `CR:30080`) și un branch din catalog.
+
+| Coloană | Tip | Note |
+| --- | --- | --- |
+| `Id` | int IDENTITY | `PK_NoteBlockGitReferences` |
+| `NoteBlockId` | uniqueidentifier NOT NULL | paragraful; cheie externă către `NoteBlocks`, cascadă |
+| `GitReferenceId` | int NOT NULL | branch-ul; cheie externă către `GitReferences`, fără cascadă |
+| `WorkReferenceId` | int NOT NULL | referința din catalog pe care o scrie paragraful; cheie externă către `WorkReferences`, fără cascadă |
+| `CreatedAtUtc` | datetime2(0) NOT NULL | implicit `SYSUTCDATETIME()` |
+| `CreatedByUserId` | nvarchar(128) NOT NULL | cine a făcut legătura; cheie externă către `Users` |
+
+`UX_NoteBlockGitReferences_NoteBlockId_GitReferenceId_WorkReferenceId` (unic) face legarea idempotentă; `IX_NoteBlockGitReferences_GitReferenceId` și `IX_NoteBlockGitReferences_WorkReferenceId` servesc cheile externe. Legătura se citește numai cât timp paragraful scrie încă referința (filtru la citire, în `NoteGitReferenceRepository`); dacă textul o scrie din nou, legătura reapare. Un paragraf șters își pierde legăturile în cascadă; rândurile din `GitReferences` rămân.
+
 ## Relații
 
 ```text
@@ -206,6 +238,8 @@ Users 1──* Notes       (OwnerUserId, CreatedByUserId, ModifiedByUserId)
 Users 1──* NoteBlocks  (CreatedByUserId, ModifiedByUserId)
 Users 1──* AspNetUserClaims / AspNetUserLogins / AspNetUserTokens
 Users 1──* GitConnections  (0.03: un rând pe furnizor, UserId + Provider)
+NoteBlocks 1──* NoteBlockGitReferences *──1 GitReferences  (0.03: paragraful → branch-ul legat)
+WorkReferences 1──* NoteBlockGitReferences  (0.03: referința pe care o scrie paragraful)
 Users 1──* GitRepositories (0.03: repository-urile importate, UserId + Provider + ExternalId unic)
 DatabaseVersion        (fără relații)
 ```
@@ -231,6 +265,8 @@ Relațiile se fac prin chei externe explicite; modelul planificat păstrează ac
 | `ReferenceTypes` (PR #4) | `Code` | — |
 | `GitConnections` (0.03) | `UserId`, `Provider` | — |
 | `GitRepositories` (0.03) | `Id` | `UX_GitRepositories_UserId_Provider_ExternalId` (unic) |
+| `GitReferences` (0.03) | `Id` | `UX_GitReferences_Provider_RepositoryExternalId_Kind_Name` (unic) |
+| `NoteBlockGitReferences` (0.03) | `Id` | `UX_NoteBlockGitReferences_NoteBlockId_GitReferenceId_WorkReferenceId` (unic), `IX_NoteBlockGitReferences_GitReferenceId`, `IX_NoteBlockGitReferences_WorkReferenceId` |
 
 Indexul unic `UX_Notes_DailyJournal` (un jurnal pe proprietar, context și zi), creat de `006_CreateNotes.sql`, a fost eliminat de `007_AllowSeveralJournalsPerDay.sql`: sunt permise mai multe jurnale pe zi.
 
@@ -258,6 +294,7 @@ Indexul unic `UX_Notes_DailyJournal` (un jurnal pe proprietar, context și zi), 
 | Ștergerea unui tip de referință (PR #4) | Nu există în aplicație. În SQL, `FK_NoteReferences_ReferenceTypes_ReferenceType` și `FK_WorkReferences_ReferenceTypes_ReferenceType`, fără cascadă, refuză ștergerea unui tip cu care sunt stocate referințe (și rândurile catalogului nu se șterg), deci un tip folosit se dezactivează (`IsActive = 0`). Un tip încă nefolosit se poate șterge; până la următoarea citire a tipurilor (cel mult 5 minute), salvarea unei referințe de acel tip dă eroare. |
 | Deconectarea GitHub (0.03) | Ștergere fizică a rândului din `GitConnections` (`ExecuteDeleteAsync`), numai a utilizatorului curent, apoi revocarea autorizării la GitHub. |
 | Scoaterea unui repository importat (0.03) | Ștergere fizică a rândului din `GitRepositories` când utilizatorul îl debifează și salvează; repository-ul de pe GitHub nu este atins. Deconectarea GitHub nu îl șterge. |
+| Scoaterea unei legături Git (0.03) | Ștergere fizică a rândului din `NoteBlockGitReferences` (numai proprietarul notei); branch-ul din `GitReferences` și din repository nu sunt atinse. Ștergerea unui paragraf o face în cascadă. |
 | Eliminarea unui membru | Șterge numai apartenența cu rolul `Member`; proprietarul nu poate fi eliminat. |
 | Ștergerea unui utilizator | Nu există în aplicație. În SQL, apartenențele și tabelele `AspNetUser*` se șterg în cascadă, iar conexiunile și repository-urile Git (`GitConnections`, `GitRepositories`, 0.03) la fel, dar cheile externe din `Notes` și `NoteBlocks` către `Users` nu au cascadă și blochează ștergerea unui utilizator care are note sau paragrafe. |
 

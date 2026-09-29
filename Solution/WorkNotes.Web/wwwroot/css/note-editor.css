@@ -102,12 +102,39 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 .note-reference-lookup__note--article .note-reference-lookup__type { background: var(--wn-note-sage); }
 .note-reference-lookup__name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 .note-reference-lookup__actions { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .75rem; margin: .1rem 0 0; }
-.note-reference-lookup .note-reference-lookup__create { min-height: 36px; padding: .3rem .8rem; }
+.note-reference-lookup :is(.note-reference-lookup__create, .note-reference-lookup__git-open) { min-height: 36px; padding: .3rem .8rem; }
 @media (pointer: coarse) {
-    .note-reference-lookup .note-reference-lookup__create { min-height: 44px; }
+    .note-reference-lookup :is(.note-reference-lookup__create, .note-reference-lookup__git-open) { min-height: 44px; }
 }
 .note-reference-lookup__hint { color: var(--wn-muted); font-size: .75rem; }
-.note-reference-lookup:not(.note-reference-lookup--found) :is(.note-reference-lookup__notes, .note-reference-lookup__actions) { display: none; }
+/* While the server searches nothing else shows. A found reference offers the application reference (the button that
+   makes it a link) and the Git option; a reference no note has only the Git option, with its own hint. */
+.note-reference-lookup--searching :is(.note-reference-lookup__notes, .note-reference-lookup__actions, .note-reference-lookup__git) { display: none; }
+.note-reference-lookup--found .note-reference-lookup__hint--missing,
+.note-reference-lookup--missing :is(.note-reference-lookup__notes, .note-reference-lookup__create, .note-reference-lookup__hint--found) { display: none; }
+/* The Git option: the repository to look in, then the branches of it whose name contains the reference. */
+/* With the Git panel open the popup may grow, but never past what the window can show; the keys' hint is not needed any more. */
+.note-reference-lookup:has(.note-reference-lookup__git:not([hidden])) { max-height: min(24rem, 45dvh); }
+.note-reference-lookup:has(.note-reference-lookup__git:not([hidden])) .note-reference-lookup__hint { display: none; }
+@media (max-height: 700px) {
+    .note-reference-lookup__branches { max-height: none; overflow-y: visible; }
+}
+.note-reference-lookup__git { display: grid; gap: .4rem; padding-top: .5rem; border-top: 1px dashed var(--wn-input-border); }
+.note-reference-lookup__git-field { display: grid; gap: .2rem; color: var(--wn-muted); font-size: .75rem; font-weight: 600; }
+.note-reference-lookup__git-field select { min-height: 36px; max-width: 100%; padding: .25rem .5rem; border: 1px solid var(--wn-input-border); border-radius: var(--wn-radius); color: var(--wn-text); background: var(--wn-surface); font: inherit; font-weight: 400; }
+.note-reference-lookup__git-field select:disabled { color: var(--wn-disabled-text); }
+.note-reference-lookup__git-message, .note-reference-lookup__git-none { margin: 0; color: var(--wn-muted); font-size: .8rem; }
+.note-reference-lookup__git-message:empty { display: none; }
+.note-reference-lookup__branches { display: grid; gap: .2rem; max-height: 9rem; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.note-reference-lookup__branch { display: flex; align-items: center; gap: .45rem; width: 100%; min-height: 32px; padding: .2rem .45rem; border: 1px solid transparent; border-radius: var(--wn-radius); color: var(--wn-text); background: transparent; font: inherit; text-align: start; cursor: pointer; }
+.note-reference-lookup__branch:hover:not(:disabled) { border-color: var(--wn-input-border); background: var(--wn-active-line); }
+.note-reference-lookup__branch:focus-visible, .note-reference-lookup__git-field select:focus-visible { outline: 2px solid var(--wn-primary); outline-offset: 1px; }
+.note-reference-lookup__branch:disabled { color: var(--wn-disabled-text); cursor: not-allowed; }
+.note-reference-lookup__branch-icon { flex: none; width: 1rem; height: 1rem; color: var(--wn-primary); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.note-reference-lookup__branch-name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+@media (pointer: coarse) {
+    .note-reference-lookup__branch, .note-reference-lookup__git-field select { min-height: 44px; }
+}
 @keyframes note-reference-lookup-appear { from { opacity: 0; } }
 @keyframes note-reference-lookup-search { to { opacity: .4; } }
 @media (prefers-reduced-motion: reduce) {
@@ -117,6 +144,10 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 @media (forced-colors: active) {
     .note-sheet__editor .cm-editor .note-reference-lookup { border-color: CanvasText; }
     .note-reference-lookup__type { box-shadow: none; border: 1px solid CanvasText; }
+    .note-reference-lookup__git, .note-reference-lookup__git-field select { border-color: CanvasText; }
+    .note-reference-lookup__branch { border-color: ButtonText; }
+    .note-reference-lookup__branch:hover:not(:disabled) { border-color: Highlight; background: Canvas; }
+    .note-reference-lookup__branch:disabled { color: GrayText; border-color: GrayText; }
 }
 /* The text and, beside it on the right, the drawer of the note's references (_NoteEditorTabPanel). */
 .note-sheet__body { display: flex; flex: 1 1 auto; gap: .75rem; min-height: 0; }
@@ -145,6 +176,22 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 .note-references__empty { margin: 0; color: var(--wn-muted); font-size: .875rem; }
 .note-references__list { display: grid; gap: .55rem; margin: 0; padding: 0; list-style: none; }
 .note-references__reference { font-weight: 700; overflow-wrap: anywhere; }
+/* The branches linked to the references (the Git option of the popup): the reference, the repository and the branch
+   (a link to GitHub), and the owner's button that removes the link. */
+.note-references__git { margin-top: 1rem; padding-top: .75rem; border-top: 1px dashed var(--wn-input-border); }
+.note-references__subtitle { margin: 0 0 .5rem; color: var(--wn-muted); font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.note-references__git-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .1rem .4rem; align-items: start; }
+.note-references__git-item > :not(.note-references__remove) { grid-column: 1; }
+.note-references__git-target { display: grid; min-width: 0; font-size: .85rem; }
+.note-references__repository { color: var(--wn-muted); overflow-wrap: anywhere; }
+.note-references__branch { font-weight: 600; overflow-wrap: anywhere; }
+.note-references__remove { grid-column: 2; grid-row: 1 / span 2; display: inline-grid; place-items: center; width: 2rem; height: 2rem; padding: 0; border: 0; border-radius: var(--wn-radius); color: var(--wn-muted); background: transparent; cursor: pointer; }
+.note-references__remove svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.note-references__remove:hover { color: var(--wn-danger); background: var(--wn-danger-bg); }
+.note-references__remove:focus-visible { outline: 2px solid var(--wn-primary); outline-offset: 1px; }
+@media (pointer: coarse) {
+    .note-references__remove { width: 44px; height: 44px; }
+}
 /* On a narrow window the drawer goes under the text, as a bar that opens downwards. */
 @media (max-width: 700px) {
     .note-sheet__body { flex-direction: column; }
@@ -157,6 +204,8 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 }
 @media (forced-colors: active) {
     .note-references, .note-references__count { border: 1px solid CanvasText; }
+    .note-references__remove { border: 1px solid ButtonText; color: ButtonText; }
+    .note-references__remove:hover { border-color: Highlight; }
 }
 /* Info bar under the editor: audit of the paragraph under the mouse (or at the cursor), then the shortcuts. */
 .note-editor-info { display: flex; flex: none; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1.5rem; padding-top: .6rem; border-top: 1px dashed var(--wn-input-border); color: var(--wn-muted); font-size: .8rem; }
