@@ -15,7 +15,7 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 
 ## În dezvoltare
 
-- **Versiunea 0.03** — branch `main_task_03`, creată la cererea utilizatorului din 2026-09-29 pentru integrarea cu Git: folderul `Scripts/version_0.03`, cu `000_UpdateDatabaseVersion.sql` (inserează `v.0.03`, neaplicat pe nicio bază), și documentele de versionare actualizate. Primul pas al integrării, conectarea contului GitHub prin OAuth ([ADR-004](decisions/ADR-004-github-oauth.md)): pagina `/Account/GitHub`, `GitHubConnectionService`, proiectul nou `WorkNotes.Integrations` (`GitHubOAuthClient`), `GitConnectionRepository` (tokenurile criptate cu Data Protection) și `001_CreateGitConnections.sql` (neaplicat pe nicio bază). Entitatea `GitConnection` și maparea ei au fost scrise manual, în forma generată de scaffolding, pentru că sesiunea nu avea SQL Server: scaffolding-ul trebuie rulat după aplicarea scriptului, ca verificare. Urmează citirea branch-urilor, commit-urilor și pull request-urilor ([REQUIREMENTS.md](REQUIREMENTS.md#integrarea-cu-git-version_003)).
+- **Versiunea 0.03** — branch `main_task_03`, creată la cererea utilizatorului din 2026-09-29 pentru integrarea cu Git: folderul `Scripts/version_0.03`, cu `000_UpdateDatabaseVersion.sql` (inserează `v.0.03`, neaplicat pe nicio bază), și documentele de versionare actualizate. Primul pas al integrării, conectarea contului GitHub prin OAuth ([ADR-004](decisions/ADR-004-github-oauth.md)): pagina `/Account/GitHub`, `GitHubConnectionService`, proiectul nou `WorkNotes.Integrations` (`GitHubOAuthClient`), `GitConnectionRepository` (tokenurile criptate cu Data Protection) și `001_CreateGitConnections.sql` (neaplicat pe nicio bază). Entitatea `GitConnection` și maparea ei au fost scrise manual, în forma generată de scaffolding, pentru că sesiunea nu avea SQL Server: scaffolding-ul trebuie rulat după aplicarea scriptului, ca verificare. Al doilea pas, importul repository-urilor: pagina `/Repositories` (toate repository-urile GitHub ale contului, cu câte o bifă), `GitRepositoryService`, `GitHubTokenService` (tokenul valid, comun), `GitRepositoryRepository` și `002_CreateGitRepositories.sql` (neaplicat; entitatea `GitRepository` scrisă tot manual, în forma scaffolding-ului). Urmează citirea branch-urilor, commit-urilor și pull request-urilor ([REQUIREMENTS.md](REQUIREMENTS.md#integrarea-cu-git-version_003)).
 - **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main` (care a fost adus în branch prin merge), cu commit-urile:
   - „Board: the next drag is no longer refused while a swap is being saved” — schimburile se aplică la `dragend` și se salvează pe rând;
   - „Editor and board: internal references between notes” — primul model al referințelor interne (legătura în text, `[[note:{id}|{număr}]]`), tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`; modelul este înlocuit (vezi mai jos);
@@ -139,6 +139,18 @@ PR #4 modifică `Solution/AGENTS.md`, `Solution/README.md`, `Solution/docs/desig
 Fișierele vechi au fost eliminate după integrare, ca să nu existe două surse pentru aceleași reguli; conținutul lor rămâne în istoricul Git.
 
 ## Ultimul build și ultimele teste
+
+### 2026-09-29 — versiunea 0.03, importul repository-urilor (branch `main_task_03`, sesiune cloud Linux)
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet build WorkNotes.sln --no-restore` | reușit, fără avertismente |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 357 de teste, toate trecute (37 noi: `GitRepositoryRulesTests`, `GitRepositoryServiceTests`) |
+| `tools/Test-Resources.ps1` | `PASS: 221 keys` |
+| Lista repository-urilor din clientul HTTP, cu un handler simulat | 3 pagini (242), limita de 1000 (trunchiată), 502 și 401 |
+| Pornirea aplicației (Development) | DI validat; `/Repositories` redirecționează la autentificare |
+| Verificările arhitecturale | niciun rezultat |
+| Neefectuate | `002_CreateGitRepositories.sql` și scaffolding-ul (fără SQL Server); lista reală de la GitHub; pagina în browser |
 
 ### 2026-09-29 — versiunea 0.03, conectarea GitHub (branch `main_task_03`, sesiune cloud Linux)
 

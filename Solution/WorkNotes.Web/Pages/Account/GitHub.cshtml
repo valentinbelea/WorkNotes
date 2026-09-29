@@ -22,6 +22,7 @@ else if (Model.Connection is { } connection)
         <p class="help-text">@L["GitHub_ExpiresHelp"]</p>
     }
     <div class="actions">
+        <a class="btn btn-primary" asp-page="/Repositories/Index">@L["Button_ChooseRepositories"]</a>
         <form method="post" asp-page-handler="Verify">
             <button type="submit" class="btn btn-secondary">@L["Button_VerifyGitHub"]</button>
         </form>

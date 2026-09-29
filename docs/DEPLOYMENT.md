@@ -55,7 +55,7 @@ TODO: Necesită clarificare — furnizorul sau serverul de găzduire, numărul d
 
 Fișierele: `appsettings.json` (comun), `appsettings.Development.json` (numai logging). Credențialele nu se pun în fișiere versionate; proiectul Web are `UserSecretsId`, deci User Secrets funcționează în Development.
 
-Aplicația GitHub (0.03) se înregistrează pentru fiecare mediu (GitHub → Settings → Developer settings → GitHub Apps sau OAuth Apps), cu URL-ul de callback `https://<host>/Account/GitHub/Callback`; local, `http://localhost:5018/Account/GitHub/Callback` sau `https://localhost:7190/Account/GitHub/Callback` (o GitHub App acceptă mai multe URL-uri, o OAuth App unul singur). Pentru o GitHub App: permisiunile de repository Contents, Metadata și Pull requests numai de citire, „Expire user authorization tokens” activat, fără webhook. Prima pornire cu versiunea 0.03 schimbă numele aplicației din Data Protection (`WorkNotes`), deci utilizatorii se autentifică din nou o dată.
+Aplicația GitHub (0.03) se înregistrează pentru fiecare mediu (GitHub → Settings → Developer settings → GitHub Apps sau OAuth Apps), cu URL-ul de callback `https://<host>/Account/GitHub/Callback`; local, `http://localhost:5018/Account/GitHub/Callback` sau `https://localhost:7190/Account/GitHub/Callback` (o GitHub App acceptă mai multe URL-uri, o OAuth App unul singur). Pentru o GitHub App: permisiunile de repository Contents, Metadata și Pull requests numai de citire, „Expire user authorization tokens” activat, fără webhook; aplicația se instalează pe contul utilizatorului și pe organizațiile lui (cu toate repository-urile sau cu cele alese), altfel pagina Repository-uri GitHub nu le arată. Prima pornire cu versiunea 0.03 schimbă numele aplicației din Data Protection (`WorkNotes`), deci utilizatorii se autentifică din nou o dată.
 
 ## Publicare
 
@@ -86,7 +86,7 @@ TODO: Necesită clarificare — nu există o procedură de backup documentată (
 4. Tabla unui context se încarcă, iar o notă se deschide în editor.
 5. Schimbarea limbii funcționează în română, engleză și poloneză.
 6. Logurile nu conțin erori la pornire.
-7. Versiunea 0.03: pagina Conectare GitHub nu mai spune „nu este configurată”; conectarea, verificarea și deconectarea unui cont de test funcționează.
+7. Versiunea 0.03: pagina Conectare GitHub nu mai spune „nu este configurată”; conectarea, verificarea și deconectarea unui cont de test funcționează; pagina Repository-uri GitHub arată repository-urile contului și salvează o selecție.
 
 ## Rollback
 

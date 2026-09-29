@@ -21,6 +21,10 @@ public interface IGitHubOAuthClient
     // The account the token belongs to; Rejected when the token is revoked or expired.
     Task<GitProviderResult<GitAccount>> GetAccountAsync(string accessToken, CancellationToken cancellationToken);
 
+    // The repositories the token can see (GET /user/repos: owned, collaborated and of the user's organizations, for a
+    // GitHub App only those it is installed on), page by page up to GitRepositoryRules.MaxListed.
+    Task<GitProviderResult<GitRepositoryCatalog>> GetRepositoriesAsync(string accessToken, CancellationToken cancellationToken);
+
     // Revokes the user's authorization of the application, with all its tokens.
     Task<GitProviderStatus> RevokeAsync(string accessToken, CancellationToken cancellationToken);
 }

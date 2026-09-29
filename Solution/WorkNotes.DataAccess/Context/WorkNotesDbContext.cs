@@ -18,6 +18,8 @@ public partial class WorkNotesDbContext : DbContext
 
     public virtual DbSet<GitConnection> GitConnections { get; set; }
 
+    public virtual DbSet<GitRepository> GitRepositories { get; set; }
+
     public virtual DbSet<Note> Notes { get; set; }
 
     public virtual DbSet<NoteBlock> NoteBlocks { get; set; }
@@ -73,6 +75,23 @@ public partial class WorkNotesDbContext : DbContext
             entity.Property(e => e.RefreshTokenExpiresAtUtc).HasPrecision(0);
             entity.Property(e => e.Scopes).HasMaxLength(500);
             entity.Property(e => e.ValidatedAtUtc).HasPrecision(0);
+        });
+
+        modelBuilder.Entity<GitRepository>(entity =>
+        {
+            entity.HasIndex(e => new { e.UserId, e.Provider, e.ExternalId }, "UX_GitRepositories_UserId_Provider_ExternalId").IsUnique();
+
+            entity.Property(e => e.DefaultBranch).HasMaxLength(255);
+            entity.Property(e => e.Description).HasMaxLength(400);
+            entity.Property(e => e.ExternalId).HasMaxLength(50);
+            entity.Property(e => e.FullName).HasMaxLength(200);
+            entity.Property(e => e.HtmlUrl).HasMaxLength(300);
+            entity.Property(e => e.ImportedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_GitRepositories_ImportedAtUtc");
+            entity.Property(e => e.Provider).HasMaxLength(20);
+            entity.Property(e => e.RefreshedAtUtc).HasPrecision(0);
+            entity.Property(e => e.UserId).HasMaxLength(128);
         });
 
         modelBuilder.Entity<Note>(entity =>

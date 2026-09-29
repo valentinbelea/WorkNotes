@@ -204,4 +204,23 @@
 <data name="Button_ReconnectGitHub" xml:space="preserve"><value>Connect again</value></data>
 <data name="Button_VerifyGitHub" xml:space="preserve"><value>Verify connection</value></data>
 <data name="Button_DisconnectGitHub" xml:space="preserve"><value>Disconnect</value></data>
+<data name="Navigation_Repositories" xml:space="preserve"><value>GitHub repositories</value></data>
+<data name="Button_ChooseRepositories" xml:space="preserve"><value>Choose repositories</value></data>
+<data name="Button_SaveRepositories" xml:space="preserve"><value>Save selection</value></data>
+<data name="GitHub_RepositoriesDescription" xml:space="preserve"><value>Check the GitHub repositories you want to import into WorkNotes, then save your selection. The list comes straight from GitHub, for the connected account; an unchecked repository is removed from WorkNotes.</value></data>
+<data name="GitHub_RepositoriesNotConnected" xml:space="preserve"><value>Connect your GitHub account to see your repositories.</value></data>
+<data name="GitHub_RepositoriesEmpty" xml:space="preserve"><value>GitHub returned no repositories for this account.</value></data>
+<data name="GitHub_RepositoriesCount" xml:space="preserve"><value>Repositories: {0}, of which imported: {1}.</value></data>
+<data name="GitHub_RepositoriesTruncated" xml:space="preserve"><value>Only the first {0} repositories received from GitHub are shown.</value></data>
+<data name="GitHub_RepositoryImported" xml:space="preserve"><value>Imported</value></data>
+<data name="GitHub_RepositoryName" xml:space="preserve"><value>Repository</value></data>
+<data name="GitHub_RepositoryVisibility" xml:space="preserve"><value>Visibility</value></data>
+<data name="GitHub_RepositoryDefaultBranch" xml:space="preserve"><value>Default branch</value></data>
+<data name="GitHub_RepositoryDescription" xml:space="preserve"><value>Description</value></data>
+<data name="GitHub_RepositoryImport" xml:space="preserve"><value>Import {0}</value></data>
+<data name="GitHub_RepositoryNotAccessible" xml:space="preserve"><value>GitHub no longer lists it for this account.</value></data>
+<data name="GitHub_RepositoryPrivate" xml:space="preserve"><value>Private</value></data>
+<data name="GitHub_RepositoryPublic" xml:space="preserve"><value>Public</value></data>
+<data name="GitHub_RepositoriesSaved" xml:space="preserve"><value>Your repository selection has been saved.</value></data>
+<data name="GitHub_RepositoriesConflict" xml:space="preserve"><value>The selection was changed meanwhile in another window. Check the list and save again.</value></data>
 </root>

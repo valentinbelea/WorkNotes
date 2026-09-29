@@ -33,7 +33,8 @@ Scripts/
 │   └── 012_RefreshNoteReferences.sql     # PR #4
 └── version_0.03/                         # versiunea curentă
     ├── 000_UpdateDatabaseVersion.sql
-    └── 001_CreateGitConnections.sql
+    ├── 001_CreateGitConnections.sql
+    └── 002_CreateGitRepositories.sql
 ```
 
 ## Convenții de denumire
@@ -72,6 +73,7 @@ Baza `WorkNotes.db` trebuie să existe. Se aplică întâi `version_0.01`, apoi 
 | 21 | `version_0.02/012_RefreshNoteReferences.sql` | PR #4, script de date, se poate rula oricând: citește din nou toate paragrafele și titlurile cu tipurile active, aduce la zi `NoteReferences`, `NoteReferenceTargets` și `WorkReferences` (șterge rândurile pe care regula nu le mai dă, inclusiv cele ale tipurilor dezactivate, și le adaugă pe cele lipsă) și afișează tipurile, rezumatul, referințele fără notă, cele cu mai multe note și jurnalul „CRs” |
 | 22 | `version_0.03/000_UpdateDatabaseVersion.sql` | Inserează `v.0.03`, dacă lipsește; `v.0.01` și `v.0.02` rămân, iar footerul afișează `v.0.03` |
 | 23 | `version_0.03/001_CreateGitConnections.sql` | Creează `dbo.GitConnections` (conturile GitHub conectate, cu tokenurile criptate de aplicație; cheia `UserId` + `Provider`, cascadă cu `Users`), dacă lipsește; afișează coloanele |
+| 24 | `version_0.03/002_CreateGitRepositories.sql` | Creează `dbo.GitRepositories` (repository-urile importate de fiecare utilizator, cascadă cu `Users`) și indexul unic `UX_GitRepositories_UserId_Provider_ExternalId`, dacă lipsesc; afișează coloanele |
 
 Comentariul din antetul `006_CreateNotes.sql` („A Journal is daily: one per owner, context and date”) descrie regula inițială, înlocuită de `007_AllowSeveralJournalsPerDay.sql`; scriptul livrat nu se modifică.
 
@@ -103,6 +105,7 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\012_RefreshNoteReferences.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.03\000_UpdateDatabaseVersion.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.03\001_CreateGitConnections.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.03\002_CreateGitRepositories.sql'
 ```
 
 Pe o bază la care `002` și `003` au fost deja aplicate se rulează numai `004`–`011`; pe una la care și `004` a fost aplicat, `005`–`011`; pe una la care s-a ajuns până la `008`, `009`–`011`. `012` se rulează apoi oricând este nevoie. Scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea versiunii de cod care le folosește: codul PR #4 scrie `WorkReferenceId` la fiecare referință stocată, iar codul anterior nu îl scrie, deci după `008` nu mai poate salva o referință nouă (și nici nu citește catalogul). `005` afișează rezultatele sub formă de liste (rezumatul, referințele fără notă, cele cu mai multe note, cu fiecare notă, și jurnalul „CRs”), ca `004`. `004` afișează rezultatele sub formă de liste (în SSMS, în fila Results; cu `sqlcmd`, în consolă): rezumatul, referințele fără destinație, cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele ale căror legături vechi au devenit text. Cu `DECLARE @Save bit = 0;` în loc de `1`, `004`, `005`, `007`, `008` și `012` nu salvează nimic, nici tabelele sau coloana: listele arată ce ar face. `007` și `008` încep prin a verifica existența `dbo.WorkReferences` și se opresc cu un mesaj dacă `006` nu a fost aplicat; `010`–`012` verifică la fel scripturile de care depind.
@@ -184,6 +187,8 @@ SELECT [name] FROM sys.check_constraints WHERE [name] IN (N'CK_NoteReferences_Re
 -- Versiunea 0.03: coloanele GitConnections și cheia ei externă către Users
 SELECT [name], [is_nullable] FROM sys.columns WHERE [object_id] = OBJECT_ID(N'dbo.GitConnections') ORDER BY [column_id];
 SELECT [name] FROM sys.foreign_keys WHERE [parent_object_id] = OBJECT_ID(N'dbo.GitConnections');
+-- Versiunea 0.03: GitRepositories, PK_GitRepositories și UX_GitRepositories_UserId_Provider_ExternalId
+SELECT [name] FROM sys.indexes WHERE [object_id] = OBJECT_ID(N'dbo.GitRepositories') AND [name] IS NOT NULL;
 -- Nicio legătură veche rămasă în text
 SELECT COUNT(*) AS [OldLinks] FROM [dbo].[NoteBlocks] WHERE CHARINDEX(N'[[note:', [Content]) > 0;
 ```

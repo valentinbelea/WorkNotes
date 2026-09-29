@@ -204,4 +204,23 @@
 <data name="Button_ReconnectGitHub" xml:space="preserve"><value>Połącz ponownie</value></data>
 <data name="Button_VerifyGitHub" xml:space="preserve"><value>Sprawdź połączenie</value></data>
 <data name="Button_DisconnectGitHub" xml:space="preserve"><value>Odłącz</value></data>
+<data name="Navigation_Repositories" xml:space="preserve"><value>Repozytoria GitHub</value></data>
+<data name="Button_ChooseRepositories" xml:space="preserve"><value>Wybierz repozytoria</value></data>
+<data name="Button_SaveRepositories" xml:space="preserve"><value>Zapisz wybór</value></data>
+<data name="GitHub_RepositoriesDescription" xml:space="preserve"><value>Zaznacz repozytoria GitHub, które chcesz zaimportować do WorkNotes, a następnie zapisz wybór. Lista pochodzi bezpośrednio z GitHub, dla połączonego konta; odznaczone repozytorium zostaje usunięte z WorkNotes.</value></data>
+<data name="GitHub_RepositoriesNotConnected" xml:space="preserve"><value>Połącz konto GitHub, aby zobaczyć repozytoria.</value></data>
+<data name="GitHub_RepositoriesEmpty" xml:space="preserve"><value>GitHub nie zwrócił żadnych repozytoriów dla tego konta.</value></data>
+<data name="GitHub_RepositoriesCount" xml:space="preserve"><value>Repozytoria: {0}, w tym zaimportowane: {1}.</value></data>
+<data name="GitHub_RepositoriesTruncated" xml:space="preserve"><value>Wyświetlane są tylko pierwsze {0} repozytoria otrzymane z GitHub.</value></data>
+<data name="GitHub_RepositoryImported" xml:space="preserve"><value>Zaimportowane</value></data>
+<data name="GitHub_RepositoryName" xml:space="preserve"><value>Repozytorium</value></data>
+<data name="GitHub_RepositoryVisibility" xml:space="preserve"><value>Widoczność</value></data>
+<data name="GitHub_RepositoryDefaultBranch" xml:space="preserve"><value>Domyślna gałąź</value></data>
+<data name="GitHub_RepositoryDescription" xml:space="preserve"><value>Opis</value></data>
+<data name="GitHub_RepositoryImport" xml:space="preserve"><value>Importuj {0}</value></data>
+<data name="GitHub_RepositoryNotAccessible" xml:space="preserve"><value>GitHub nie wyświetla go już dla tego konta.</value></data>
+<data name="GitHub_RepositoryPrivate" xml:space="preserve"><value>Prywatne</value></data>
+<data name="GitHub_RepositoryPublic" xml:space="preserve"><value>Publiczne</value></data>
+<data name="GitHub_RepositoriesSaved" xml:space="preserve"><value>Wybór repozytoriów został zapisany.</value></data>
+<data name="GitHub_RepositoriesConflict" xml:space="preserve"><value>Wybór został w międzyczasie zmieniony w innym oknie. Sprawdź listę i zapisz ponownie.</value></data>
 </root>

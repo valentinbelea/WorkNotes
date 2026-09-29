@@ -4,7 +4,7 @@ Proiectul de persistență: EF Core pe SQL Server, repository-uri și implementa
 
 ## Conținut
 
-- `Context/WorkNotesDbContext.cs` și `Entities/{DatabaseVersion, WorkContext, ContextMember, Note, NoteBlock}.cs` (cu PR #4 și `NoteReference.cs`, `NoteReferenceTarget.cs`, `WorkReference.cs`, `ReferenceType.cs`; în 0.03, `GitConnection.cs`) — generate prin scaffolding; `--force` le suprascrie.
+- `Context/WorkNotesDbContext.cs` și `Entities/{DatabaseVersion, WorkContext, ContextMember, Note, NoteBlock}.cs` (cu PR #4 și `NoteReference.cs`, `NoteReferenceTarget.cs`, `WorkReference.cs`, `ReferenceType.cs`; în 0.03, `GitConnection.cs` și `GitRepository.cs`) — generate prin scaffolding; `--force` le suprascrie.
 - `Context/AccountsDbContext.cs` și `Entities/ApplicationUser.cs` — scrise manual (Identity).
 - `Repositories/` — implementările interfețelor din `WorkNotes.Business/Abstractions`; `GitConnectionRepository` (0.03) criptează tokenurile GitHub cu Data Protection înainte de salvare și le decriptează la citire.
 - `Identity/` — `IdentityAccountService` (contractele de cont, peste `UserManager` / `SignInManager`) și `AccountClaimsPrincipalFactory`.
@@ -20,6 +20,7 @@ Proiectul de persistență: EF Core pe SQL Server, repository-uri și implementa
 - Toate apelurile EF sunt asincrone și primesc `CancellationToken`; nu există operații concurente pe același DbContext.
 - Erorile SQL așteptate se traduc în coduri de stare: 2601/2627 (unicitate), 547 (cheie externă), `DbUpdateConcurrencyException` (conflict); după eșec, entitatea se detașează sau `ChangeTracker` se golește. Celelalte excepții se propagă.
 - Concurența notelor se face prin `RowVersion` (token Base64 de 8 octeți): salvarea setează valoarea originală și actualizează mereu rândul notei; schimbul ordinii este un singur `UPDATE` condiționat de versiunile ambelor note. `[Order]` se scrie mereu între paranteze drepte în SQL-ul scris manual; ordinea minimă se citește cu `UPDLOCK, HOLDLOCK`, în tranzacție. PR #4: catalogul `WorkReferences` primește rânduri numai prin `INSERT … WHERE NOT EXISTS` cu `UPDLOCK, HOLDLOCK`, în ordinea formei normalizate; rândurile lui nu se modifică și nu se șterg, iar `NoteReferences.WorkReferenceId` se scrie la fiecare referință stocată.
+- `GitRepositoryRepository` (0.03) înlocuiește selecția unui utilizator într-un singur `SaveChangesAsync` și citește sau modifică numai rândurile lui (`UserId` + `Provider`).
 - Tokenurile din `GitConnections` se scriu numai criptate (`IDataProtector`, scopul `WorkNotes.GitConnections.Tokens`); nu se schimbă scopul, altfel tokenurile stocate nu se mai pot citi. O conexiune se citește și se modifică numai după `UserId` + `Provider`.
 - Valorile `datetime2` citite primesc `DateTimeKind.Utc`; `ModifiedAtUtc` egal cu crearea înseamnă notă nemodificată.
 - Lifetime-urile rămân scoped; connection string-ul vine numai din parametrul lui `AddDataAccess`, niciodată din cod.

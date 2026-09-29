@@ -3,8 +3,8 @@ using WorkNotes.Business.Models;
 
 namespace WorkNotes.Business.Services;
 
-public sealed class GitHubConnectionService(IGitHubOAuthClient gitHub, IGitConnectionRepository connections, TimeProvider time)
-    : IGitHubConnectionService
+public sealed class GitHubConnectionService(IGitHubOAuthClient gitHub, IGitConnectionRepository connections,
+    IGitHubTokenService tokens, TimeProvider time) : IGitHubConnectionService
 {
     private const string Provider = GitProviders.GitHub;
 
@@ -59,43 +59,15 @@ public sealed class GitHubConnectionService(IGitHubOAuthClient gitHub, IGitConne
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!gitHub.IsConfigured) return GitVerifyStatus.NotConfigured;
-
-        var credential = await connections.GetCredentialAsync(userId, Provider, cancellationToken);
-        if (credential is null) return GitVerifyStatus.NotConnected;
-        if (credential.Tokens is not { } tokens) return GitVerifyStatus.ReconnectRequired;
-
-        var now = Now();
-        if (GitAuthorizationRules.NeedsRefresh(tokens, now))
-        {
-            if (!GitAuthorizationRules.CanRefresh(tokens, now)) return GitVerifyStatus.ReconnectRequired;
-            var refreshed = await gitHub.RefreshAsync(tokens.RefreshToken!, cancellationToken);
-            if (refreshed.Status == GitProviderStatus.Unavailable) return GitVerifyStatus.Unavailable;
-            if (refreshed.Value is { } fresh)
-            {
-                // The old refresh token is spent: the new tokens are saved before anything else can fail.
-                credential = credential with { Tokens = Normalize(fresh) };
-                if (!await connections.UpdateAsync(userId, Provider, credential, cancellationToken))
-                    return GitVerifyStatus.NotConnected;
-            }
-            else
-            {
-                // A refresh token works once: a concurrent request may have refreshed and saved it first.
-                var current = await connections.GetCredentialAsync(userId, Provider, cancellationToken);
-                if (current is null) return GitVerifyStatus.NotConnected;
-                if (current.Tokens is not { } saved || saved.AccessToken == tokens.AccessToken
-                    || GitAuthorizationRules.NeedsRefresh(saved, now))
-                    return GitVerifyStatus.ReconnectRequired;
-                credential = current;
-            }
-        }
+        var token = await tokens.GetAsync(userId, cancellationToken);
+        if (token.Credential is not { } credential) return token.Status;
 
         var account = await gitHub.GetAccountAsync(credential.Tokens!.AccessToken, cancellationToken);
         if (account.Status == GitProviderStatus.Unavailable) return GitVerifyStatus.Unavailable;
         if (account.Value is not { } owner || !GitAuthorizationRules.ValidAccount(owner))
             return GitVerifyStatus.ReconnectRequired;
 
-        var verified = credential with { AccountId = owner.Id, AccountLogin = owner.Login, ValidatedAtUtc = now };
+        var verified = credential with { AccountId = owner.Id, AccountLogin = owner.Login, ValidatedAtUtc = Now() };
         return await connections.UpdateAsync(userId, Provider, verified, cancellationToken)
             ? GitVerifyStatus.Valid
             : GitVerifyStatus.NotConnected;
@@ -110,9 +82,9 @@ public sealed class GitHubConnectionService(IGitHubOAuthClient gitHub, IGitConne
         if (credential is null) return GitDisconnectStatus.NotConnected;
         // Deleted first: the link leaves WorkNotes even when GitHub cannot be reached.
         if (!await connections.DeleteAsync(userId, Provider, cancellationToken)) return GitDisconnectStatus.NotConnected;
-        if (!gitHub.IsConfigured || credential.Tokens is not { } tokens) return GitDisconnectStatus.NotRevoked;
+        if (!gitHub.IsConfigured || credential.Tokens is not { } stored) return GitDisconnectStatus.NotRevoked;
 
-        return await gitHub.RevokeAsync(tokens.AccessToken, cancellationToken) == GitProviderStatus.Succeeded
+        return await gitHub.RevokeAsync(stored.AccessToken, cancellationToken) == GitProviderStatus.Succeeded
             ? GitDisconnectStatus.Disconnected
             : GitDisconnectStatus.NotRevoked;
     }

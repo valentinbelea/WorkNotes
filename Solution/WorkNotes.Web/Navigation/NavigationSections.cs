@@ -10,6 +10,7 @@ public static class NavigationSections
     {
         "/Index" => "Navigation_MySpace",
         _ when page?.StartsWith("/Contexts/", StringComparison.OrdinalIgnoreCase) == true => "Navigation_Contexts",
+        _ when page?.StartsWith("/Repositories/", StringComparison.OrdinalIgnoreCase) == true => "Navigation_Repositories",
         _ when IsAccountPage(page) => "Navigation_MyAccount",
         _ => null
     };

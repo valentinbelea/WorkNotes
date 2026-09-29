@@ -391,8 +391,11 @@ public sealed class GitHubConnectionServiceTests
         Assert.Same(expected, await Assert.ThrowsAsync<InvalidOperationException>(() => service.VerifyAsync(UserId, CancellationToken.None)));
     }
 
-    private static GitHubConnectionService Service(StubGitHub gitHub, StubConnections connections) =>
-        new(gitHub, connections, new FixedTime(UtcNow));
+    private static GitHubConnectionService Service(StubGitHub gitHub, StubConnections connections)
+    {
+        var time = new FixedTime(UtcNow);
+        return new(gitHub, connections, new GitHubTokenService(gitHub, connections, time), time);
+    }
 
     private static GitCredential Stored(GitTokens? tokens) =>
         new("583231", "octocat", tokens, Now.AddDays(-10), Now.AddDays(-1));
@@ -451,6 +454,10 @@ public sealed class GitHubConnectionServiceTests
             ReceivedAccessToken = accessToken;
             return Task.FromResult(Account);
         }
+
+        public Task<GitProviderResult<GitRepositoryCatalog>> GetRepositoriesAsync(string accessToken,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The connection does not list repositories.");
 
         public Task<GitProviderStatus> RevokeAsync(string accessToken, CancellationToken cancellationToken)
         {

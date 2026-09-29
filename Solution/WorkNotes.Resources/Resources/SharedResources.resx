@@ -204,4 +204,23 @@
 <data name="Button_ReconnectGitHub" xml:space="preserve"><value>Conectează din nou</value></data>
 <data name="Button_VerifyGitHub" xml:space="preserve"><value>Verifică conexiunea</value></data>
 <data name="Button_DisconnectGitHub" xml:space="preserve"><value>Deconectează</value></data>
+<data name="Navigation_Repositories" xml:space="preserve"><value>Repository-uri GitHub</value></data>
+<data name="Button_ChooseRepositories" xml:space="preserve"><value>Alege repository-urile</value></data>
+<data name="Button_SaveRepositories" xml:space="preserve"><value>Salvează selecția</value></data>
+<data name="GitHub_RepositoriesDescription" xml:space="preserve"><value>Bifați repository-urile GitHub pe care doriți să le importați în WorkNotes, apoi salvați selecția. Lista vine direct de la GitHub, pentru contul conectat; un repository debifat este scos din WorkNotes.</value></data>
+<data name="GitHub_RepositoriesNotConnected" xml:space="preserve"><value>Conectați contul GitHub pentru a vedea repository-urile.</value></data>
+<data name="GitHub_RepositoriesEmpty" xml:space="preserve"><value>GitHub nu a întors niciun repository pentru acest cont.</value></data>
+<data name="GitHub_RepositoriesCount" xml:space="preserve"><value>Repository-uri: {0}, dintre care importate: {1}.</value></data>
+<data name="GitHub_RepositoriesTruncated" xml:space="preserve"><value>Sunt afișate numai primele {0} repository-uri primite de la GitHub.</value></data>
+<data name="GitHub_RepositoryImported" xml:space="preserve"><value>Importat</value></data>
+<data name="GitHub_RepositoryName" xml:space="preserve"><value>Repository</value></data>
+<data name="GitHub_RepositoryVisibility" xml:space="preserve"><value>Vizibilitate</value></data>
+<data name="GitHub_RepositoryDefaultBranch" xml:space="preserve"><value>Branch implicit</value></data>
+<data name="GitHub_RepositoryDescription" xml:space="preserve"><value>Descriere</value></data>
+<data name="GitHub_RepositoryImport" xml:space="preserve"><value>Importă {0}</value></data>
+<data name="GitHub_RepositoryNotAccessible" xml:space="preserve"><value>GitHub nu îl mai afișează pentru acest cont.</value></data>
+<data name="GitHub_RepositoryPrivate" xml:space="preserve"><value>Privat</value></data>
+<data name="GitHub_RepositoryPublic" xml:space="preserve"><value>Public</value></data>
+<data name="GitHub_RepositoriesSaved" xml:space="preserve"><value>Selecția repository-urilor a fost salvată.</value></data>
+<data name="GitHub_RepositoriesConflict" xml:space="preserve"><value>Selecția a fost schimbată între timp în altă fereastră. Verificați lista și salvați din nou.</value></data>
 </root>

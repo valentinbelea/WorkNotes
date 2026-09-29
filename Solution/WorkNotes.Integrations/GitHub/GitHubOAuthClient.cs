@@ -73,6 +73,37 @@ public sealed class GitHubOAuthClient(HttpClient http, IOptions<GitHubOptions> o
             : GitProviderResult<GitAccount>.Rejected;
     }
 
+    public async Task<GitProviderResult<GitRepositoryCatalog>> GetRepositoriesAsync(string accessToken,
+        CancellationToken cancellationToken)
+    {
+        var repositories = new List<GitRepositoryInfo>();
+        for (var page = 1; ; page++)
+        {
+            using var request = ApiRequest(HttpMethod.Get,
+                $"user/repos?affiliation=owner,collaborator,organization_member&sort=full_name&direction=asc" +
+                $"&per_page={GitRepositoryRules.PageSize}&page={page}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await SendAsync(request, cancellationToken);
+            if (response is null || Unavailable(response.StatusCode)) return GitProviderResult<GitRepositoryCatalog>.Unavailable;
+            if (!response.IsSuccessStatusCode) return GitProviderResult<GitRepositoryCatalog>.Rejected;
+
+            var (read, items) = await ReadAsync<List<RepositoryResponse>>(response, cancellationToken);
+            if (!read || items is null) return GitProviderResult<GitRepositoryCatalog>.Unavailable;
+            repositories.AddRange(items.Select(item => new GitRepositoryInfo(
+                item.Id.ToString(CultureInfo.InvariantCulture), item.FullName ?? "", item.Description, item.Private,
+                item.DefaultBranch, item.HtmlUrl ?? "")));
+
+            // GitHub announces a further page in the Link header (rel="next").
+            var hasNext = response.Headers.TryGetValues("Link", out var links)
+                && links.Any(link => link.Contains("rel=\"next\"", StringComparison.Ordinal));
+            if (!hasNext || items.Count == 0)
+                return GitProviderResult<GitRepositoryCatalog>.Succeeded(new GitRepositoryCatalog(repositories, false));
+            if (repositories.Count >= GitRepositoryRules.MaxListed)
+                return GitProviderResult<GitRepositoryCatalog>.Succeeded(
+                    new GitRepositoryCatalog(repositories.Take(GitRepositoryRules.MaxListed).ToList(), true));
+        }
+    }
+
     public async Task<GitProviderStatus> RevokeAsync(string accessToken, CancellationToken cancellationToken)
     {
         // DELETE /applications/{client_id}/grant, authenticated as the application: removes the user's authorization.
@@ -176,6 +207,14 @@ public sealed class GitHubOAuthClient(HttpClient http, IOptions<GitHubOptions> o
     private sealed record UserResponse(
         [property: JsonPropertyName("id")] long Id,
         [property: JsonPropertyName("login")] string? Login);
+
+    private sealed record RepositoryResponse(
+        [property: JsonPropertyName("id")] long Id,
+        [property: JsonPropertyName("full_name")] string? FullName,
+        [property: JsonPropertyName("description")] string? Description,
+        [property: JsonPropertyName("private")] bool Private,
+        [property: JsonPropertyName("default_branch")] string? DefaultBranch,
+        [property: JsonPropertyName("html_url")] string? HtmlUrl);
 
     private sealed record RevokeRequest([property: JsonPropertyName("access_token")] string AccessToken);
 }

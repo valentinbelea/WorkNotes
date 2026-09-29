@@ -1,0 +1,103 @@
+@page
+@model WorkNotes.Web.Pages.Repositories.IndexModel
+@using WorkNotes.Business.Models
+@{
+    ViewData["Title"] = L["Navigation_Repositories"];
+    var selection = Model.Selection;
+    var editable = selection.Status == GitRepositoryStatus.Succeeded;
+}
+@* The GitHub repositories of the connected account. The list is read from GitHub on every visit; the form posts the
+   checked IDs and the server takes the rest from GitHub, so the page works without JavaScript. When GitHub cannot be
+   read, only the imported repositories are shown, without check boxes. *@
+<section class="page-panel postit-panel" aria-labelledby="repositories-title">
+    <div class="page-heading">
+        <div>
+            <h1 id="repositories-title">@L["Navigation_Repositories"]</h1>
+            <p class="help-text">@L["GitHub_RepositoriesDescription"]</p>
+        </div>
+    </div>
+    @if (!editable)
+    {
+        <p class="text-muted">
+            @L[selection.Status switch
+            {
+                GitRepositoryStatus.NotConfigured => "GitHub_NotConfiguredHelp",
+                GitRepositoryStatus.NotConnected => "GitHub_RepositoriesNotConnected",
+                GitRepositoryStatus.ReconnectRequired => "GitHub_ReconnectRequired",
+                _ => "GitHub_Unavailable"
+            }]
+            @if (selection.Status is GitRepositoryStatus.NotConnected or GitRepositoryStatus.ReconnectRequired)
+            {
+                <a asp-page="/Account/GitHub">@L["Navigation_GitHub"]</a>
+            }
+        </p>
+    }
+    @if (selection.Repositories.Count == 0)
+    {
+        @if (editable)
+        {
+            <p class="text-muted">@L["GitHub_RepositoriesEmpty"]</p>
+        }
+    }
+    else
+    {
+        @if (editable)
+        {
+            <p class="help-text">@L["GitHub_RepositoriesCount", selection.Repositories.Count, selection.Repositories.Count(choice => choice.IsImported)]</p>
+            @if (selection.Truncated)
+            {
+                <p class="help-text">@L["GitHub_RepositoriesTruncated", GitRepositoryRules.MaxListed]</p>
+            }
+        }
+        <form method="post">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">@L["GitHub_RepositoryImported"]</th>
+                        <th scope="col">@L["GitHub_RepositoryName"]</th>
+                        <th scope="col">@L["GitHub_RepositoryVisibility"]</th>
+                        <th scope="col">@L["GitHub_RepositoryDefaultBranch"]</th>
+                        <th scope="col">@L["GitHub_RepositoryDescription"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var choice in selection.Repositories)
+                    {
+                        var repository = choice.Repository;
+                        <tr>
+                            <td>
+                                @if (editable)
+                                {
+                                    <label class="check">
+                                        <input type="checkbox" name="Selected" value="@repository.Id" checked="@choice.IsImported" />
+                                        <span class="visually-hidden">@L["GitHub_RepositoryImport", repository.FullName]</span>
+                                    </label>
+                                }
+                                else
+                                {
+                                    <span>@L["GitHub_RepositoryImported"]</span>
+                                }
+                            </td>
+                            <th scope="row">
+                                <a href="@repository.HtmlUrl" target="_blank" rel="noopener noreferrer">@repository.FullName</a>
+                                @if (!choice.IsAccessible)
+                                {
+                                    <br /><span class="help-text">@L["GitHub_RepositoryNotAccessible"]</span>
+                                }
+                            </th>
+                            <td class="data-table__nowrap">@L[repository.IsPrivate ? "GitHub_RepositoryPrivate" : "GitHub_RepositoryPublic"]</td>
+                            <td>@repository.DefaultBranch</td>
+                            <td>@repository.Description</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (editable)
+            {
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">@L["Button_SaveRepositories"]</button>
+                </div>
+            }
+        </form>
+    }
+</section>

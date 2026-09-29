@@ -126,7 +126,8 @@ Versiunea 0.03 este dedicată integrării cu Git, la cererea utilizatorului din 
 
 - [~] Versiunea 0.03: `Scripts/version_0.03/000_UpdateDatabaseVersion.sql` și documentele de versionare.
 - [~] Secțiunea Conectare GitHub din Contul meu (`/Account/GitHub`): conectarea prin OAuth (cu PKCE și `state`), contul afișat, verificarea conexiunii (cu reîmprospătarea tokenului), reconectarea și deconectarea (cu revocarea autorizării la GitHub); tokenurile criptate în `dbo.GitConnections` (`001_CreateGitConnections.sql`); proiectul nou `WorkNotes.Integrations`.
-- [ ] Citirea branch-urilor, commit-urilor și pull request-urilor legate de CR-uri și buguri. TODO: Necesită clarificare — ce repository-uri se citesc (configurate pe context?) și după ce se leagă de un CR sau bug (numele branch-ului, mesajul commit-ului, titlul pull request-ului).
+- [~] Importul repository-urilor (`/Repositories`, în meniu): lista tuturor repository-urilor GitHub ale contului conectat, cu câte o bifă, iar salvarea face din cele bifate repository-urile importate în WorkNotes (`dbo.GitRepositories`, `002_CreateGitRepositories.sql`); cel mult 1000 afișate.
+- [ ] Citirea branch-urilor, commit-urilor și pull request-urilor legate de CR-uri și buguri, din repository-urile importate. TODO: Necesită clarificare — ce repository-uri se citesc (configurate pe context?) și după ce se leagă de un CR sau bug (numele branch-ului, mesajul commit-ului, titlul pull request-ului).
 - [ ] Alți furnizori Git (GitLab, Azure DevOps), numai la o cerere nouă.
 
 ## Alte cerințe
@@ -148,6 +149,6 @@ Versiunea 0.03 este dedicată integrării cu Git, la cererea utilizatorului din 
 
 **În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare, deschiderea și închiderea notelor fără reîncărcarea tablei, care urmează salvările din editor, schimbarea tipului unei note din editor și referințele interne CR/bug între note, cu reindexarea conținutului existent, sertarul referințelor din editor și popup-ul referinței abia scrise, plus corecția selecției din editor.
 
-**În lucru pentru version_0.03**: conectarea contului GitHub prin OAuth.
+**În lucru pentru version_0.03**: conectarea contului GitHub prin OAuth și importul repository-urilor.
 
 **Planificate**: referințele de lucru CR/bug și asocierile lor, legăturile externe, evidențierea referințelor, salvarea automată, vizibilitatea și arhivarea din interfață, paragraful important, editarea notelor partajate, platformele și modulele ulterioare. Ordinea și dependențele sunt în [ROADMAP.md](ROADMAP.md).

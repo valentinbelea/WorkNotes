@@ -14,6 +14,7 @@
         @if (User.Identity?.IsAuthenticated == true)
         {
             <a class="menu-item" asp-page="/Contexts/Index" aria-current="@(currentPage == "/Contexts/Index" ? "page" : null)">@L["Navigation_Contexts"]</a>
+            <a class="menu-item" asp-page="/Repositories/Index" aria-current="@(currentPage == "/Repositories/Index" ? "page" : null)">@L["Navigation_Repositories"]</a>
         }
         <details class="menu-account" open="@isAccountPage">
             <summary class="menu-item">@L["Navigation_MyAccount"]</summary>

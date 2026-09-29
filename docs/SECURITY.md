@@ -15,7 +15,7 @@ Regulile obligatorii pentru conturi, parole, cookie-uri și secrete sunt în [AG
 
 ## Autorizarea
 
-- La nivel de pagină: `[Authorize]` pe `/Contexts`, `/Account`, `/Account/ChangePassword` și `/Account/GitHub` (inclusiv callback-ul); `[AllowAnonymous]` pe autentificare, înregistrare și schimbarea limbii. Pagina principală este publică: vizitatorul vede panoul de bun venit, iar handlerele ei cer autentificarea (redirect la autentificare sau 401 JSON).
+- La nivel de pagină: `[Authorize]` pe `/Contexts`, `/Account`, `/Account/ChangePassword`, `/Account/GitHub` (inclusiv callback-ul) și `/Repositories`; `[AllowAnonymous]` pe autentificare, înregistrare și schimbarea limbii. Pagina principală este publică: vizitatorul vede panoul de bun venit, iar handlerele ei cer autentificarea (redirect la autentificare sau 401 JSON).
 - La nivel de resursă, regulile sunt în Business și sunt aplicate și în interogările repository-urilor:
   - un context este vizibil numai membrilor lui (orice rol); numai `Owner` îl editează, îl șterge și îi gestionează membrii;
   - orice membru poate crea note în context; numai proprietarul notei o editează, o redenumește, o șterge și îi schimbă locul pe tablă.
@@ -93,6 +93,7 @@ Regulile obligatorii sunt în [AGENTS.md › Integrarea GitHub](../AGENTS.md#int
 - În bază, `ProtectedAccessToken` și `ProtectedRefreshToken` sunt criptate cu Data Protection (scopul `WorkNotes.GitConnections.Tokens`); o copie a bazei fără cheile aplicației nu le dezvăluie. Tokenurile care nu se mai pot decripta cer reconectarea și se pot deconecta.
 - Accesul: fiecare utilizator vede și modifică numai conexiunea lui (`UserId` din claims, filtrul în fiecare interogare a repository-ului). Deconectarea șterge rândul și revocă autorizarea la GitHub; ștergerea unui utilizator îi șterge conexiunea în cascadă.
 - Permisiunile sunt ale aplicației GitHub înregistrate: recomandat o GitHub App numai cu citire (Contents, Metadata, Pull requests), cu tokenuri care expiră după 8 ore și se reîmprospătează. O OAuth App cere scopul `repo` pentru repository-uri private, care permite și scrierea.
+- Repository-urile (`/Repositories`, `[Authorize]`): lista se citește de la GitHub cu tokenul utilizatorului, deci arată numai ce poate vedea el. Formularul (POST cu antiforgery) trimite numai ID-uri; serverul citește din nou lista și salvează numai repository-uri pe care GitHub i le arată sau pe care le-a importat deja, cu datele luate de la GitHub, nu din cerere. Fiecare utilizator vede și schimbă numai repository-urile lui. Descrierea de la GitHub este text codificat de Razor, iar adresa unui repository este acceptată numai ca adresă `https` absolută; linkul se deschide cu `rel="noopener noreferrer"`.
 - Erorile furnizorului sunt coduri de stare (`Rejected`, `Unavailable`) traduse în mesaje localizate, fără detalii tehnice; răspunsurile GitHub nu se afișează.
 
 ## Logging
