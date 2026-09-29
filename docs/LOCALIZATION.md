@@ -89,6 +89,7 @@ JavaScript nu conține texte. Textele ajung la scripturi randate de server:
 - editorul citește textele comune și frazele CodeMirror (`EditorState.phrases`) din JSON-ul `#note-editor-data`, iar datele fiecărui tab din JSON-ul panoului;
 - PR #4: sertarul referințelor din editor este randat de server, cu textele lui; după o salvare, intrările lui sunt copii ale template-ului randat în sertar, completate cu numele referințelor și etichetele notelor din răspunsul JSON (`referenceList`, `references`);
 - PR #4: popup-ul referinței abia scrise este o copie a template-ului din dialogul editorului, cu textele căutării, butonului și tastelor; mesajul găsit sau inexistent (cu referința, ca parametru `{0}`) și tipurile notelor vin localizate în răspunsul JSON al căutării (`message`, `notes`);
+- PR #4: după o salvare din editor, textele cardului notei (numele „Fără titlu” al unei note fără titlu și etichetele Open și Delete, cu titlul) vin localizate în răspunsul salvării (`card`), cu cheile folosite de `_NoteCard`;
 - răspunsurile JSON ale handlerelor conțin deja mesajul localizat (`message`).
 
 ## Texte care nu se traduc

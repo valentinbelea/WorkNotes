@@ -62,11 +62,11 @@ Starea overlay-urilor este în URL: fiecare dialog se poate deschide și fără 
 
 | Fișier | Rol |
 | --- | --- |
-| `notes-board.js` | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există, altfel aducând fereastra editorului peste tablă), schimbul a două carduri prin drag-and-drop, prinse de bandă |
-| `note-editor.js` | Editorul: câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; după un schimb pe tablă, taburile notelor mutate primesc versiunile noi (`note-board:versions`) |
+| `notes-board.js` | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există, altfel aducând fereastra editorului peste tablă), schimbul a două carduri prin drag-and-drop, prinse de bandă; cardul unei note salvate în editor arată salvarea și trece în luna nouă (`note-editor:saved`), iar la închiderea editorului focusul revine pe card (`note-editor:closed`) |
+| `note-editor.js` | Editorul: câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; după un schimb pe tablă, taburile notelor mutate primesc versiunile noi (`note-board:versions`); închiderea fără modificări nesalvate scoate fereastra din pagină, fără reîncărcare, iar `startEditor` pregătește fereastra adusă din nou |
 | `note-references.js` | Linkurile referințelor interne în editor, desenate din pozițiile trimise de server (după încărcare și după fiecare salvare); click și Ctrl+Enter deschid notele linkului în taburi; sertarul referințelor (`referenceDrawer`), a cărui listă urmează salvările; popup-ul referinței abia scrise (`referenceLookup`), care întreabă serverul după un număr urmat de un separator; nu citește referințe din text |
 | `status-messages.js` | Afișarea mesajelor de salvare din scripturi, din template-uri randate de server |
-| `modal.js` | Dialogurile modale (Escape și click în afară revin la adresa de închidere), inclusiv cele adăugate ulterior în pagină (evenimentul `modal:open`) |
+| `modal.js` | Dialogurile modale (Escape și click în afară revin la adresa de închidere, iar editorul se închide pe loc prin evenimentul anulabil `modal:close`), inclusiv cele adăugate ulterior în pagină (evenimentul `modal:open`) |
 | `navigation.js`, `language.js`, `validation.js` | Meniul, selectorul de limbă, validarea client |
 | `lib/codemirror/codemirror.js` | CodeMirror 6, construit local din `tools/codemirror` (licență MIT) |
 

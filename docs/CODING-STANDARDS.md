@@ -101,7 +101,7 @@ Patru niveluri, fiecare cu rolul lui:
 - Popup-urile din editor sunt tooltip-uri CodeMirror (`showTooltip`), pe care le poziționează biblioteca; scriptul le dă numai conținutul (dintr-un template) și clasele (PR #4: popup-ul referinței abia scrise).
 - Fără texte sau traduceri în JavaScript: textele vin din atribute `data-*`, din template-uri și din JSON-ul randat de server; textul se scrie cu `textContent`.
 - Cererile `fetch` trimit tokenul antiforgery (prin `FormData` din formularul randat de server sau prin antetul `RequestVerificationToken`) și `Accept: application/json` când așteaptă JSON.
-- Modulele comunică prin evenimente (`note-editor:open`, `note-board:versions`), nu prin variabile globale.
+- Modulele comunică prin evenimente (`note-editor:open`, `note-board:versions`; cu PR #4, `note-editor:saved`, `note-editor:closed` și `modal:close`), nu prin variabile globale; un eveniment anulabil marcat cu `preventDefault()` înseamnă „tratat”.
 - Fiecare funcție mai mare are un comentariu care descrie comportamentul; numele interne sunt camelCase.
 
 ## CSS

@@ -47,6 +47,7 @@ Statusurile sunt stabilite după codul de pe `main` (commit `504c01e`, 2026-09-2
 
 - [x] Editor CodeMirror 6 peste tablă, într-un dialog de 90% din fereastră, deschis cu Open sau dublu-click (`/?note={id}`).
 - [~] Deschiderea unei note de pe tablă fără reîncărcarea paginii — implementată în PR #4, neintegrată în `main`.
+- [~] Tabla din spatele editorului urmează fiecare salvare (titlul și previzualizarea când se schimbă, data ultimei modificări la fiecare salvare, trecerea unei note mai vechi în luna curentă), iar închiderea editorului fără modificări nesalvate nu reîncarcă pagina — implementate în PR #4, neintegrate în `main`.
 - [x] Paragrafe cu identitate stabilă și audit propriu; bara de informații arată data creării și a modificării paragrafului de sub mouse sau de la cursor.
 - [x] Căutare/înlocuire, undo/redo, rândul activ, Ctrl+S, avertizare la părăsirea paginii cu modificări nesalvate.
 - [~] Selecția textului vizibilă în editor, pe foaia jurnalului și pe cea a articolului, inclusiv pe rândul activ și în titlu — corecție în PR #4, neintegrată în `main`.
@@ -135,6 +136,6 @@ Implementate în PR #4 (branch `main_task_02`), neintegrate în `main`; regulile
 
 **Implementate** (version_0.01 și version_0.02): conturile, localizarea ro/en/pl, designul, contextele și membrii, tabla pe contexte și luni, post-it-urile cu creare, redenumire și ștergere pe loc, editorul cu paragrafe auditate, taburi și minimizare, mesajele de salvare, ordonarea prin drag-and-drop, versiunea în footer.
 
-**În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare, deschiderea notelor fără reîncărcarea tablei și referințele interne CR/bug între note, cu reindexarea conținutului existent, sertarul referințelor din editor și popup-ul referinței abia scrise, plus corecția selecției din editor.
+**În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare, deschiderea și închiderea notelor fără reîncărcarea tablei, care urmează salvările din editor, și referințele interne CR/bug între note, cu reindexarea conținutului existent, sertarul referințelor din editor și popup-ul referinței abia scrise, plus corecția selecției din editor.
 
 **Planificate**: referințele de lucru CR/bug și asocierile lor, legăturile externe, evidențierea referințelor, salvarea automată, vizibilitatea și arhivarea din interfață, paragraful important, editarea notelor partajate, platformele și modulele ulterioare. Ordinea și dependențele sunt în [ROADMAP.md](ROADMAP.md).

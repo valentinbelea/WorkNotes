@@ -104,11 +104,12 @@ Afișarea tablei, `GET /?context=5`:
 Salvarea din editor, `POST /?handler=SaveNote&note={id}` cu corp JSON:
 
 1. Razor Pages validează tokenul antiforgery din antetul `RequestVerificationToken`.
-2. `IndexModel.OnPostSaveNoteAsync` → `INoteService.SaveAsync`: validează titlul și paragrafele (`NoteRules`), verifică vizibilitatea, proprietarul și versiunea.
+2. `IndexModel.OnPostSaveNoteAsync` → `INoteService.SaveAsync`: validează titlul și paragrafele (`NoteRules`), verifică vizibilitatea, proprietarul și versiunea (cu PR #4, pe cardul notei, `GetSummaryAsync`, fără să-i citească toate paragrafele).
 3. PR #4: `INoteReferenceService.ResolveAsync` citește referințele din paragrafe, cu tipurile configurate (`IReferenceTypeService`), și le caută destinațiile printre notele contextului vizibile proprietarului (`INoteReferenceRepository.GetCandidatesAsync`): toate notele cu referința în titlu, în afară de nota salvată.
 4. `NoteRepository.SaveAsync` compară paragrafele cu cele salvate și scrie numai diferențele, cu verificarea `RowVersion`; cu PR #4, în același `SaveChangesAsync` și referințele paragrafelor, cu notele lor (`NoteReferences`, `NoteReferenceTargets`) și cu ID-urile lor din `WorkReferences` (o referință nouă este adăugată în catalog înainte).
 5. PR #4: dacă titlul s-a schimbat, `INoteReferenceService.RefreshAsync` recalculează în context referințele pe care titlul le-a câștigat sau le-a pierdut (la fel după redenumirea de pe card și crearea unei note; ștergerea unei note își scoate singură rândurile, fără recalculare).
-6. Răspunsul JSON conține noua versiune, mesajul localizat, data ultimei modificări și textele de audit ale paragrafelor (cu PR #4 și pozițiile linkurilor fiecărui paragraf și notele lor, plus lista sertarului referințelor, `referenceList`); o eroare conține numai mesajul.
+6. PR #4: `NoteService` construiește din textul salvat cardul notei (`NoteSaveResult.Note`: titlul, previzualizarea cu `NoteRules.PreviewOf`, data ultimei modificări, versiunea), fără o citire nouă; numai o notă trecută astfel în altă lună (luna curentă) citește tabla, pentru ordinea acelei luni (`NoteSaveResult.Month`).
+7. Răspunsul JSON conține noua versiune, mesajul localizat, data ultimei modificări și textele de audit ale paragrafelor (cu PR #4 și pozițiile linkurilor fiecărui paragraf și notele lor, lista sertarului referințelor, `referenceList`, și cardul notei, `card`: titlul, numele, etichetele Open și Delete, previzualizarea, data și, după o mutare, cheia lunii cu notele ei); o eroare conține numai mesajul. Cu PR #4, `note-editor.js` dă cardul tablei (`note-editor:saved`), iar `notes-board.js` îl arată pe card.
 
 Căutarea referinței abia scrise (PR #4), `POST /?handler=ReferenceLookup&note={id}` cu corp JSON:
 
@@ -142,7 +143,7 @@ Footer         → ApplicationVersionViewComponent → IApplicationVersionServic
 | `/?note={id}` | Editorul peste tablă, cu nota într-un tab |
 | `/?delete={id}` | Confirmarea ștergerii unei note |
 | `/?handler=NoteTab&note={id}` (GET) | Un tab nou pentru editorul deja deschis (fragment HTML) |
-| `/?handler=SaveNote&note={id}` (POST JSON) | Salvarea unei note din editor |
+| `/?handler=SaveNote&note={id}` (POST JSON) | Salvarea unei note din editor; cu PR #4, răspunsul are și cardul notei, pentru tabla din spate |
 | `/?handler=CreateNote`, `RenameNote`, `DeleteNote` (POST) | Crearea, redenumirea pe loc, ștergerea; adresele deschise cu GET revin la tablă |
 | `/?handler=SwapNotes` (POST, răspuns JSON) | Schimbul a două note din aceeași lună; răspunde cu ordinea lunii și noile versiuni |
 | `/?handler=ReferenceLookup&note={id}` (POST JSON, PR #4) | Referința cu care se termină textul abia scris în notă (numai proprietarul): `found` cu locul ei și notele, `missing` sau `none` |
@@ -170,11 +171,11 @@ Numai comportament; aspectul vine din clase CSS ([CODING-STANDARDS.md](CODING-ST
 
 | Fișier | Încărcare | Rol |
 | --- | --- | --- |
-| `notes-board.js` | layout, modul ES | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există), schimbul a două carduri prin drag-and-drop |
-| `note-editor.js` | pagina principală, modul ES, numai cu editorul deschis | Câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; primește noile versiuni după un schimb (`note-board:versions`); cu PR #4, sertarul referințelor este deschis sau închis la fel în toate taburile |
+| `notes-board.js` | layout, modul ES | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există), schimbul a două carduri prin drag-and-drop; cu PR #4, cardul unei note salvate în editor arată salvarea și trece în luna nouă (`note-editor:saved`), iar la închiderea editorului focusul revine pe card (`note-editor:closed`) |
+| `note-editor.js` | pagina principală, modul ES, numai cu editorul deschis | Câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; primește noile versiuni după un schimb (`note-board:versions`); cu PR #4, sertarul referințelor este deschis sau închis la fel în toate taburile; cu PR #4, închiderea fără modificări nesalvate scoate fereastra din pagină, fără reîncărcare (ascultătorii ei, cu un `AbortController`), iar `startEditor`, apelat de `notes-board.js`, pregătește fereastra adusă din nou |
 | `note-references.js` (PR #4) | importat de `note-editor.js` | Linkurile referințelor interne, desenate din pozițiile trimise de server; click și Ctrl+Enter deschid notele linkului în taburile editorului (`openNotes`, prima notă este arătată); sertarul referințelor (`referenceDrawer`): linkurile lui deschid notele în taburi, iar după salvare lista este refăcută din template-ul lui; popup-ul referinței abia scrise (`referenceLookup`): un caracter din `wordEnds` (sau Tab) după o cifră întreabă serverul, iar răspunsul se arată ca tooltip CodeMirror deasupra referinței, din template-ul dialogului; nu citește referințe din text |
 | `status-messages.js` | importat de cele două module | Afișarea mesajelor de salvare din template-urile randate de server |
-| `modal.js`, `navigation.js`, `language.js`, `validation.js` | layout, `defer` | Dialogurile modale, meniul, selectorul de limbă, validarea client |
+| `modal.js`, `navigation.js`, `language.js`, `validation.js` | layout, `defer` | Dialogurile modale (cu PR #4, evenimentul anulabil `modal:close`, prin care editorul se închide pe loc), meniul, selectorul de limbă, validarea client |
 | `lib/codemirror/codemirror.js` | importat de `note-editor.js` | CodeMirror 6, construit din `Solution/tools/codemirror` (cu PR #4 exportă și `showTooltip` și `tooltips`) |
 
 ## CSS

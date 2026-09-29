@@ -16,7 +16,7 @@ Baza existentă, livrată în version_0.01 și version_0.02:
 
 ## În lucru
 
-- PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; deschiderea notelor fără reîncărcarea tablei; referințele interne CR/bug între note, cu destinațiile aflate din titluri (toate notele cu referința în titlu), relații pe paragraf în `NoteReferences`, cu notele fiecărei referințe în `NoteReferenceTargets` și cu ID-ul fiecărei referințe din catalogul `WorkReferences`, tipurile configurabile din `ReferenceTypes` (ținute în memorie), sertarul referințelor din editor, popup-ul referinței abia scrise și reindexarea conținutului existent prin `version_0.02/004_ReplaceNoteReferences.sql`–`012_RefreshNoteReferences.sql` ([ADR-003](decisions/ADR-003-internal-references.md)); corecția selecției din editor.
+- PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; deschiderea și închiderea notelor fără reîncărcarea tablei, care urmează salvările din editor; referințele interne CR/bug între note, cu destinațiile aflate din titluri (toate notele cu referința în titlu), relații pe paragraf în `NoteReferences`, cu notele fiecărei referințe în `NoteReferenceTargets` și cu ID-ul fiecărei referințe din catalogul `WorkReferences`, tipurile configurabile din `ReferenceTypes` (ținute în memorie), sertarul referințelor din editor, popup-ul referinței abia scrise și reindexarea conținutului existent prin `version_0.02/004_ReplaceNoteReferences.sql`–`012_RefreshNoteReferences.sql` ([ADR-003](decisions/ADR-003-internal-references.md)); corecția selecției din editor.
 
 ## Etapele următoare
 
@@ -49,7 +49,8 @@ Limitări cunoscute care pot deveni îmbunătățiri ([CURRENT-STATUS.md](CURREN
 - păstrarea identității unui paragraf mutat prin tăiere și lipire;
 - reordonarea de la tastatură și pe ecrane tactile;
 - afișarea taburilor pe telefon;
-- mutarea imediată a cardului după redenumire.
+- mutarea imediată a cardului după redenumirea de pe card (după o salvare din editor, cardul se mută deja, cu PR #4);
+- modificările altor membri pe tabla deschisă, fără reîncărcare (cu PR #4, nici închiderea editorului nu mai reîncarcă tabla).
 
 ## Idei încă neaprobate
 

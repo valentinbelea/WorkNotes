@@ -38,7 +38,7 @@
 - Schimbarea vizibilității, arhivarea și ieșirea unui membru din context nu recalculează legăturile (nu au încă interfață).
 - Previzualizarea cardurilor este text simplu, fără linkuri.
 - Într-o notă read-only (a unui coleg), linkurile se deschid cu mouse-ul; de la tastatură nu, pentru că editorul read-only nu primește focus.
-- Închiderea editorului reîncarcă tabla, ca să arate cardurile după salvări; numai deschiderea nu o mai reîncarcă.
+- Închiderea editorului nu mai reîncarcă tabla (tabla urmează salvările din editor), deci modificările altor membri apar abia la următoarea încărcare a paginii; redenumirea de pe card nu mută încă cardul în luna curentă.
 
 ## Întrebări deschise
 
