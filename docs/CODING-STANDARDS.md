@@ -20,6 +20,7 @@ Regula: [AGENTS.md › SOLID, interfețe și dependency injection](../AGENTS.md#
 - DTO-urile imutabile sunt `sealed record`; actualizările folosesc `with`.
 - Regulile și limitele stau în clase statice `*Rules` (`NoteRules`, `WorkContextRules`, `AccountRules`), cu constante pentru lungimi și metode `Valid…` / `Normalize…`. Limitele corespund coloanelor SQL.
 - Valorile stocate ca text (`NoteTypes`, `NoteVisibilities`, `ContextRoles`) sunt constante care corespund exact constrângerilor `CHECK` din SQL; o valoare nouă cere și un script SQL.
+- PR #4: tipurile de referință internă (`CR`, `BUG`…) nu sunt constante în cod: vin din tabela de configurare `dbo.ReferenceTypes`, prin `IReferenceTypeService`, iar textele se citesc numai cu parserul dat de el (`NoteReferenceParser`).
 - Colecțiile din contracte sunt `IReadOnlyList<T>`; se folosesc collection expressions (`[]`) și expresii `switch`.
 - Timpul vine din `TimeProvider` injectat, nu din `DateTime.Now`: ziua jurnalului și lunile tablei folosesc calendarul local al aplicației, auditul se păstrează în UTC, trunchiat la secundă.
 
@@ -97,9 +98,10 @@ Patru niveluri, fiecare cu rolul lui:
 - Progressive enhancement: operațiile de bază funcționează fără JavaScript; scriptul preia un link sau un formular randat de server (`event.preventDefault()`) și păstrează aceeași adresă ca rezervă.
 - Punctele de legătură sunt atributele `data-*` (`data-note-open`, `data-editor-save`), nu clasele CSS.
 - Fără stiluri inline și fără poziționare din script: se adaugă sau se elimină numai clase CSS definite în foile de stil.
+- Popup-urile din editor sunt tooltip-uri CodeMirror (`showTooltip`), pe care le poziționează biblioteca; scriptul le dă numai conținutul (dintr-un template) și clasele (PR #4: popup-ul referinței abia scrise).
 - Fără texte sau traduceri în JavaScript: textele vin din atribute `data-*`, din template-uri și din JSON-ul randat de server; textul se scrie cu `textContent`.
 - Cererile `fetch` trimit tokenul antiforgery (prin `FormData` din formularul randat de server sau prin antetul `RequestVerificationToken`) și `Accept: application/json` când așteaptă JSON.
-- Modulele comunică prin evenimente (`note-editor:open`, `note-board:versions`), nu prin variabile globale.
+- Modulele comunică prin evenimente (`note-editor:open`, `note-board:versions`; cu PR #4, `note-editor:saved`, `note-editor:closed` și `modal:close`), nu prin variabile globale; un eveniment anulabil marcat cu `preventDefault()` înseamnă „tratat”.
 - Fiecare funcție mai mare are un comentariu care descrie comportamentul; numele interne sunt camelCase.
 
 ## CSS

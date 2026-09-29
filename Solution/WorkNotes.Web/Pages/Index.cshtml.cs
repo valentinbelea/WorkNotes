@@ -82,6 +82,15 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         return Page();
     }
 
+    // The editor window with one note, for a board without it: notes-board.js puts it over the board already on the page
+    // instead of loading /?note={id}, which would read and draw the whole board again.
+    public async Task<IActionResult> OnGetNoteEditorAsync(int note, CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return Unauthorized();
+        OpenNote = await notes.GetDocumentAsync(note, UserId, cancellationToken);
+        return OpenNote is null ? NotFound() : Partial("_NoteEditorDialog", this);
+    }
+
     // A note opened from the board while the editor is already on the page: note-editor.js adds it as a new tab.
     public async Task<IActionResult> OnGetNoteTabAsync(int note, CancellationToken cancellationToken)
     {
@@ -96,7 +105,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
         if (request is null) return EditorFailure(StatusCodes.Status400BadRequest, "Editor_InvalidContent");
         var blocks = (request.Blocks ?? []).Select(block => new NoteBlockInput(block.Id, block.Content)).ToList();
-        var result = await notes.SaveAsync(UserId, note, request.Version, request.Title, blocks, cancellationToken);
+        var result = await notes.SaveAsync(UserId, note, request.Version, request.Title, request.NoteType, blocks, cancellationToken);
         return result.Status switch
         {
             // The updated audit texts refresh the editor's info bar without reloading the note.
@@ -110,14 +119,61 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                 {
                     id = block.Id,
                     info = NoteDates.BlockAudit(localizer, block.CreatedAtUtc, block.ModifiedAtUtc),
-                    unsavedInfo = NoteDates.BlockAudit(localizer, block.CreatedAtUtc, block.ModifiedAtUtc, unsaved: true)
-                })
+                    unsavedInfo = NoteDates.BlockAudit(localizer, block.CreatedAtUtc, block.ModifiedAtUtc, unsaved: true),
+                    // Where the saved text shows links now, so the editor draws them without reloading the note.
+                    links = NoteReferences.Links(block.Links)
+                }),
+                references = NoteReferences.Targets(localizer, result.References),
+                // The references drawer of the saved text: each reference once, with the notes it opens.
+                referenceList = NoteReferences.ListData(NoteReferences.List((result.Blocks ?? []).Select(block => block.Links), result.References)),
+                // The note's card on the board behind the editor, which follows the save (notes-board.js).
+                card = result.Note is { } saved ? BoardCard(saved, result.Month) : null
             }),
             NoteSaveStatus.Conflict => EditorFailure(StatusCodes.Status409Conflict, "Editor_Conflict"),
             NoteSaveStatus.Forbidden => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
             NoteSaveStatus.NotFound => EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound"),
             NoteSaveStatus.InvalidTitle => EditorFailure(StatusCodes.Status400BadRequest, "Validation_InvalidNoteTitle"),
+            NoteSaveStatus.InvalidType => EditorFailure(StatusCodes.Status400BadRequest, "Validation_InvalidValue"),
             _ => EditorFailure(StatusCodes.Status400BadRequest, "Editor_InvalidContent")
+        };
+    }
+
+    // Called by note-references.js while the owner types, with a JSON body (the antiforgery token in the
+    // RequestVerificationToken header): the reference the text ends with, for the popup under it. found: where it is in
+    // the text and the notes it opens; missing: no note has it in its title; none: the text ends with no reference.
+    public async Task<IActionResult> OnPostReferenceLookupAsync(int note, [FromBody] NoteReferenceLookupRequest? request,
+        CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
+        var lookup = await notes.LookUpReferenceAsync(UserId, note, request?.Text, cancellationToken);
+        return lookup switch
+        {
+            { Status: NoteReferenceLookupStatus.Found, Match: { } found, Targets: { } targets } => new JsonResult(new
+            {
+                status = "found",
+                start = found.Start,
+                length = found.Length,
+                message = localizer["Editor_ReferenceFound", found.Text].Value,
+                // Each note with its tooltip line, its title and its type, for the popup and for the link it makes.
+                notes = targets.Select(target => new
+                {
+                    id = target.Id,
+                    label = NoteReferences.Label(localizer, target),
+                    title = target.Title ?? localizer["Notes_Untitled"].Value,
+                    type = target.NoteType == NoteTypes.Article ? localizer["NoteType_Article"].Value : localizer["NoteType_Journal"].Value,
+                    article = target.NoteType == NoteTypes.Article
+                })
+            }),
+            { Status: NoteReferenceLookupStatus.NoNote, Match: { } missing } => new JsonResult(new
+            {
+                status = "missing",
+                start = missing.Start,
+                length = missing.Length,
+                message = localizer["Editor_ReferenceMissing", missing.Text].Value
+            }),
+            { Status: NoteReferenceLookupStatus.Forbidden } => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
+            { Status: NoteReferenceLookupStatus.NotFound } => EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound"),
+            _ => new JsonResult(new { status = "none" })
         };
     }
 
@@ -142,12 +198,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                 ? new JsonResult(new
                 {
                     title = renamed.Title,
-                    modified = new
-                    {
-                        text = NoteDates.Card(renamed.LastChangedAtUtc),
-                        iso = NoteDates.Iso(renamed.LastChangedAtUtc),
-                        shown = NoteDates.ShowsModified(renamed)
-                    },
+                    modified = LastChange(renamed),
                     message = localizer[messageKey].Value
                 })
                 : EditorFailure(result.Status switch
@@ -205,6 +256,35 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
 
     private JsonResult EditorFailure(int statusCode, string messageKey) =>
         new(new { message = localizer[messageKey].Value }) { StatusCode = statusCode };
+
+    // A card's last change as _NoteCard shows it, hidden while it reads like the creation date.
+    private static object LastChange(NoteSummary note) => new
+    {
+        text = NoteDates.Card(note.LastChangedAtUtc),
+        iso = NoteDates.Iso(note.LastChangedAtUtc),
+        shown = NoteDates.ShowsModified(note)
+    };
+
+    // A saved note's card with the texts _NoteCard shows for it: the title (null when untitled) and the name standing for
+    // it, the labels of Open and Delete, the type (its colour class and its name), the preview (null without text) and the
+    // last change; when the save moved the note to another month, that month's key and its notes in their board order.
+    private object BoardCard(NoteSummary note, NoteMonthGroup? month)
+    {
+        var name = note.Title ?? localizer["Notes_Untitled"].Value;
+        return new
+        {
+            id = note.Id,
+            title = note.Title,
+            name,
+            open = localizer["Notes_OpenNamed", name].Value,
+            delete = localizer["Notes_DeleteNamed", name].Value,
+            typeClass = NoteCardStyle.TypeClass(note.NoteType),
+            typeName = note.NoteType == NoteTypes.Article ? localizer["NoteType_Article"].Value : localizer["NoteType_Journal"].Value,
+            preview = note.Preview,
+            modified = LastChange(note),
+            month = month is null ? null : new { key = NoteDates.MonthKey(month.Year, month.Month), notes = month.Notes.Select(item => item.Id) }
+        };
+    }
 
     private async Task LoadBoardAsync(int? contextId, CancellationToken cancellationToken)
     {

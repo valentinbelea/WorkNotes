@@ -1,0 +1,75 @@
+# 03 — Arhitectură
+
+Regulile complete sunt în [AGENTS.md](../../AGENTS.md); aici este harta a ceea ce există.
+
+## Straturi
+
+| Proiect | Conține |
+| --- | --- |
+| `WorkNotes.Web` | Razor Pages, layout, partiale, CSS, JavaScript, localizare, compunerea DI (`Program.cs`) |
+| `WorkNotes.Business` | Interfețe (`Abstractions`), servicii (`Services`), modele și reguli (`Models`, de exemplu `NoteRules`, `NoteReferenceRules`, `NoteTypes`) |
+| `WorkNotes.DataAccess` | `WorkNotesDbContext` și `AccountsDbContext`, entitățile scaffoldate, repository-urile, Identity |
+| `WorkNotes.Resources` | `SharedResources*.resx` (ro neutru + ro/en/pl, aceleași chei) |
+| `WorkNotes.Business.Tests` | Teste xUnit pentru servicii, fără bază de date |
+
+Dependențe: Web → Business; Web → DataAccess numai în `Program.cs`; DataAccess → Business. Serviciile scoped primesc repository-urile prin interfețe; `CancellationToken` merge de la request până la EF; citirile folosesc `AsNoTracking`.
+
+## Fluxuri
+
+```text
+Pages/Contexts → IWorkContextService / IContextMemberService → servicii → repository-uri → WorkNotesDbContext
+Pages/Index    → INoteService → NoteService → INoteRepository → NoteRepository → WorkNotesDbContext
+NoteService    → INoteReferenceService → NoteReferenceService → INoteReferenceRepository → NoteRepository → WorkNotesDbContext
+Footer         → ApplicationVersionViewComponent → IApplicationVersionService → … → DatabaseVersion
+Conturi        → IAccountService / IAuthenticationService → DataAccess/Identity (UserManager, SignInManager)
+```
+
+Business întoarce coduri de stare (`NoteSaveStatus`, `WorkContextSaveStatus` etc.) și chei de mesaj; traducerea se face în Web.
+
+## Pagini și adrese
+
+| Adresă | Ce face |
+| --- | --- |
+| `/` | Dashboardul (tabla contextului ales) sau pagina de bun venit |
+| `/?context={id}` | Tabla unui context |
+| `/?new=true` | Cardul „Notă nouă” deschis fără JavaScript |
+| `/?note={id}` | Editorul peste tablă, cu nota într-un tab |
+| `/?delete={id}` | Confirmarea ștergerii unei note |
+| `/?handler=NoteEditor&note={id}` (GET) | Fereastra editorului cu o notă (HTML), pusă de `notes-board.js` peste tabla din pagină, fără reîncărcare |
+| `/?handler=NoteTab&note={id}` (GET) | Un tab nou pentru editorul deja deschis (HTML) |
+| `/?handler=SaveNote&note={id}` (POST JSON) | Salvarea unei note din editor |
+| `/?handler=CreateNote`, `RenameNote`, `DeleteNote` (POST) | Crearea, redenumirea pe loc, ștergerea |
+| `/?handler=SwapNotes` (POST, răspuns JSON) | Schimbul a două note din aceeași lună, după drag-and-drop; răspunde cu ordinea lunii și versiunile noi |
+| `/Contexts`, `?add=true`, `?edit={id}`, `?delete={id}`, `?members={id}` | Contextele și overlay-urile lor |
+| `/Account/...` | Înregistrare, autentificare, cont, parolă, deconectare |
+
+Starea overlay-urilor este în URL: fiecare dialog se poate deschide și fără JavaScript, iar `modal.js` îl transformă în dialog modal.
+
+## Componente Web
+
+| Element | Rol |
+| --- | --- |
+| `Pages/Shared/_NoteCard.cshtml`, `_NewNoteCard.cshtml` | Post-it-urile de pe tablă |
+| `Pages/Shared/_NoteEditorDialog.cshtml` | Fereastra editorului: header cu sigla, taburile, Minimizează, Închide; forma minimizată |
+| `_NoteEditorTabButton`, `_NoteEditorTabPanel`, `_NoteEditorTab` | Un tab al editorului (butonul, panoul notei, fragmentul pentru un tab adăugat) |
+| `_DeleteNoteDialog.cshtml` | Confirmarea ștergerii |
+| `_StatusMessage.cshtml` + `Web/Messages` | Mesajele de salvare (succes / avertisment / eroare) și transportul lor prin TempData |
+| `Web/Notes/NoteDates`, `NoteCardStyle` | Formatele datelor, clasele de înclinare ale cardurilor |
+| `Web/Notes/NoteReferences` | Tooltipurile linkurilor, datele lor pentru editor și paragrafele cu linkuri fără JavaScript, din pozițiile date de `INoteReferenceService` |
+| `Web/Navigation/NavigationSections` | Subtitlul din header și grupul deschis din meniu |
+
+## JavaScript (numai comportament; aspectul vine din clase CSS)
+
+| Fișier | Rol |
+| --- | --- |
+| `notes-board.js` | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există, altfel aducând fereastra editorului peste tablă), schimbul a două carduri prin drag-and-drop, prinse de bandă; cardul unei note salvate în editor arată salvarea și trece în luna nouă (`note-editor:saved`), iar la închiderea editorului focusul revine pe card (`note-editor:closed`) |
+| `note-editor.js` | Editorul: câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; după un schimb pe tablă, taburile notelor mutate primesc versiunile noi (`note-board:versions`); închiderea fără modificări nesalvate scoate fereastra din pagină, fără reîncărcare, iar `startEditor` pregătește fereastra adusă din nou; tipul ales în footerul unei note trece imediat pe foaie, pe tab și în forma minimizată și se salvează cu nota |
+| `note-references.js` | Linkurile referințelor interne în editor, desenate din pozițiile trimise de server (după încărcare și după fiecare salvare); click și Ctrl+Enter deschid notele linkului în taburi; sertarul referințelor (`referenceDrawer`), a cărui listă urmează salvările; popup-ul referinței abia scrise (`referenceLookup`), care întreabă serverul după un număr urmat de un separator; nu citește referințe din text |
+| `status-messages.js` | Afișarea mesajelor de salvare din scripturi, din template-uri randate de server |
+| `modal.js` | Dialogurile modale (Escape și click în afară revin la adresa de închidere, iar editorul se închide pe loc prin evenimentul anulabil `modal:close`), inclusiv cele adăugate ulterior în pagină (evenimentul `modal:open`) |
+| `navigation.js`, `language.js`, `validation.js` | Meniul, selectorul de limbă, validarea client |
+| `lib/codemirror/codemirror.js` | CodeMirror 6, construit local din `tools/codemirror` (licență MIT) |
+
+## CSS
+
+`tokens.css` (paleta), `site.css` (componente comune, mesaje, dialoguri), `navigation.css`, `notes-board.css` (tabla), `postit.css` (hârtia și banda), `note-editor.css` (editorul). Ghidul este [design-system.md](../design-system.md).

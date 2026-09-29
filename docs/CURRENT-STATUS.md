@@ -1,13 +1,13 @@
 # Starea curentă
 
-**Data ultimei actualizări:** 2026-09-25 · **Versiunea:** 0.02 (`v.0.02`) · **Baza analizei:** `main` la commit-ul `504c01e` (merge-ul PR #3)
+**Data ultimei actualizări:** 2026-09-29 · **Versiunea:** 0.02 (`v.0.02`) · **Baza analizei:** `main` la commit-ul `504c01e` (merge-ul PR #3)
 
 Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.md); planul, în [ROADMAP.md](ROADMAP.md).
 
 ## Implementat
 
 - **Conturi** (ASP.NET Core Identity, Database First): înregistrare, autentificare, datele contului, schimbarea parolei, deconectare; politica de parolă și blocarea după 5 încercări.
-- **Localizare** ro/en/pl pentru toate textele (168 de chei, aceleași în cele patru fișiere .resx).
+- **Localizare** ro/en/pl pentru toate textele (168 de chei, aceleași în cele patru fișiere .resx; 178 cu PR #4).
 - **Contexte și membri**: listare, adăugare, editare, ștergere în overlay; proprietarul gestionează membrii după e-mail.
 - **Tabla**: o tablă pentru fiecare context, notele grupate pe luni după ultima modificare; post-it-uri pentru jurnale și articole, create, redenumite și șterse direct pe tablă; ordonarea prin drag-and-drop în aceeași lună (version_0.02).
 - **Editorul** CodeMirror 6: paragrafe cu identitate și audit propriu, căutare, undo/redo, Ctrl+S, detectarea salvărilor concurente, taburi, minimizare.
@@ -15,24 +15,56 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 
 ## În dezvoltare
 
-- **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main`, două commit-uri:
+- **PR #4** — branch `main_task_02`, deschis pe 2026-09-25, neintegrat în `main` (care a fost adus în branch prin merge), cu commit-urile:
   - „Board: the next drag is no longer refused while a swap is being saved” — schimburile se aplică la `dragend` și se salvează pe rând;
-  - „Editor and board: internal references between notes” — referințe interne între note, tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`.
+  - „Editor and board: internal references between notes” — primul model al referințelor interne (legătura în text, `[[note:{id}|{număr}]]`), tabela `NoteReferences` (`Scripts/version_0.02/002_CreateNoteReferences.sql`), deciziile 32–41 și reguli noi în `AGENTS.md`; modelul este înlocuit (vezi mai jos);
+  - „Notes: create-note-references command for the existing notes” — comanda de mentenanță `create-note-references` (primul model), deciziile 42–47; eliminată odată cu modelul;
+  - „Data access: card previews number only the paragraphs of the notes read” și „Board: a note opens over the board without reloading the page” — previzualizarea cardurilor nu mai numerotează toate paragrafele din bază, iar o notă deschisă de pe tablă apare peste tabla din pagină (`?handler=NoteEditor`), fără reîncărcare; deciziile 48–49;
+  - „Modal dialogs: Escape closes them in Firefox too” — `modal.js` tratează Escape la `keydown`, cu tasta prevenită, apoi navighează la adresa de închidere; decizia 50;
+  - „Scripts: 003_InsertNoteReferences.sql fills NoteReferences from the existing text” — script SQL de date pentru tabela primului model; rămâne nemodificat;
+  - referințele interne refăcute la cererea utilizatorului din 2026-09-28 ([ADR-003](decisions/ADR-003-internal-references.md), deciziile 51–58): referințele CR/bug scrise în paragrafe (`CR 30080`, `CR-30080`, `CR_30080`, `CR30080`, `bug_1234`…), destinația aflată din titluri (exact o notă a contextului vizibilă proprietarului paragrafului), relații pe paragraf în tabela `NoteReferences` recreată de `Scripts/version_0.02/004_ReplaceNoteReferences.sql` (care reindexează și conținutul existent și listează referințele fără destinație și pe cele ambigue), recalculare la salvare, la schimbarea titlului, la crearea și la ștergerea notelor, prin `INoteReferenceService`; editorul desenează linkurile din relații, fără să schimbe textul. Sugestiile din editor, comanda `create-note-references` și linkurile din previzualizarea cardurilor au fost eliminate.
+  - referințele cu mai multe note, la cererea utilizatorului din 2026-09-28, după cazul `CR 27881` din jurnalul „CRs” (deciziile 59–64): o referință deschide toate notele contextului care au CR-ul sau bugul în titlu, în afară de nota paragrafului. Notele fiecărei referințe sunt în tabela nouă `NoteReferenceTargets` (legătură 1–M cu `NoteReferences`, care pierde coloana `TargetNoteId`), creată de `Scripts/version_0.02/005_CreateNoteReferenceTargets.sql`. Scriptul mută legăturile existente, reindexează conținutul și listează referințele fără notă, pe cele cu mai multe note și jurnalul „CRs”. Click sau Ctrl+Enter deschide toate notele, în taburi; fără JavaScript, fiecare notă are link. Ștergerea unei note nu mai recalculează referințele.
+  - catalogul referințelor, la cererea utilizatorului din 2026-09-28 (deciziile 65–69): fiecare referință stocată, tipul și numărul, este o singură dată în tabela nouă `WorkReferences` (cheia unică tip + număr, ID propriu), creată de `Scripts/version_0.02/006_CreateWorkReferences.sql` și completată cu referințele existente de `007_InsertWorkReferences.sql`. `008_UpdateNoteReferencesWorkReferenceId.sql` adaugă în `NoteReferences` coloana obligatorie `WorkReferenceId`, cu ID-ul referinței lângă textul ei. Aplicația adaugă o referință în catalog prima dată când un paragraf o stochează; afișarea și comportamentul referințelor nu se schimbă.
+  - tipurile de referință configurabile, la cererea utilizatorului din 2026-09-28 (deciziile 70–76): prefixele recunoscute în toată aplicația sunt tipurile active din tabela nouă `ReferenceTypes` (implicit `CR` și `BUG`, adăugate de `010_InsertReferenceTypes.sql`), ținute în memorie pentru toată aplicația și citite din nou după cel mult 5 minute. `009_CreateReferenceTypes.sql` creează tabela, `011_UpdateReferenceTypeKeys.sql` înlocuiește constrângerile `CHECK` ale tipului cu chei externe, iar `012_RefreshNoteReferences.sql` citește din nou toate textele cu tipurile active (după o schimbare a lor) și ține locul lui `005`.
+  - sertarul referințelor și selecția din editor, la cererea utilizatorului din 2026-09-29 (deciziile 77–82): în dreapta textului, editorul are un sertar cu fiecare referință a notei care este link, o singură dată, cu notele pe care le deschide (click le deschide în taburi; lista urmează fiecare salvare; fără JavaScript, un `details` cu linkuri către pagina notelor). Selecția textului, care nu se vedea pe rândul activ și abia se vedea pe foaia salvie a articolelor, este acum vizibilă pe ambele foi. Schema și scripturile nu se schimbă.
+  - popup-ul referinței abia scrise și un sertar mai simplu, la a doua cerere a utilizatorului din 2026-09-29 (deciziile 83–89): un spațiu, Tab, un rând nou sau un semn de punctuație scris imediat după un număr întreabă serverul dacă textul se termină cu o referință (`POST ?handler=ReferenceLookup`, `INoteReferenceService.LookUpAsync`). Deasupra referinței apare un popup: notele ei cu butonul „Transformă în referință” (și Tab), care o face link imediat, sau „Referință inexistentă”, închis singur după 4 secunde; pentru un text care nu este referință, nimic. Sertarul are acum un singur link pe referință, scris cum îl scrie textul prima dată, cu notele în tooltip, iar antetul lui este opac (era transparent: lista trecea vizibil pe sub el). Un spațiu sau un semn de punctuație scris lângă un link nu îl mai elimină. Bundle-ul CodeMirror exportă și `showTooltip` și `tooltips`. Schema și scripturile nu se schimbă.
+  - tabla care urmează salvările din editor și închiderea editorului fără reîncărcare, la a treia cerere a utilizatorului din 2026-09-29 (deciziile 90–94): la fiecare salvare, cardul notei din spatele editorului arată titlul și previzualizarea când s-au schimbat și data ultimei modificări (răspunsul `SaveNote` are `card`, construit de `NoteService` din textul salvat, fără o citire nouă); o notă salvată pentru prima dată într-o lună nouă trece în luna curentă, în ordinea serverului; închiderea editorului fără modificări nesalvate nu mai reîncarcă pagina (circa 0,1 s în loc de 0,6–0,8 s pe o tablă de 300 de note). Regula de design din `AGENTS.md` a fost extinsă cu această mutare a cardului;
+  - schimbarea tipului unei note din editor, la cererea utilizatorului din 2026-09-29 (deciziile 95–97): în footerul notei, proprietarul alege jurnal sau articol cu același comutator ca pe cardul „Notă nouă”; foaia, tabul și forma minimizată iau imediat tipul, iar salvarea îl stochează cu nota (o notă devenită jurnal primește ziua locală a creării, un articol nu are dată) și schimbă culoarea cardului de pe tablă; fără script SQL și fără chei .resx noi;
 - **Branch-ul de documentare** `claude/worknotes-markdown-docs-6xyqw4` — această structură de documentație; nu modifică codul, schema sau funcționalitățile.
 
 ## Probleme cunoscute
 
 Limitări documentate în version_0.01–0.02:
 
+- [!] Pe `main`, în Firefox, Escape nu închide fereastra editorului: Firefox anulează navigarea pornită de `modal.js` din evenimentul `cancel` al tastei (verificat pe 2026-09-28 în Firefox 136); butonul Închide funcționează. Corecția este în PR #4.
 - [!] Pe `main`, după primul schimb prin drag-and-drop, un al doilea drag început cât timp prima salvare este în curs este anulat fără niciun semn vizibil (`dragstart` refuzat cât timp `saving` este activ); corecția este în PR #4.
+- [!] Pe `main`, în editor, selecția textului nu se vede pe rândul activ (fundalul lui acoperă stratul în care CodeMirror desenează selecția) și abia se vede pe foaia salvie a articolelor; în titlul unui jurnal este galbenă pe galben. Corecția este în PR #4.
+- [!] Pe tablă, selecția textului de pe cardurile de articol (hârtia salvie #DDEADB) este verdele de selecție #CCE6DF, puțin vizibil (stilul calculat `::selection`, verificat pe 2026-09-29); PR #4 a corectat numai editorul.
 - La reîncărcarea paginii editorului se redeschide doar tabul activ (adresa `/?note={id}`), nu toate taburile.
 - Mutarea unui paragraf prin tăiere și lipire creează un paragraf nou (ID nou).
 - Pe telefon, bara de taburi arată aproximativ un tab și jumătate; restul se derulează.
 - Cu fonturi foarte late (de exemplu pe unele sisteme Linux), data modificării de pe card trece pe al doilea rând.
 - Redenumirea pe loc nu mută cardul imediat; ordinea se actualizează la următoarea încărcare a tablei.
+- PR #4: închiderea editorului nu mai reîncarcă tabla, deci modificările făcute între timp de alți membri sau în alte ferestre apar abia la următoarea încărcare a paginii (înainte, și la închiderea editorului); pe o pagină rămasă deschisă dintr-o lună anterioară, o salvare nu poate muta cardul în luna curentă, iar închiderea încarcă tabla.
 - După un schimb pe tablă, un editor deschis pe aceeași notă în alt tab sau în altă fereastră primește conflict la următoarea salvare (fără să suprascrie ceva); editorul din aceeași pagină primește noua versiune.
 - Ordonarea se face numai cu mouse-ul (drag-and-drop HTML5); nu există alternativă de la tastatură, iar pe ecranele tactile depinde de suportul browserului.
 - Două note cu aceeași valoare `Order` (posibil numai prin inserări directe în SQL) nu își schimbă locurile prin drag-and-drop; tabla le ordonează după date.
+
+Limitări ale referințelor interne din PR #4 ([ADR-003](decisions/ADR-003-internal-references.md#consecințe)):
+
+- O referință nou scrisă devine link la salvare sau, mai devreme, din popup; textul scris într-un link, ca și o literă sau o cifră lipită de el, îl ascunde până la salvare. Sertarul arată o referință nouă abia după salvare, chiar făcută link din popup.
+- Popup-ul întreabă serverul la fiecare cuvânt terminat după o cifră (câte o cerere de fiecare dată); un text care nu este referință nu arată nimic. Notele pe care le arată sunt cele din acel moment; salvarea le calculează din nou.
+- Referințele fără nicio notă nu au semn în textul salvat (popup-ul spune că nu există numai când sunt scrise); `012_RefreshNoteReferences.sql`, rulat din nou (și cu `@Save = 0`), le listează (înainte de `008`, `005_CreateNoteReferenceTargets.sql`).
+- O referință cu multe note deschide tot atâtea taburi; fără JavaScript, un link deschide o singură notă, iar celelalte au câte un link numerotat.
+- Recalcularea după schimbarea unui titlu sau crearea unei note este o tranzacție separată de operație: două operații simultane pe aceeași referință sau o cerere întreruptă între ele pot lăsa o legătură învechită până la următoarea salvare ([DATABASE.md](DATABASE.md#concurență)).
+- O schimbare în `ReferenceTypes` se vede în aplicație după cel mult 5 minute (sau la repornire); textele deja salvate o urmează la următoarea salvare a fiecărui paragraf sau după `012_RefreshNoteReferences.sql`. Până atunci, referințele stocate ale unui tip dezactivat nu mai sunt linkuri, dar rămân în tabele.
+- Un tip de referință folosit nu se poate șterge (cheile externe îl păstrează), ci se dezactivează; un tip nefolosit, șters cât timp aplicația îl mai are în memorie, face ca salvarea unei referințe de acel tip să dea eroare până la următoarea citire a tipurilor.
+- Catalogul `WorkReferences` nu scade: o referință rămâne în el, cu ID-ul ei, și când niciun paragraf nu o mai scrie (inclusiv după o salvare respinsă pentru care fusese adăugată).
+- Schimbarea vizibilității, arhivarea și ieșirea unui membru din context nu recalculează legăturile (nu au interfață).
+- Previzualizarea cardurilor afișează textul fără linkuri.
+- Sertarul referințelor arată referințele textului salvat: o referință nou scrisă apare în el, ca și linkul din text, abia după salvare.
+- După `004`, scripturile `002` și `003` nu se mai pot rula; după `005`, nici `004`; după `008`, nici `005`, al cărui loc îl ia `012`.
+- Codul presupune că `005`–`011` au fost aplicate: fără `NoteReferenceTargets`, deschiderea și salvarea notelor dau eroare, fără `NoteReferences.WorkReferenceId`, salvarea lor, iar fără `ReferenceTypes`, orice citire a referințelor. Codul de dinaintea catalogului nu scrie `WorkReferenceId`, deci după `008` nu mai poate salva o referință nouă: scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea codului; `009`–`011` se aplică și ele înaintea codului, iar codul cu catalogul funcționează și cu ele.
 
 Constatări din analiza din 2026-09-25 (codul nu a fost modificat):
 
@@ -67,13 +99,16 @@ Contradicțiile nu au fost rezolvate prin alegerea arbitrară a unei variante; t
 
 PR #4 modifică `Solution/AGENTS.md`, `Solution/README.md`, `Solution/docs/design-system.md` și `Solution/docs/planning/02`–`06`, pe care branch-ul de documentare le-a mutat sau integrat. Oricare dintre cele două se integrează al doilea va avea conflicte (fișiere modificate într-o parte și eliminate în cealaltă). La rezolvare, modificările de documentație din PR #4 se portează în noua structură:
 
-- [AGENTS.md](../AGENTS.md): regula drag-and-drop cu salvări pe rând, regulile referințelor interne și regula Git (armonizată cu contradicția 2);
-- [DATABASE.md](DATABASE.md) și [Scripts/README.md](../Scripts/README.md): tabela `NoteReferences`, scriptul `version_0.02/002_CreateNoteReferences.sql` (structura, ordinea, comanda `sqlcmd`), `--table dbo.NoteReferences` și `NoteReference.cs` în comanda de scaffolding;
-- [decisions/README.md](decisions/README.md): deciziile 32–41 și, eventual, un ADR pentru formatul referințelor;
-- [UI-UX.md](UI-UX.md), [REQUIREMENTS.md](REQUIREMENTS.md), [DOMAIN-MODEL.md](DOMAIN-MODEL.md), [SECURITY.md](SECURITY.md): referințele interne și noul comportament drag-and-drop, cu statusurile trecute din [~] în [x];
-- [ARCHITECTURE.md](ARCHITECTURE.md): `note-references.js`, `WorkNotes.Web/Notes/NoteReferences.cs`, handlerele `ReferenceSuggestions` și `ReferenceTargets`;
-- [ROADMAP.md](ROADMAP.md) și această pagină: lista „Referințe către această notă” și cele cinci limitări noi din backlog-ul PR-ului;
-- [CHANGELOG.md](../CHANGELOG.md), [LOCALIZATION.md](LOCALIZATION.md) (numărul de chei) și [TESTING.md](TESTING.md) (`NoteReferenceRulesTests` și noile totaluri).
+- [AGENTS.md](../AGENTS.md): regula drag-and-drop cu salvări pe rând, regulile referințelor interne (în `Solution/AGENTS.md`, după [ADR-003](decisions/ADR-003-internal-references.md)) și regula Git (armonizată cu contradicția 2);
+- [DATABASE.md](DATABASE.md) și [Scripts/README.md](../Scripts/README.md): portate — tabelele `NoteReferences`, `NoteReferenceTargets`, `WorkReferences` și `ReferenceTypes` (modelul nou), scripturile `002`–`012`, `--table dbo.NoteReferences`, `--table dbo.NoteReferenceTargets`, `--table dbo.WorkReferences` și `--table dbo.ReferenceTypes` în comanda de scaffolding; marcajele „PR #4” se elimină la integrare;
+- [decisions/README.md](decisions/README.md): deciziile 32–97 și [ADR-003](decisions/ADR-003-internal-references.md) sunt deja în jurnal; deciziile 33–38, 40–47 și 52 sunt marcate ca înlocuite;
+- [ARCHITECTURE.md](ARCHITECTURE.md): `INoteReferenceService` / `NoteReferenceService`, `INoteReferenceRepository` (implementat de `NoteRepository`), fluxurile salvării și al recalculării, `note-references.js` (cu sertarul referințelor, `referenceDrawer`, și popup-ul referinței abia scrise, `referenceLookup`) și `WorkNotes.Web/Notes/NoteReferences.cs` (cu lista sertarului); deschiderea fără reîncărcare (handlerul `NoteEditor`, evenimentul `modal:open`, subinterogarea previzualizării limitată la paragrafele notelor citite);
+- [SECURITY.md](SECURITY.md): legăturile respectă contextul și vizibilitatea proprietarului paragrafului, cititorul vede numai linkurile către notele pe care le poate vedea, iar recalcularea modifică legăturile paragrafelor altor membri ai contextului;
+- [TESTING.md](TESTING.md): `NoteReferenceRulesTests`, `NoteReferenceServiceTests`, noile teste din `NoteServiceTests` și totalurile; verificările manuale ale linkurilor și ale scriptului `004`;
+- fișierele `CLAUDE.md` din Web, Business și DataAccess: noile tipuri (`INoteReferenceService`, `INoteReferenceRepository`, `IReferenceTypeService`, `IReferenceTypeRepository`, `NoteReferenceParser`, `ReferenceTypeCache`, `NoteReference.cs`, `NoteReferenceTarget.cs`, `WorkReference.cs` și `ReferenceType.cs` generate prin scaffolding);
+- [UI-UX.md](UI-UX.md), [REQUIREMENTS.md](REQUIREMENTS.md), [DOMAIN-MODEL.md](DOMAIN-MODEL.md): actualizate pentru modelul nou; statusurile trec din [~] în [x] la integrare;
+- [ROADMAP.md](ROADMAP.md) și această pagină: lista „Referințe către această notă” și limitările de mai sus;
+- [CHANGELOG.md](../CHANGELOG.md), [LOCALIZATION.md](LOCALIZATION.md) (178 de chei, cu `Notes_ReferenceTarget`, cheile sertarului `Editor_References*` și ale popup-ului `Editor_Reference*`) și [TESTING.md](TESTING.md) (noile totaluri).
 
 ## Informații mutate sau consolidate
 
@@ -116,6 +151,122 @@ Rulate pe 2026-09-25, în sesiunea cloud de documentare (Linux, .NET SDK 10.0.11
 | Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale) | niciun rezultat (regulile sunt respectate) |
 | `tools/Test-Resources.ps1` | neefectuat: PowerShell nu este disponibil în sesiune; o verificare echivalentă ad-hoc (aceleași chei și parametri în cele patru fișiere, fallback românesc identic, fără chei lipsă sau neutilizate) a trecut pentru 168 de chei |
 | Aplicația și scripturile SQL | neverificate: sesiunea nu are SQL Server; nu s-a aplicat niciun script |
+
+Pe 2026-09-28, pentru referințele interne refăcute din PR #4 (sesiune cloud Linux, .NET SDK 10.0.112, fără SQL Server):
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet tool restore`, `dotnet restore WorkNotes.sln` | reușite |
+| `dotnet build WorkNotes.sln --no-restore` | reușit, 0 avertismente, 0 erori |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 196 de teste trecute, 0 eșuate, 0 omise |
+| `tools/Test-Resources.ps1` (PowerShell 7 ca instrument .NET global) | `PASS`: 169 de chei, aceleași în cele patru fișiere |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale) | niciun rezultat, inclusiv pentru fișierele noi |
+| Paginile reale, pe o gazdă de test cu depozit în memorie în locul SQL Server (Chromium și Firefox 136, cu mouse și tastatură reale în Firefox) | linkurile desenate din relații, click și Ctrl+Enter în taburi (tab nou, tab existent, editor minimizat, modificări nesalvate păstrate), editarea și salvarea, redenumirea, crearea și ștergerea notelor, ștergerea unui paragraf, afișarea fără JavaScript și textul HTML afișat ca text; deschiderea de pe tablă, Escape și drag-and-drop funcționează ca înainte |
+| `004_ReplaceNoteReferences.sql` | fără erori de sintaxă (parserul Microsoft ScriptDom, gramaticile SQL Server 2016 și 2022, inclusiv instrucțiunile din `EXEC`); logica de recunoaștere și de transformare a legăturilor vechi, reprodusă în C#, dă aceleași rezultate ca aplicația pe 400 000 de texte generate |
+| Interogările EF noi | SQL-ul generat, verificat offline (`ToQueryString`) |
+| Aplicația pe SQL Server, scaffolding-ul și aplicarea `004` | neverificate: sesiunea nu are SQL Server; scriptul nu a fost aplicat pe nicio bază |
+
+Tot pe 2026-09-28, pentru referințele cu mai multe note (`NoteReferenceTargets`, `005_CreateNoteReferenceTargets.sql`), în aceeași sesiune:
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet tool restore`, `dotnet restore WorkNotes.sln` | reușite |
+| `dotnet build WorkNotes.sln --no-restore` | reușit, 0 avertismente, 0 erori |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 197 de teste trecute, 0 eșuate, 0 omise |
+| `tools/Test-Resources.ps1` | `PASS`: 169 de chei (nicio cheie nouă) |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale) | niciun rezultat |
+| Paginile reale, pe gazda de test cu depozit în memorie (Chromium; Firefox 136 cu mouse și tastatură reale) | o referință cu două note are un link cu tooltip pe două rânduri; click și Ctrl+Enter deschid ambele note în taburi și o arată pe prima (și când sunt deja deschise, după închiderea uneia și din editorul minimizat), cu modificările nesalvate păstrate; salvarea, redenumirea, crearea și ștergerea notelor actualizează notele referinței; afișarea fără JavaScript are câte un link pentru fiecare notă |
+| `005_CreateNoteReferenceTargets.sql` | fără erori de sintaxă (ScriptDom, gramaticile SQL Server 2016 și 2022, inclusiv cele 11 instrucțiuni din `EXEC`); recunoașterea este cea din `004`; regula notelor, reprodusă în C#, dă aceleași legături ca `NoteReferenceService` pe 3000 de table generate (1924 de referințe, 129 cu mai multe note) |
+| Interogările EF noi și ștergerea unei note | SQL-ul generat, verificat offline (`ToQueryString`) |
+| Aplicația pe SQL Server, scaffolding-ul și aplicarea `005` | neverificate: sesiunea nu are SQL Server; scriptul nu a fost aplicat pe nicio bază |
+
+Tot pe 2026-09-28, pentru catalogul referințelor (`WorkReferences`, `006`–`008`), în aceeași sesiune:
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet tool restore`, `dotnet restore WorkNotes.sln` | reușite |
+| `dotnet build WorkNotes.sln --no-restore` | reușit, 0 avertismente, 0 erori |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 197 de teste trecute, 0 eșuate, 0 omise (nicio regulă Business nouă: catalogul este în DataAccess și în scripturi) |
+| `tools/Test-Resources.ps1` | `PASS`: 169 de chei (nicio cheie nouă) |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale) | niciun rezultat |
+| `006_CreateWorkReferences.sql`, `007_InsertWorkReferences.sql`, `008_UpdateNoteReferencesWorkReferenceId.sql` | fără erori de sintaxă (ScriptDom, gramaticile SQL Server 2016 și 2022, inclusiv instrucțiunile din `EXEC` și `sp_executesql`) |
+| Căutarea în catalog și adăugarea unei referințe | SQL-ul generat de EF, verificat offline (`ToQueryString`); instrucțiunea `INSERT … WHERE NOT EXISTS`, cu parametrii ei, fără erori de sintaxă |
+| Aplicația pe SQL Server, scaffolding-ul și aplicarea `006`–`008` | neverificate: sesiunea nu are SQL Server; scripturile nu au fost aplicate pe nicio bază |
+
+Tot pe 2026-09-28, pentru tipurile de referință configurabile (`ReferenceTypes`, `009`–`012`), în aceeași sesiune:
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet tool restore`, `dotnet restore WorkNotes.sln` | reușite |
+| `dotnet build WorkNotes.sln --no-restore` | reușit, 0 avertismente, 0 erori |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 220 de teste trecute, 0 eșuate, 0 omise (noile `NoteReferenceParserTests` și `ReferenceTypeServiceTests`) |
+| `tools/Test-Resources.ps1` | `PASS`: 169 de chei (nicio cheie nouă) |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale) | niciun rezultat |
+| Paginile reale, pe gazda de test cu depozit în memorie (Chromium; Firefox 136 cu mouse și tastatură reale) | testele anterioare ale referințelor trec neschimbate cu `CR` și `BUG`; cu tipul `TASK` configurat, `task 12` și `TASK_12` sunt linkuri către „TASK-12 migrare” (și fără JavaScript), click deschide nota, un `Task-12` nou scris devine link la salvare; fără `TASK`, `task 12` rămâne text; tipurile au fost citite o singură dată pe toată durata testelor |
+| `009_CreateReferenceTypes.sql`–`012_RefreshNoteReferences.sql` | fără erori de sintaxă (ScriptDom, gramaticile SQL Server 2016 și 2022, inclusiv instrucțiunea din `EXEC`); recunoașterea din `012`, reprodusă în C#, dă aceleași rezultate ca `NoteReferenceParser` pe 800 000 de texte, cu seturi de tipuri generate aleatoriu (63 146 de referințe); regula notelor, pe 3000 de table cu `CR`, `BUG` și `TASK`, aceleași legături ca `NoteReferenceService` |
+| Modelul EF | construit fără avertismente; interogarea tipurilor active, verificată offline (`ToQueryString`) |
+| Aplicația pe SQL Server, scaffolding-ul și aplicarea `009`–`012` | neverificate: sesiunea nu are SQL Server; scripturile nu au fost aplicate pe nicio bază |
+
+Pe 2026-09-29, pentru sertarul referințelor și selecția din editor, în aceeași sesiune:
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet tool restore`, `dotnet restore WorkNotes.sln` | reușite |
+| `dotnet build WorkNotes.sln --no-restore` (și `--no-incremental`) | reușit, 0 avertismente, 0 erori |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 220 de teste trecute, 0 eșuate, 0 omise (linkurile poartă acum tipul și numărul referinței) |
+| `tools/Test-Resources.ps1` | `PASS`: 172 de chei (`Editor_References`, `Editor_ReferencesHelp`, `Editor_ReferencesEmpty`) |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale), `git diff --check` | niciun rezultat |
+| Paginile reale, pe gazda de test cu depozit în memorie (Chromium) | sertarul închis este o bandă de 48px lângă text, cu numărul referințelor; deschis, o coloană lângă text; fiecare referință o singură dată, în ordinea din text, cu toate notele ei (o referință fără notă vizibilă lipsește); click pe o referință deschide toate notele ei în taburi, click pe o notă numai pe ea; starea deschis/închis este aceeași în toate taburile; după salvare lista urmează textul salvat; Enter pe antet îl deschide; fără JavaScript sertarul se deschide nativ, linkurile duc la `/?note={id}`, iar o notă fără linkuri arată mesajul gol; la 390px sertarul este sub text, fără derulare laterală; nicio eroare în pagină |
+| Selecția (Chromium, stilurile calculate și pixelii capturilor) | pe rândul activ, cuvântul selectat este verde #CCE6DF pe foaia jurnalului și galben #FFF0B7 pe foaia articolului (înainte: #E7F1EC, culoarea rândului activ, adică invizibil); rândul activ nu mai are fundal cât timp există o selecție; titlul jurnalului are selecția verde |
+| Firefox 136, cu mouse și tastatură reale și culorile citite de pe ecran | aceleași verificări pentru sertar (click, taburi, Enter și Space pe antet) și pentru selecție (dublu-click pe un cuvânt al rândului activ și pe titlu: verde pe jurnal, galben pe articol) |
+| Forced-colors, emulat în Chromium | cuvântul selectat se vede: browserul desenează peste text selecția în culorile sistemului, iar stratul CodeMirror are amestecul deschis al culorii `Highlight`; sertarul și numărul lui au bordură. Modul real din Windows (contrast ridicat) nu a fost verificat |
+| Regresie | testele anterioare ale referințelor (mai multe note, tipuri configurabile, cu și fără `TASK`) trec neschimbate |
+| Aplicația pe SQL Server, browserul utilizatorului | neverificate: sesiunea nu are SQL Server; nicio modificare de schemă sau de script |
+
+Tot pe 2026-09-29, pentru popup-ul referinței abia scrise și sertarul simplificat, în aceeași sesiune:
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet tool restore`, `dotnet restore WorkNotes.sln` | reușite |
+| `dotnet build WorkNotes.sln --no-restore --no-incremental` | reușit, 0 avertismente, 0 erori |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 245 de teste trecute, 0 eșuate, 0 omise (25 noi: referința cu care se termină un text, căutarea ei și dreptul proprietarului) |
+| `tools/Test-Resources.ps1` | `PASS`: 178 de chei (6 noi pentru popup, `Editor_ReferencesHelp` schimbat) |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale), `git diff --check` | niciun rezultat |
+| Bundle-ul CodeMirror | reconstruit din `Solution/tools/codemirror` (`npm run build`, cu `node_modules` din `package-lock.json`): fără schimbări de intrare, identic octet cu octet cu cel versionat; apoi cu `showTooltip` și `tooltips` exportate; `THIRD-PARTY-NOTICES.txt` neschimbat |
+| Paginile reale, pe gazda de test cu depozit în memorie (Chromium) | sertarul: un link pe referință, scris ca prima apariție (`CR-30081`, `bug_512`, `cr30082`), notele în tooltip, antetul opac, click deschide toate notele; popup-ul: după `CR 30080` și spațiu, nota ei, butonul o face link imediat, focusul rămâne în text; după `CR 30083` și virgulă, „Referință inexistentă”, închis după circa 4 secunde; o dată (`29.09.2026`) nu arată nimic; Tab caută, al doilea Tab face link, al treilea mută focusul; Escape închide numai popup-ul; două note, fiecare cu culoarea hârtiei ei; închiderea la alt rând și la click în text; Enter după număr; un răspuns lent arată căutarea după 250 ms; spațiul după un link îl păstrează și nu întreabă nimic, o literă îl elimină; salvarea păstrează linkurile; o notă a altcuiva nu are căutare (403), o notă nevăzută 404, o cerere fără token 400; la 390px popup-ul rămâne la 16px de margini; fără JavaScript sertarul are un link pe referință; nicio eroare în pagină |
+| Firefox 136, cu mouse și tastatură reale | aceleași cazuri ale popup-ului (spațiu, virgulă, Tab, punct, Escape, Enter, o dată) și sertarul |
+| Regresie | testele anterioare ale referințelor și ale selecției trec |
+| Aplicația pe SQL Server, browserul utilizatorului | neverificate: sesiunea nu are SQL Server; nicio modificare de schemă sau de script |
+
+Tot pe 2026-09-29, pentru tabla care urmează salvările din editor și închiderea editorului fără reîncărcare, în aceeași sesiune:
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet tool restore`, `dotnet restore WorkNotes.sln` | reușite |
+| `dotnet build WorkNotes.sln --no-restore` | reușit, 0 avertismente, 0 erori |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 249 de teste trecute, 0 eșuate, 0 omise (4 noi: cardul notei salvate, data unei salvări fără schimbări, luna în care trece nota, previzualizarea din paragrafe întregi) |
+| `tools/Test-Resources.ps1` | `PASS`: 178 de chei (nicio cheie nouă) |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale), `git diff --check` | niciun rezultat |
+| Paginile reale, pe gazda de test cu depozit în memorie (Chromium) | după salvare, cardul din spate are titlul nou (câmpul, titlul citit, etichetele Open și Delete), previzualizarea primelor paragrafe și data; o modificare după primele trei paragrafe schimbă numai data (observat cu `MutationObserver`); o notă din luna trecută și singura notă de acum două luni trec în luna curentă, la locul dat de `Order`, iar luna rămasă goală se ascunde; Închide, Escape, × pe ultimul tab, Închide din forma minimizată și închiderea cu două taburi nu reîncarcă pagina, iar focusul trece pe cardul notei active; editorul se deschide din nou și salvează (și după o fereastră randată de pagină, `/?note={id}`); Back încarcă nota; redenumirea și schimbul prin drag-and-drop funcționează după mutare; cu modificări nesalvate, Închide întreabă (rămânerea păstrează editorul, plecarea încarcă tabla); o salvare al cărei card lipsește din pagină sau a cărei lună nu este pe pagină face închiderea să încarce tabla; fără JavaScript, Închide este un link către tablă, iar o notă fără text nu arată previzualizare |
+| Firefox 136, cu mouse și tastatură reale | salvarea se vede pe cardul din spate, cardul unei note din luna trecută trece în luna curentă, Închide și Escape nu reîncarcă pagina, focusul trece pe card; cu modificări nesalvate, Închide încarcă tabla |
+| Durata închiderii (Chromium, tabla de 300 de note, fără SQL Server) | 80–110 ms de la click până la al doilea cadru desenat, cu sau fără o salvare înainte; înainte, 0,6–0,8 s (reîncărcarea tablei) |
+| Regresie | testele anterioare (referințele cu mai multe note, tipurile configurabile cu și fără `TASK`, sertarul, popup-ul, Escape în editor și pe celelalte ferestre) trec |
+| Aplicația pe SQL Server, browserul utilizatorului | neverificate: sesiunea nu are SQL Server; nicio modificare de schemă sau de script |
+
+Tot pe 2026-09-29, pentru schimbarea tipului unei note din editor, în aceeași sesiune:
+
+| Verificare | Rezultat |
+| --- | --- |
+| `dotnet tool restore`, `dotnet restore WorkNotes.sln` | reușite |
+| `dotnet build WorkNotes.sln --no-restore` | reușit, 0 avertismente, 0 erori |
+| `dotnet test WorkNotes.sln --no-build --no-restore` | 256 de teste trecute, 0 eșuate, 0 omise (7 noi: articolul devenit jurnal al zilei creării, în fusul orar al aplicației; jurnalul devenit articol, fără dată; jurnalul care rămâne jurnal își păstrează data; tipurile necunoscute) |
+| `tools/Test-Resources.ps1` | `PASS`: 178 de chei (nicio cheie nouă) |
+| Verificările arhitecturale din [ARCHITECTURE.md](ARCHITECTURE.md#verificarea-regulilor-arhitecturale), `git diff --check` | niciun rezultat (și pentru partialul nou) |
+| Paginile reale, pe gazda de test cu depozit în memorie (Chromium) | comutatorul apare în footer în locul numelui tipului, cu tipul notei ales; Articol face imediat foaia salvie, punctul tabului și forma minimizată ale unui articol și lasă nota nesalvată; salvarea trimite tipul, iar cardul de pe tablă devine articol (culoarea, numele citit); săgețile schimbă alegerea, iar revenirea la tipul salvat nu lasă nimic nesalvat; închiderea tabului și a ferestrei întreabă, ca pentru orice modificare nesalvată; două taburi își păstrează fiecare tipul; după reîncărcare, tipul salvat; un tip necunoscut primește 400, cu mesaj localizat; o notă doar pentru citire nu are comutator (iar salvarea ei de către un cititor primește 403); cardul „Notă nouă” are aceleași iconuri și își schimbă culoarea; fără JavaScript, numele tipului în locul comutatorului; la 320px, fără derulare laterală |
+| Firefox 136, cu mouse și tastatură reale | click pe Articol, Ctrl+S, cardul devine articol; săgeata stânga, înapoi la jurnal, Ctrl+S; Escape închide fără reîncărcare |
+| Forced-colors, emulat în Chromium | opțiunea aleasă are sublinierea în culoarea sistemului, iconurile au conturul textului, focusul se vede |
+| Regresie | testele anterioare (tabla care urmează salvările, inclusiv cazul fără lună, referințele, sertarul, popup-ul, Escape) trec |
+| Aplicația pe SQL Server, browserul utilizatorului | neverificate: sesiunea nu are SQL Server; nicio modificare de schemă sau de script |
 
 ## Următorii pași
 

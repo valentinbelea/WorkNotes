@@ -5,25 +5,32 @@
     var note = Model;
     var title = note.Title ?? L["Notes_Untitled"].Value;
     var typeName = note.NoteType == NoteTypes.Article ? L["NoteType_Article"].Value : L["NoteType_Journal"].Value;
+    var referenceList = NoteReferences.List(note.Blocks.Select(block => block.Links), note.References);
     // The note's own data; the texts shared by all tabs are in the dialog (#note-editor-data).
     var noteData = new
     {
         version = note.Version,
         readOnly = !note.IsOwner,
         saveUrl = Url.Page("/Index", "SaveNote", new { note = note.Id }),
-        // Each paragraph with its audit text (created / modified), shown in the info bar.
+        // Only its owner writes in a note, so only the owner looks up the references just typed.
+        lookupUrl = note.IsOwner ? Url.Page("/Index", "ReferenceLookup", new { note = note.Id }) : null,
+        // The notes the links of the text open, with their tooltips.
+        references = NoteReferences.Targets(L, note.References),
+        // Each paragraph with its audit text (created / modified), shown in the info bar, and where it shows links.
         blocks = note.Blocks.Select(block => new
         {
             id = block.Id,
             content = block.Content,
             info = NoteDates.BlockAudit(L, block.CreatedAtUtc, block.ModifiedAtUtc),
-            unsavedInfo = NoteDates.BlockAudit(L, block.CreatedAtUtc, block.ModifiedAtUtc, unsaved: true)
+            unsavedInfo = NoteDates.BlockAudit(L, block.CreatedAtUtc, block.ModifiedAtUtc, unsaved: true),
+            links = NoteReferences.Links(block.Links)
         })
     };
 }
 @* One note in the editor: its title, its own CodeMirror editor (with its own scroll) and its footer: the paragraph info,
    the type, context and visibility, the save status and Save. Each tab keeps its state independently.
-   The data-* values fill the minimized form when this tab is the active one. *@
+   The data-* values fill the minimized form when this tab is the active one; note-editor.js changes the type's once
+   another type is chosen. *@
 <section class="note-editor-panel" role="tabpanel" id="note-@note.Id-panel" aria-labelledby="note-@note.Id-tab" data-editor-panel="@note.Id"
          data-type-class="@(note.NoteType == NoteTypes.Article ? "note-sheet--article" : "note-sheet--journal")" data-type-name="@typeName"
          data-created-text="@NoteDates.Card(note.CreatedAtUtc)" data-created-iso="@NoteDates.Iso(note.CreatedAtUtc)"
@@ -38,15 +45,46 @@
     {
         <h2 id="note-@note.Id-title" class="note-sheet__title">@title</h2>
     }
-    @* The editor container has its own scroll; the dialog and the board behind it do not move. *@
-    <div class="note-sheet__editor" data-note-editor>
-        <noscript>
-            <p class="field-error">@L["Editor_NoScript"]</p>
-            @foreach (var block in note.Blocks)
-            {
-                <p class="note-sheet__paragraph">@block.Content</p>
-            }
-        </noscript>
+    <div class="note-sheet__body">
+        @* The editor container has its own scroll; the dialog and the board behind it do not move. *@
+        <div class="note-sheet__editor" data-note-editor>
+            <noscript>
+                <p class="field-error">@L["Editor_NoScript"]</p>
+                @foreach (var block in note.Blocks)
+                {
+                    <p class="note-sheet__paragraph">@NoteReferences.Html(block, note.References, L, Url)</p>
+                }
+            </noscript>
+        </div>
+        @* The drawer of the note's references, beside the text: each reference of the text that is a link, once, as its
+           first link writes it, with the notes it opens as its tooltip. A details element, so it opens and closes without
+           JavaScript, and each link goes to the page of its first note (/?note={id}). With JavaScript a click opens all
+           its notes in the editor's tabs instead, the drawer stays open or closed in every tab, and the list follows each
+           save (from the template below). *@
+        <details class="note-references" data-editor-references>
+            <summary class="note-references__toggle">
+                <svg class="note-references__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 6.5 9 12l5.5 5.5" /></svg>
+                <span class="note-references__label">@L["Editor_References"]</span>
+                <span class="note-references__count@(referenceList.Count == 0 ? " note-references__count--none" : "")" data-references-count>@referenceList.Count</span>
+            </summary>
+            <div class="note-references__content">
+                <p class="note-references__help">@L["Editor_ReferencesHelp"]</p>
+                <p class="note-references__empty" data-references-empty hidden="@(referenceList.Count > 0)">@L["Editor_ReferencesEmpty"]</p>
+                <ul class="note-references__list" data-references-list>
+                    @foreach (var entry in referenceList)
+                    {
+                        <li class="note-references__item">
+                            <a class="note-references__reference" href="@Url.Page("/Index", new { note = entry.Notes[0].Id })"
+                               data-note-reference="@string.Join(" ", entry.Notes.Select(target => target.Id))"
+                               title="@string.Join("\n", entry.Notes.Select(target => NoteReferences.Label(L, target)))">@entry.Label</a>
+                        </li>
+                    }
+                </ul>
+                <template data-references-entry>
+                    <li class="note-references__item"><a class="note-references__reference" data-references-reference></a></li>
+                </template>
+            </div>
+        </details>
     </div>
     <div class="note-editor-footer">
         @* Info bar: when the paragraph under the mouse (or at the cursor) was created and last changed.
@@ -56,8 +94,28 @@
             <p class="note-editor-info__help">@(note.IsOwner ? L["Editor_Help"] : L["Editor_ReadOnly"])</p>
         </div>
         <div class="note-editor-toolbar">
+            @if (note.IsOwner)
+            {
+                @* The owner chooses the type here, journal or article, like on the new-note card: saved with the note (Save,
+                   Ctrl+S), like the title; the sheet, the tab and the minimized form show it at once. Shown only once the
+                   editor runs, in place of the type's name; each radio has the classes and the name that show its type. *@
+                <fieldset class="note-type-switch note-editor-type" data-editor-type hidden>
+                    <legend class="visually-hidden">@L["Field_NoteType"]</legend>
+                    @foreach (var type in new[] { NoteTypes.Journal, NoteTypes.Article })
+                    {
+                        var name = type == NoteTypes.Article ? L["NoteType_Article"].Value : L["NoteType_Journal"].Value;
+                        <label class="note-type-switch__option">
+                            <input type="radio" name="note-@note.Id-type" value="@type" checked="@(note.NoteType == type)" data-type-name="@name"
+                                   data-sheet-class="@(type == NoteTypes.Article ? "note-sheet--article" : "note-sheet--journal")"
+                                   data-tab-class="@(type == NoteTypes.Article ? "note-editor-tab--article" : "note-editor-tab--journal")" />
+                            <partial name="_NoteTypeIcon" model="type" />
+                            <span class="note-type-switch__tip">@name</span>
+                        </label>
+                    }
+                </fieldset>
+            }
             <p class="note-editor-toolbar__meta">
-                <span>@typeName</span>
+                <span data-editor-type-name>@typeName</span>
                 <span>@note.ContextName</span>
                 <span>@(note.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>
             </p>

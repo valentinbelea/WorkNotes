@@ -10,7 +10,9 @@
    the same line, in the same format; their labels are only read out to screen readers. The owner renames the title in place (Enter saves, Escape restores) and has Delete.
    The Open link (/?note={id}) and double-click open the editor over the board (openNoteEditor in notes-board.js).
    On the owner's cards the tape on top is the handle for dragging the card onto another card of the same month, to
-   swap their places (notes-board.js makes it draggable); on other cards it is only drawn by postit.css. *@
+   swap their places (notes-board.js makes it draggable); on other cards it is only drawn by postit.css.
+   A save in the editor refreshes the title (field, heading, labels), the type (colour and name), the preview and the last change in place
+   (notes-board.js, from the save's answer); the preview paragraph is always there, hidden while the note has no text. *@
 <li class="note-cell">
     <article class="note-card @NoteCardStyle.TypeClass(Model.NoteType) @NoteCardStyle.TiltClass(Model.Id)" data-note-id="@Model.Id" aria-labelledby="@titleId">
         @if (Model.IsOwner)
@@ -18,7 +20,7 @@
             <span class="note-card__tape" aria-hidden="true" data-note-drag-handle></span>
         }
         <p class="note-card__meta note-card__meta--dates">
-            <span class="visually-hidden">@(Model.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
+            <span class="visually-hidden" data-note-type>@(Model.NoteType == NoteTypes.Article ? L["NoteType_Article"] : L["NoteType_Journal"])</span>
             <span class="note-card__date">
                 <span class="visually-hidden">@L["Notes_Created"]</span>
                 <time datetime="@NoteDates.Iso(Model.CreatedAtUtc)">@NoteDates.Card(Model.CreatedAtUtc)</time>
@@ -31,7 +33,7 @@
         </p>
         @if (Model.IsOwner)
         {
-            <h3 class="visually-hidden" id="@titleId">@title</h3>
+            <h3 class="visually-hidden" id="@titleId" data-note-name>@title</h3>
             <form method="post" asp-page="/Index" asp-page-handler="RenameNote" asp-route-note="@Model.Id" asp-route-context="@Model.ContextId" class="note-card__rename" data-note-rename>
                 <label class="visually-hidden" for="@titleId-input">@L["Field_Title"]</label>
                 <input id="@titleId-input" name="title" class="note-card__title-field" value="@Model.Title" placeholder="@L["Notes_Untitled"]"
@@ -40,12 +42,9 @@
         }
         else
         {
-            <h3 class="note-card__title @(Model.Title is null ? "note-card__title--untitled" : null)" id="@titleId">@title</h3>
+            <h3 class="note-card__title @(Model.Title is null ? "note-card__title--untitled" : null)" id="@titleId" data-note-name>@title</h3>
         }
-        @if (Model.Preview is not null)
-        {
-            <p class="note-card__excerpt">@Model.Preview</p>
-        }
+        <p class="note-card__excerpt" hidden="@(Model.Preview is null)" data-note-preview>@Model.Preview</p>
         <div class="note-card__footer">
             <span>@(Model.Visibility == NoteVisibilities.Context ? L["NoteVisibility_Context"] : L["NoteVisibility_Private"])</span>
             <span class="note-card__actions">
@@ -54,7 +53,7 @@
                 </a>
                 @if (Model.IsOwner)
                 {
-                    <a class="note-card__icon note-card__icon--danger" asp-page="/Index" asp-route-delete="@Model.Id" aria-label="@L["Notes_DeleteNamed", title]" title="@L["Notes_DeleteNamed", title]">
+                    <a class="note-card__icon note-card__icon--danger" asp-page="/Index" asp-route-delete="@Model.Id" data-note-delete aria-label="@L["Notes_DeleteNamed", title]" title="@L["Notes_DeleteNamed", title]">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5M10 10.5v6M14 10.5v6" /></svg>
                     </a>
                 }

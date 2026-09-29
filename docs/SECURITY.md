@@ -53,7 +53,7 @@ Notele noi sunt private (`Private`). O notă `Context` este citită de membri nu
 
 - Razor codifică implicit ieșirea HTML; aplicația nu folosește `Html.Raw`.
 - Datele pentru scripturi sunt serializate cu `Json.Serialize` în `<script type="application/json">`; encoderul implicit System.Text.Json codifică `<`, `>`, `&`, `'` și `"` (verificat pe 2026-09-25), deci textul utilizatorului nu poate închide elementul `script`.
-- Scripturile scriu textul cu `textContent`. Singura inserare de HTML (`innerHTML` în `note-editor.js`) primește fragmentul unui tab randat și codificat de server (`?handler=NoteTab`).
+- Scripturile scriu textul cu `textContent`. Singura inserare de HTML (`innerHTML` în `note-editor.js`) primește fragmentul unui tab randat și codificat de server (`?handler=NoteTab`); PR #4 adaugă una de același fel în `notes-board.js`, pentru fereastra editorului (`?handler=NoteEditor`).
 - Nu este configurat un antet Content-Security-Policy. TODO: Necesită clarificare — dacă se adaugă CSP și alte antete de securitate pentru mediile găzduite.
 
 ## Siguranța conținutului editorului
@@ -65,8 +65,16 @@ Notele noi sunt private (`Private`). O notă `Context` este citită de membri nu
 ## Referințele interne
 
 - Pe `main` nu există referințe între note.
-- PR #4 (neintegrat) adaugă referințe interne; proiectul PR-ului prevede: sugestii numai din celelalte note ale aceluiași context pe care utilizatorul le poate vedea, numai pentru proprietarul notei; verificarea destinațiilor pe server; o referință care nu se mai poate deschide nu afișează titlul destinației; un număr limitat de ID-uri pe cerere de verificare. Aceste reguli se documentează aici la integrarea PR-ului.
-- Pentru referințele de lucru planificate (CR/bug, `WorkReferences`), toate asocierile trebuie să respecte contextul notei ([DOMAIN-MODEL.md](DOMAIN-MODEL.md#entități-planificate)).
+- PR #4 (neintegrat, [ADR-003](decisions/ADR-003-internal-references.md)) adaugă referințe interne CR/bug. Contextul rămâne granița: o referință deschide numai note ale aceluiași context, nearhivate, pe care proprietarul paragrafului le poate vedea (ale lui sau partajate cu contextul), deci legăturile nu dezvăluie notele private ale colegilor.
+- Un cititor vede ca link numai referințele stocate cu cel puțin o notă destinație pe care o poate vedea el însuși, iar linkul deschide numai acele note (`GetTargetsAsync` aplică `VisibleTo` pentru notă și pentru fiecare destinație); celelalte rămân text simplu, fără titlurile destinațiilor.
+- Referințele se citesc din text și se rezolvă numai pe server (`NoteReferenceRules`, `NoteReferenceService`); editorul primește pozițiile linkurilor și titlurile destinațiilor ca date JSON codificate, iar CodeMirror afișează textul ca text. Fără JavaScript, paragrafele sunt HTML codificat, cu linkuri `/?note={id}`. HTML-ul scris într-o notă rămâne text.
+- Sertarul referințelor din editor (PR #4) este construit din aceleași linkuri și destinații ca textul, deci arată numai referințele și notele pe care cititorul le vede deja ca linkuri; serverul îl randează codificat, iar intrările refăcute după o salvare sunt copii ale template-urilor, completate cu `textContent`.
+- Căutarea referinței abia scrise (PR #4, `POST /?handler=ReferenceLookup&note={id}`) folosește antiforgery ca salvarea și răspunde numai proprietarului notei: un cititor primește 403, o notă pe care utilizatorul nu o vede 404. Trimite cel mult textul rândului de dinaintea cursorului (`NoteReferenceRules.LookupLength`, 79 de caractere), în corpul cererii, nu în adresă; serverul citește numai sfârșitul lui și arată numai notele pe care proprietarul le poate vedea, ca la salvare. Mesajele sunt compuse pe server, iar popup-ul le scrie cu `textContent`.
+- Recalcularea după schimbarea titlului sau crearea unei note, ca și ștergerea unei note, modifică legăturile paragrafelor tuturor membrilor contextului, nu textul lor: legăturile sunt derivate din text și titluri, iar fiecare paragraf urmează ce poate vedea proprietarul lui. Numai proprietarul notei o salvează, o redenumește sau o șterge.
+- `004_ReplaceNoteReferences.sql` modifică textul paragrafelor care conțin legături de forma veche `[[note:{id}|{număr}]]`, înlocuindu-le cu numărul afișat; `005_CreateNoteReferenceTargets.sql`, `006`–`008` (catalogul `WorkReferences` și cheia lui în `NoteReferences`) și `009`–`012` (tipurile și reindexarea) schimbă numai tabelele referințelor, nu textul. Toate se aplică numai la cerere explicită, de cine are drepturi asupra bazei.
+- Tipurile de referință (`ReferenceTypes`, PR #4) sunt o configurare comună, schimbată numai în SQL, de cine are drepturi asupra bazei; aplicația doar le citește. Expresia regulată se construiește numai din tipuri validate (1–10 litere ASCII mari), nu din text introdus de utilizatori.
+- Catalogul `WorkReferences` (PR #4) este comun tuturor contextelor, dar un rând conține numai tipul și numărul unei referințe stocate, fără text, notă, context sau utilizator; aplicația nu îl afișează și nu îl folosește pentru acces: o legătură trece mereu prin paragraf, notă și context, cu filtrele de mai sus.
+- Pentru asocierile planificate cu referințele de lucru (`NoteWorkReferences`, `NoteBlockWorkReferences`), toate trebuie să respecte contextul notei ([DOMAIN-MODEL.md](DOMAIN-MODEL.md#entități-planificate)). TODO: Necesită clarificare — catalogul fiind comun, titlul și URL-ul extern planificate pentru un CR ar fi vizibile în toate contextele; dacă ele trebuie păstrate pe context.
 
 ## Secretele
 

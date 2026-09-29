@@ -20,7 +20,15 @@ public partial class WorkNotesDbContext : DbContext
 
     public virtual DbSet<NoteBlock> NoteBlocks { get; set; }
 
+    public virtual DbSet<NoteReference> NoteReferences { get; set; }
+
+    public virtual DbSet<NoteReferenceTarget> NoteReferenceTargets { get; set; }
+
+    public virtual DbSet<ReferenceType> ReferenceTypes { get; set; }
+
     public virtual DbSet<WorkContext> WorkContexts { get; set; }
+
+    public virtual DbSet<WorkReference> WorkReferences { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -98,12 +106,82 @@ public partial class WorkNotesDbContext : DbContext
             entity.HasOne(d => d.Note).WithMany(p => p.NoteBlocks).HasForeignKey(d => d.NoteId);
         });
 
+        modelBuilder.Entity<NoteReference>(entity =>
+        {
+            entity.HasIndex(e => e.NormalizedReference, "IX_NoteReferences_NormalizedReference");
+
+            entity.HasIndex(e => e.WorkReferenceId, "IX_NoteReferences_WorkReferenceId");
+
+            entity.HasIndex(e => new { e.NoteBlockId, e.NormalizedReference }, "UX_NoteReferences_NoteBlockId_NormalizedReference").IsUnique();
+
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_NoteReferences_CreatedAtUtc");
+            entity.Property(e => e.NormalizedReference).HasMaxLength(30);
+            entity.Property(e => e.ReferenceText).HasMaxLength(100);
+            entity.Property(e => e.ReferenceType).HasMaxLength(20);
+
+            entity.HasOne(d => d.NoteBlock).WithMany(p => p.NoteReferences).HasForeignKey(d => d.NoteBlockId);
+
+            entity.HasOne(d => d.ReferenceTypeNavigation).WithMany(p => p.NoteReferences)
+                .HasForeignKey(d => d.ReferenceType)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            entity.HasOne(d => d.WorkReference).WithMany(p => p.NoteReferences)
+                .HasForeignKey(d => d.WorkReferenceId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+        });
+
+        modelBuilder.Entity<NoteReferenceTarget>(entity =>
+        {
+            entity.HasKey(e => new { e.NoteReferenceId, e.TargetNoteId });
+
+            entity.HasIndex(e => e.TargetNoteId, "IX_NoteReferenceTargets_TargetNoteId");
+
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_NoteReferenceTargets_CreatedAtUtc");
+
+            entity.HasOne(d => d.NoteReference).WithMany(p => p.NoteReferenceTargets).HasForeignKey(d => d.NoteReferenceId);
+
+            entity.HasOne(d => d.TargetNote).WithMany(p => p.NoteReferenceTargets)
+                .HasForeignKey(d => d.TargetNoteId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+        });
+
+        modelBuilder.Entity<ReferenceType>(entity =>
+        {
+            entity.HasKey(e => e.Code);
+
+            entity.Property(e => e.Code).HasMaxLength(20);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_ReferenceTypes_CreatedAtUtc");
+        });
+
         modelBuilder.Entity<WorkContext>(entity =>
         {
             entity.HasIndex(e => e.Name, "UX_WorkContexts_Name").IsUnique();
 
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Name).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<WorkReference>(entity =>
+        {
+            entity.HasIndex(e => e.NormalizedReference, "UX_WorkReferences_NormalizedReference").IsUnique();
+
+            entity.HasIndex(e => new { e.ReferenceType, e.ReferenceNumber }, "UX_WorkReferences_ReferenceType_ReferenceNumber").IsUnique();
+
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_WorkReferences_CreatedAtUtc");
+            entity.Property(e => e.NormalizedReference).HasMaxLength(30);
+            entity.Property(e => e.ReferenceType).HasMaxLength(20);
+
+            entity.HasOne(d => d.ReferenceTypeNavigation).WithMany(p => p.WorkReferences)
+                .HasForeignKey(d => d.ReferenceType)
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         OnModelCreatingPartial(modelBuilder);

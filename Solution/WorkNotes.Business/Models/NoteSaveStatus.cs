@@ -8,5 +8,6 @@ public enum NoteSaveStatus
     Forbidden,
     Conflict,
     InvalidTitle,
+    InvalidType,
     InvalidContent
 }

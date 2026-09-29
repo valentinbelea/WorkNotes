@@ -16,7 +16,7 @@ public sealed class NoteServiceTests
         var notes = new StubNotes();
         // 22:30 UTC is already the next day at UTC+3.
         var time = new FixedTime(new DateTimeOffset(2026, 9, 23, 22, 30, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
-        var service = new NoteService(notes, new StubContexts(), time);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), time);
 
         var status = await service.CreateAsync(User, 5, NoteTypes.Journal, "  Analiză  ", CancellationToken.None);
 
@@ -30,7 +30,7 @@ public sealed class NoteServiceTests
     public async Task ArticleHasNoJournalDateAndTitleIsOptional(string? title)
     {
         var notes = new StubNotes();
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         await service.CreateAsync(User, 5, NoteTypes.Article, title, CancellationToken.None);
 
@@ -46,7 +46,7 @@ public sealed class NoteServiceTests
     {
         var notes = new StubNotes();
         var contexts = new StubContexts();
-        var service = new NoteService(notes, contexts, TimeProvider.System);
+        var service = new NoteService(notes, contexts, new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteCreateStatus.InvalidType, await service.CreateAsync(User, 5, noteType, null, CancellationToken.None));
         Assert.False(contexts.WasCalled);
@@ -57,7 +57,7 @@ public sealed class NoteServiceTests
     public async Task TitleMustFitTheColumnAndHaveNoControlCharacters()
     {
         var notes = new StubNotes();
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteCreateStatus.InvalidTitle,
             await service.CreateAsync(User, 5, NoteTypes.Article, new string('a', NoteRules.TitleMaxLength + 1), CancellationToken.None));
@@ -69,7 +69,7 @@ public sealed class NoteServiceTests
     public async Task ContextOutsideMembershipIsRejected()
     {
         var notes = new StubNotes();
-        var service = new NoteService(notes, new StubContexts(exists: false), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(exists: false), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteCreateStatus.ContextNotFound, await service.CreateAsync(User, 5, NoteTypes.Journal, null, CancellationToken.None));
         Assert.Null(notes.Added);
@@ -79,7 +79,7 @@ public sealed class NoteServiceTests
     public async Task MemberWhoIsNotOwnerOfTheContextMayWriteNotes()
     {
         var notes = new StubNotes();
-        var service = new NoteService(notes, new StubContexts(isOwner: false), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(isOwner: false), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteCreateStatus.Created, await service.CreateAsync(User, 5, NoteTypes.Article, null, CancellationToken.None));
     }
@@ -88,7 +88,7 @@ public sealed class NoteServiceTests
     public async Task SeveralJournalsPerDayAreAllowed()
     {
         var notes = new StubNotes();
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteCreateStatus.Created, await service.CreateAsync(User, 5, NoteTypes.Journal, "Dimineața", CancellationToken.None));
         Assert.Equal(NoteCreateStatus.Created, await service.CreateAsync(User, 5, NoteTypes.Journal, "După-amiaza", CancellationToken.None));
@@ -108,7 +108,7 @@ public sealed class NoteServiceTests
             Note(5, NoteTypes.Journal, new DateTime(2026, 8, 31, 22, 30, 0, DateTimeKind.Utc), order: 2),
         ]);
         var time = new FixedTime(new DateTimeOffset(2026, 9, 10, 12, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
-        var service = new NoteService(notes, new StubContexts(), time);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), time);
 
         var months = await service.GetBoardAsync(User, 5, CancellationToken.None);
 
@@ -129,7 +129,7 @@ public sealed class NoteServiceTests
             Note(2, NoteTypes.Article, utc(1), order: 1),
             Note(3, NoteTypes.Journal, utc(2), modifiedAtUtc: utc(9), order: 2),
         ]);
-        var service = new NoteService(notes, new StubContexts(), UtcTime);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
 
         var months = await service.GetBoardAsync(User, 5, CancellationToken.None);
 
@@ -151,7 +151,7 @@ public sealed class NoteServiceTests
             Note(5, NoteTypes.Journal, utc(8, 20)),
         ]);
         var time = new FixedTime(new DateTimeOffset(2026, 9, 10, 12, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
-        var service = new NoteService(notes, new StubContexts(), time);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), time);
 
         var months = await service.GetBoardAsync(User, 5, CancellationToken.None);
 
@@ -171,7 +171,7 @@ public sealed class NoteServiceTests
             Note(2, NoteTypes.Article, utc(5), modifiedAtUtc: utc(10)),
             Note(3, NoteTypes.Article, utc(5), modifiedAtUtc: utc(10)),
         ]);
-        var service = new NoteService(notes, new StubContexts(), UtcTime);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
 
         var months = await service.GetBoardAsync(User, 5, CancellationToken.None);
 
@@ -181,20 +181,24 @@ public sealed class NoteServiceTests
     private static NoteDocument Document(bool isOwner = true) =>
         new(7, 5, "TopDev", NoteTypes.Article, "Titlu", NoteVisibilities.Private, isOwner, DateTime.UtcNow, DateTime.UtcNow, "v1", []);
 
+    // The note being saved, as its card showed it: an article of board 5, created this month and not changed since.
+    private static NoteSummary Saving(bool isOwner = true) =>
+        Note(7, NoteTypes.Article, September, isOwner) with { Title = "Titlu", Preview = "Text vechi" };
+
     [Fact]
     public async Task OwnerSavesNormalizedParagraphsInOrder()
     {
-        var notes = new StubNotes(document: Document());
+        var notes = new StubNotes(summary: Saving());
         // Sub-second parts are dropped: audit times have the precision of the stored columns.
         var time = new FixedTime(new DateTimeOffset(2026, 9, 24, 8, 0, 0, 700, TimeSpan.Zero), TimeSpan.FromHours(3));
-        var service = new NoteService(notes, new StubContexts(), time);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), time);
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();
 
-        var result = await service.SaveAsync(User, 7, "v1", "  Analiză  ",
+        var result = await service.SaveAsync(User, 7, "v1", "  Analiză  ", null,
             [new(first, "\nRând 1\r\nRând 2\n"), new(second, "Al doilea\tparagraf")], CancellationToken.None);
 
-        Assert.Equal(new NoteSaveResult(NoteSaveStatus.Saved, "v2"), result);
+        Assert.Equal((NoteSaveStatus.Saved, "v2"), (result.Status, result.Version));
         Assert.Equal("Analiză", notes.Saved!.Title);
         Assert.Equal([new NoteBlockInput(first, "Rând 1\nRând 2"), new NoteBlockInput(second, "Al doilea\tparagraf")], notes.Saved.Blocks);
         Assert.Equal(new DateTime(2026, 9, 24, 8, 0, 0, DateTimeKind.Utc), notes.Saved.SavedAtUtc);
@@ -204,20 +208,20 @@ public sealed class NoteServiceTests
     [Fact]
     public async Task OnlyTheOwnerSaves()
     {
-        var notes = new StubNotes(document: Document(isOwner: false));
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var notes = new StubNotes(summary: Saving(isOwner: false));
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
-        Assert.Equal(NoteSaveStatus.Forbidden, (await service.SaveAsync(User, 7, "v1", null, [], CancellationToken.None)).Status);
+        Assert.Equal(NoteSaveStatus.Forbidden, (await service.SaveAsync(User, 7, "v1", null, null, [], CancellationToken.None)).Status);
         Assert.Null(notes.Saved);
     }
 
     [Fact]
     public async Task InvisibleNoteIsNotFound()
     {
-        var notes = new StubNotes(document: null);
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var notes = new StubNotes(summary: null);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
-        Assert.Equal(NoteSaveStatus.NotFound, (await service.SaveAsync(User, 7, "v1", null, [], CancellationToken.None)).Status);
+        Assert.Equal(NoteSaveStatus.NotFound, (await service.SaveAsync(User, 7, "v1", null, null, [], CancellationToken.None)).Status);
         Assert.Null(notes.Saved);
     }
 
@@ -238,41 +242,155 @@ public sealed class NoteServiceTests
     [MemberData(nameof(InvalidParagraphs))]
     public async Task InvalidParagraphsAreRejectedBeforeDataAccess(NoteBlockInput[] blocks)
     {
-        var notes = new StubNotes(document: Document());
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var notes = new StubNotes(summary: Saving());
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
-        Assert.Equal(NoteSaveStatus.InvalidContent, (await service.SaveAsync(User, 7, "v1", null, blocks, CancellationToken.None)).Status);
+        Assert.Equal(NoteSaveStatus.InvalidContent, (await service.SaveAsync(User, 7, "v1", null, null, blocks, CancellationToken.None)).Status);
         Assert.Null(notes.Saved);
     }
 
     [Fact]
     public async Task TooManyParagraphsAreRejected()
     {
-        var notes = new StubNotes(document: Document());
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var notes = new StubNotes(summary: Saving());
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
         var blocks = Enumerable.Range(0, NoteRules.MaxBlocks + 1).Select(_ => new NoteBlockInput(Guid.NewGuid(), "x")).ToList();
 
-        Assert.Equal(NoteSaveStatus.InvalidContent, (await service.SaveAsync(User, 7, "v1", null, blocks, CancellationToken.None)).Status);
+        Assert.Equal(NoteSaveStatus.InvalidContent, (await service.SaveAsync(User, 7, "v1", null, null, blocks, CancellationToken.None)).Status);
     }
 
     [Fact]
     public async Task InvalidTitleAndMissingVersionAreRejected()
     {
-        var notes = new StubNotes(document: Document());
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var notes = new StubNotes(summary: Saving());
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
-        Assert.Equal(NoteSaveStatus.InvalidTitle, (await service.SaveAsync(User, 7, "v1", "a\nb", [], CancellationToken.None)).Status);
-        Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, " ", null, [], CancellationToken.None)).Status);
+        Assert.Equal(NoteSaveStatus.InvalidTitle, (await service.SaveAsync(User, 7, "v1", "a\nb", null, [], CancellationToken.None)).Status);
+        Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, " ", null, null, [], CancellationToken.None)).Status);
         Assert.Null(notes.Saved);
     }
 
     [Fact]
     public async Task ConflictFromDataAccessIsReturned()
     {
-        var notes = new StubNotes(document: Document(), saveResult: new NoteSaveResult(NoteSaveStatus.Conflict));
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var notes = new StubNotes(summary: Saving(), saveResult: new NoteSaveResult(NoteSaveStatus.Conflict));
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
-        Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, "v1", null, [new(Guid.NewGuid(), "Text")], CancellationToken.None)).Status);
+        var result = await service.SaveAsync(User, 7, "v1", null, null, [new(Guid.NewGuid(), "Text")], CancellationToken.None);
+
+        Assert.Equal(NoteSaveStatus.Conflict, result.Status);
+        // Nothing was saved: the card stays as it is.
+        Assert.Null(result.Note);
+    }
+
+    [Fact]
+    public async Task ASavedNoteComesBackAsItsCardShowsIt()
+    {
+        var savedAtUtc = new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc);
+        var notes = new StubNotes(summary: Saving(), saveResult: new NoteSaveResult(NoteSaveStatus.Saved, "v2", ModifiedAtUtc: savedAtUtc));
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
+
+        var result = await service.SaveAsync(User, 7, "v1", "  Analiză  ", null,
+            [new(Guid.NewGuid(), "Primul"), new(Guid.NewGuid(), "Al doilea"), new(Guid.NewGuid(), "Al treilea"), new(Guid.NewGuid(), "Al patrulea")],
+            CancellationToken.None);
+
+        // The stored title, the start of the first paragraphs, the last change and the new version, from what was saved.
+        Assert.Equal(Saving() with { Title = "Analiză", Preview = "Primul\nAl doilea\nAl treilea", ModifiedAtUtc = savedAtUtc, Version = "v2" },
+            result.Note);
+        // Changed in the month it was already in: the note keeps its place and the board is not read.
+        Assert.Null(result.Month);
+        Assert.Null(notes.BoardUser);
+    }
+
+    [Fact]
+    public async Task ASaveThatChangesNothingKeepsTheCardsLastChange()
+    {
+        // Nothing was stored: the note's last change is still its creation.
+        var notes = new StubNotes(summary: Saving(), saveResult: new NoteSaveResult(NoteSaveStatus.Saved, "v2", ModifiedAtUtc: September));
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
+
+        var result = await service.SaveAsync(User, 7, "v1", "Titlu", null, [new(Guid.NewGuid(), "Text vechi")], CancellationToken.None);
+
+        Assert.Null(result.Note!.ModifiedAtUtc);
+        Assert.Equal(September, result.Note.LastChangedAtUtc);
+        Assert.Null(result.Month);
+    }
+
+    [Fact]
+    public async Task ASaveThatMovesTheNoteToTheCurrentMonthBringsThatMonthInItsOrder()
+    {
+        var august = new DateTime(2026, 8, 20, 9, 0, 0, DateTimeKind.Utc);
+        var savedAtUtc = new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc);
+        // The board as it is read after the save: the note, changed now, among this month's notes.
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Article, august, order: 4),
+            board: [Note(7, NoteTypes.Article, august, modifiedAtUtc: savedAtUtc, order: 4), Note(8, NoteTypes.Journal, September, order: -1),
+                Note(9, NoteTypes.Journal, September, order: 6), Note(10, NoteTypes.Article, august, order: 1)],
+            saveResult: new NoteSaveResult(NoteSaveStatus.Saved, "v2", ModifiedAtUtc: savedAtUtc));
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
+
+        var result = await service.SaveAsync(User, 7, "v1", null, null, [new(Guid.NewGuid(), "Text")], CancellationToken.None);
+
+        // September, with the note placed among the others by its Order; August is not part of the answer.
+        Assert.Equal((2026, 9), (result.Month!.Year, result.Month.Month));
+        Assert.Equal([8, 7, 9], result.Month.Notes.Select(note => note.Id));
+        Assert.Equal((User, 5), (notes.BoardUser, notes.BoardContext));
+        Assert.Equal(savedAtUtc, result.Note!.LastChangedAtUtc);
+    }
+
+    [Fact]
+    public async Task AnArticleBecomesAJournalOfTheLocalDayItWasCreated()
+    {
+        // Created at 22:30 UTC on 4 September, already 5 September at UTC+3.
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Article, new DateTime(2026, 9, 4, 22, 30, 0, DateTimeKind.Utc)));
+        var time = new FixedTime(new DateTimeOffset(2026, 9, 24, 8, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), time);
+
+        var result = await service.SaveAsync(User, 7, "v1", null, NoteTypes.Journal, [new(Guid.NewGuid(), "Text")], CancellationToken.None);
+
+        Assert.Equal((NoteTypes.Journal, new DateOnly(2026, 9, 5)), (notes.Saved!.NoteType, notes.Saved.JournalDate));
+        // The card shows the new type.
+        Assert.Equal((NoteTypes.Journal, new DateOnly(2026, 9, 5)), (result.Note!.NoteType, result.Note.JournalDate));
+    }
+
+    [Fact]
+    public async Task AJournalBecomesAnArticleWithoutADate()
+    {
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, September) with { JournalDate = new DateOnly(2026, 9, 5) });
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
+
+        var result = await service.SaveAsync(User, 7, "v1", null, NoteTypes.Article, [new(Guid.NewGuid(), "Text")], CancellationToken.None);
+
+        Assert.Equal((NoteTypes.Article, (DateOnly?)null), (notes.Saved!.NoteType, notes.Saved.JournalDate));
+        Assert.Equal(NoteTypes.Article, result.Note!.NoteType);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(NoteTypes.Journal)]
+    public async Task AJournalThatStaysAJournalKeepsItsDate(string? noteType)
+    {
+        // Dated 3 September, as the database has it, although the note was created on the 5th.
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, September) with { JournalDate = new DateOnly(2026, 9, 3) });
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
+
+        await service.SaveAsync(User, 7, "v1", null, noteType, [new(Guid.NewGuid(), "Text")], CancellationToken.None);
+
+        Assert.Equal((NoteTypes.Journal, new DateOnly(2026, 9, 3)), (notes.Saved!.NoteType, notes.Saved.JournalDate));
+    }
+
+    [Theory]
+    [InlineData("Document")]
+    [InlineData("journal")]
+    [InlineData("")]
+    public async Task AnUnknownTypeIsRejected(string noteType)
+    {
+        var notes = new StubNotes(summary: Saving());
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
+
+        var result = await service.SaveAsync(User, 7, "v1", null, noteType, [new(Guid.NewGuid(), "Text")], CancellationToken.None);
+
+        Assert.Equal(NoteSaveStatus.InvalidType, result.Status);
+        Assert.Null(notes.Saved);
     }
 
     private static NoteSummary Note(int id, string type, DateTime createdAtUtc, bool isOwner = true, DateTime? modifiedAtUtc = null,
@@ -285,7 +403,7 @@ public sealed class NoteServiceTests
         var summary = Note(7, NoteTypes.Journal, new DateTime(2026, 9, 1, 8, 0, 0, DateTimeKind.Utc));
         var notes = new StubNotes(summary: summary);
         var time = new FixedTime(new DateTimeOffset(2026, 9, 24, 8, 0, 0, 900, TimeSpan.Zero), TimeSpan.FromHours(3));
-        var service = new NoteService(notes, new StubContexts(), time);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), time);
         var savedAtUtc = new DateTime(2026, 9, 24, 8, 0, 0, DateTimeKind.Utc);
 
         var result = await service.RenameAsync(User, 7, "  CR 30042  ", CancellationToken.None);
@@ -300,7 +418,7 @@ public sealed class NoteServiceTests
     public async Task EmptyTitleMakesTheNoteUntitled()
     {
         var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, DateTime.UtcNow) with { Title = "Analiză" });
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         var result = await service.RenameAsync(User, 7, "   ", CancellationToken.None);
 
@@ -313,7 +431,7 @@ public sealed class NoteServiceTests
     public async Task OnlyTheOwnerRenamesOrDeletes()
     {
         var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, DateTime.UtcNow, isOwner: false));
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteSaveStatus.Forbidden, (await service.RenameAsync(User, 7, "Titlu", CancellationToken.None)).Status);
         Assert.Equal(NoteDeleteStatus.Forbidden, await service.DeleteAsync(User, 7, CancellationToken.None));
@@ -325,7 +443,7 @@ public sealed class NoteServiceTests
     public async Task InvisibleNoteCannotBeRenamedOrDeleted()
     {
         var notes = new StubNotes(summary: null);
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteSaveStatus.NotFound, (await service.RenameAsync(User, 7, "Titlu", CancellationToken.None)).Status);
         Assert.Equal(NoteDeleteStatus.NotFound, await service.DeleteAsync(User, 7, CancellationToken.None));
@@ -335,7 +453,7 @@ public sealed class NoteServiceTests
     public async Task InvalidTitleIsNotRenamed()
     {
         var notes = new StubNotes(summary: Note(7, NoteTypes.Journal, DateTime.UtcNow));
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteSaveStatus.InvalidTitle, (await service.RenameAsync(User, 7, "a\tb", CancellationToken.None)).Status);
         Assert.Equal(NoteSaveStatus.InvalidTitle, (await service.RenameAsync(User, 7, new string('a', NoteRules.TitleMaxLength + 1), CancellationToken.None)).Status);
@@ -346,7 +464,7 @@ public sealed class NoteServiceTests
     public async Task OwnerDeletes()
     {
         var notes = new StubNotes(summary: Note(7, NoteTypes.Article, DateTime.UtcNow));
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         Assert.Equal(NoteDeleteStatus.Deleted, await service.DeleteAsync(User, 7, CancellationToken.None));
         Assert.Equal((7, User), notes.Deleted);
@@ -356,7 +474,7 @@ public sealed class NoteServiceTests
     public async Task BoardIsReadForTheCurrentUser()
     {
         var notes = new StubNotes();
-        var service = new NoteService(notes, new StubContexts(), TimeProvider.System);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), TimeProvider.System);
 
         await service.GetBoardAsync(User, 5, CancellationToken.None);
 
@@ -375,7 +493,7 @@ public sealed class NoteServiceTests
             Note(2, NoteTypes.Article, September, order: 2),
             Note(3, NoteTypes.Article, September, order: 3),
         ]);
-        var service = new NoteService(notes, new StubContexts(), UtcTime);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
 
         var result = await service.SwapOrderAsync(User, 1, 3, CancellationToken.None);
 
@@ -397,7 +515,7 @@ public sealed class NoteServiceTests
             Note(3, NoteTypes.Journal, new DateTime(2026, 8, 31, 20, 0, 0, DateTimeKind.Utc), order: 3),
         ]);
         var time = new FixedTime(new DateTimeOffset(2026, 9, 10, 12, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(3));
-        var service = new NoteService(notes, new StubContexts(), time);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), time);
 
         Assert.Equal(NoteOrderStatus.InvalidTarget, (await service.SwapOrderAsync(User, 3, 2, CancellationToken.None)).Status);
         Assert.Null(notes.Swapped);
@@ -408,7 +526,7 @@ public sealed class NoteServiceTests
     public async Task NotesOfAnotherBoardOrTheSameNoteCannotBeSwapped()
     {
         var notes = new StubNotes(board: [Note(1, NoteTypes.Journal, September), Note(2, NoteTypes.Journal, September, contextId: 6)]);
-        var service = new NoteService(notes, new StubContexts(), UtcTime);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
 
         Assert.Equal(NoteOrderStatus.InvalidTarget, (await service.SwapOrderAsync(User, 1, 2, CancellationToken.None)).Status);
         Assert.Equal(NoteOrderStatus.InvalidTarget, (await service.SwapOrderAsync(User, 1, 1, CancellationToken.None)).Status);
@@ -421,7 +539,7 @@ public sealed class NoteServiceTests
     public async Task OnlyTheOwnerOfBothNotesSwapsThem(bool ownsNote, bool ownsTarget)
     {
         var notes = new StubNotes(board: [Note(1, NoteTypes.Journal, September, isOwner: ownsNote), Note(2, NoteTypes.Article, September, isOwner: ownsTarget)]);
-        var service = new NoteService(notes, new StubContexts(), UtcTime);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
 
         Assert.Equal(NoteOrderStatus.Forbidden, (await service.SwapOrderAsync(User, 1, 2, CancellationToken.None)).Status);
         Assert.Null(notes.Swapped);
@@ -431,7 +549,7 @@ public sealed class NoteServiceTests
     public async Task InvisibleNoteCannotBeSwapped()
     {
         var notes = new StubNotes(board: [Note(1, NoteTypes.Journal, September)]);
-        var service = new NoteService(notes, new StubContexts(), UtcTime);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
 
         Assert.Equal(NoteOrderStatus.NotFound, (await service.SwapOrderAsync(User, 1, 2, CancellationToken.None)).Status);
         Assert.Equal(NoteOrderStatus.NotFound, (await service.SwapOrderAsync(User, 2, 1, CancellationToken.None)).Status);
@@ -443,7 +561,7 @@ public sealed class NoteServiceTests
     {
         var notes = new StubNotes(board: [Note(1, NoteTypes.Journal, September, order: 1), Note(2, NoteTypes.Article, September, order: 2)],
             swapConflict: true);
-        var service = new NoteService(notes, new StubContexts(), UtcTime);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
 
         var result = await service.SwapOrderAsync(User, 1, 2, CancellationToken.None);
 
@@ -456,11 +574,226 @@ public sealed class NoteServiceTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         var notes = new StubNotes(board: [Note(1, NoteTypes.Journal, September), Note(2, NoteTypes.Article, September)]);
-        var service = new NoteService(notes, new StubContexts(), UtcTime);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(), UtcTime);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.SwapOrderAsync(User, 1, 2, cancellation.Token));
         Assert.Null(notes.Swapped);
         await Assert.ThrowsAsync<ArgumentException>(() => service.SwapOrderAsync(" ", 1, 2, CancellationToken.None));
+    }
+
+    private static readonly NoteReferenceTarget Cr30080 = new(12, "CR 30080 Export facturi", NoteTypes.Article);
+    private static readonly NoteReferenceTarget Test30080 = new(15, "Testare cr-30080", NoteTypes.Journal);
+
+    [Fact]
+    public async Task TheReferencesResolvedForTheOwnerAreSavedWithTheParagraphs()
+    {
+        var paragraph = Guid.NewGuid();
+        var resolution = new NoteReferenceResolution([new(paragraph, "CR", 30080, "CR 30080", [12])], [Cr30080],
+            new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>> { [paragraph] = [new(5, "CR 30080", "CR", 30080, [12])] });
+        var notes = new StubNotes(summary: Saving());
+        var references = new StubReferences(resolution);
+        var service = new NoteService(notes, new StubContexts(), references, UtcTime);
+
+        await service.SaveAsync(User, 7, "v1", "  Titlu  ", null, [new(paragraph, "Vezi CR 30080\r\n")], CancellationToken.None);
+
+        // The references are read from the text as it is stored, for the note's owner and board.
+        var resolved = references.Resolved!.Value;
+        Assert.Equal((User, 5, 7), (resolved.OwnerUserId, resolved.ContextId, resolved.NoteId));
+        Assert.Equal([new NoteBlockInput(paragraph, "Vezi CR 30080")], resolved.Paragraphs);
+        Assert.Equal(resolution.References, notes.Saved!.References);
+        Assert.Equal("Titlu", notes.Saved.Title);
+        // The title did not change: no other paragraph can name the note differently.
+        Assert.Empty(references.Refreshed);
+    }
+
+    [Fact]
+    public async Task EachSavedParagraphShowsTheLinksItsReferencesWereResolvedWith()
+    {
+        var first = Guid.NewGuid();
+        var second = Guid.NewGuid();
+        // CR 30080 opens two notes, in the two places the first paragraph writes it.
+        IReadOnlyList<NoteReferenceLink> links = [new(0, "CR 30080", "CR", 30080, [12, 15]), new(15, "CR-30080", "CR", 30080, [12, 15])];
+        var resolution = new NoteReferenceResolution([new(first, "CR", 30080, "CR 30080", [12, 15])], [Cr30080, Test30080],
+            new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>> { [first] = links });
+        var saved = new NoteSaveResult(NoteSaveStatus.Saved, "v2", [new(first, DateTime.UtcNow, DateTime.UtcNow), new(second, DateTime.UtcNow, DateTime.UtcNow)]);
+        var notes = new StubNotes(summary: Saving(), saveResult: saved);
+        var service = new NoteService(notes, new StubContexts(), new StubReferences(resolution), UtcTime);
+
+        var result = await service.SaveAsync(User, 7, "v1", "Titlu", null,
+            [new(first, "CR 30080, apoi cr_30080 și bug 30080"), new(second, "CR 30080 fără referință stocată")], CancellationToken.None);
+
+        Assert.Same(links, result.Blocks![0].Links);
+        Assert.Empty(result.Blocks[1].Links!);
+        Assert.Equal([Cr30080, Test30080], result.References);
+    }
+
+    [Fact]
+    public async Task ANewTitleRefreshesTheReferencesOfTheBoardOnceTheNoteIsSaved()
+    {
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(summary: Saving()), new StubContexts(), references, UtcTime);
+
+        await service.SaveAsync(User, 7, "v1", " CR 30080 ", null, [new(Guid.NewGuid(), "Text")], CancellationToken.None);
+
+        Assert.Equal([(5, "Titlu", "CR 30080")], references.Refreshed);
+    }
+
+    [Fact]
+    public async Task ASaveThatFailsRefreshesNothing()
+    {
+        var references = new StubReferences();
+        var notes = new StubNotes(summary: Saving(), saveResult: new NoteSaveResult(NoteSaveStatus.Conflict));
+        var service = new NoteService(notes, new StubContexts(), references, UtcTime);
+
+        Assert.Equal(NoteSaveStatus.Conflict, (await service.SaveAsync(User, 7, "v1", "CR 30080", null, [new(Guid.NewGuid(), "Text")], CancellationToken.None)).Status);
+        Assert.Empty(references.Refreshed);
+    }
+
+    [Fact]
+    public async Task ReferencesAreResolvedOnlyForTheOwnersSave()
+    {
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(summary: Saving(isOwner: false)), new StubContexts(), references, UtcTime);
+
+        await service.SaveAsync(User, 7, "v1", null, null, [new(Guid.NewGuid(), "CR 30080")], CancellationToken.None);
+
+        Assert.Null(references.Resolved);
+    }
+
+    [Fact]
+    public async Task ARenameRefreshesTheReferencesOfTheOldAndTheNewTitle()
+    {
+        var references = new StubReferences();
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Article, September) with { Title = "CR 30080" });
+        var service = new NoteService(notes, new StubContexts(), references, UtcTime);
+
+        await service.RenameAsync(User, 7, "Rezolvare bug-1234", CancellationToken.None);
+
+        Assert.Equal([(5, "CR 30080", "Rezolvare bug-1234")], references.Refreshed);
+    }
+
+    [Fact]
+    public async Task ARenameThatFailsRefreshesNothing()
+    {
+        var references = new StubReferences();
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Article, September), renamed: false);
+        var service = new NoteService(notes, new StubContexts(), references, UtcTime);
+
+        Assert.Equal(NoteSaveStatus.NotFound, (await service.RenameAsync(User, 7, "CR 30080", CancellationToken.None)).Status);
+        Assert.Empty(references.Refreshed);
+    }
+
+    [Fact]
+    public async Task ACreatedNoteRefreshesTheReferencesItsTitleNames()
+    {
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(), new StubContexts(), references, UtcTime);
+
+        await service.CreateAsync(User, 5, NoteTypes.Article, " CR 30080 ", CancellationToken.None);
+
+        Assert.Equal([(5, null, "CR 30080")], references.Refreshed);
+    }
+
+    [Fact]
+    public async Task ANoteThatIsNotCreatedRefreshesNothing()
+    {
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(outcome: NoteCreateStatus.ContextNotFound), new StubContexts(), references, UtcTime);
+
+        await service.CreateAsync(User, 5, NoteTypes.Article, "CR 30080", CancellationToken.None);
+
+        Assert.Empty(references.Refreshed);
+    }
+
+    [Fact]
+    public async Task ADeletedNoteResolvesNoReference()
+    {
+        // The deletion takes away the stored rows that open the note; the other notes of those references stay.
+        var references = new StubReferences();
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Article, September) with { Title = "CR 30080" });
+        var service = new NoteService(notes, new StubContexts(), references, UtcTime);
+
+        Assert.Equal(NoteDeleteStatus.Deleted, await service.DeleteAsync(User, 7, CancellationToken.None));
+        Assert.Equal((7, User), notes.Deleted);
+        Assert.Empty(references.Refreshed);
+    }
+
+    [Fact]
+    public async Task ANoteThatIsNotDeletedIsNotFound()
+    {
+        var references = new StubReferences();
+        var notes = new StubNotes(summary: Note(7, NoteTypes.Article, September) with { Title = "CR 30080" }, deleted: false);
+        var service = new NoteService(notes, new StubContexts(), references, UtcTime);
+
+        Assert.Equal(NoteDeleteStatus.NotFound, await service.DeleteAsync(User, 7, CancellationToken.None));
+        Assert.Empty(references.Refreshed);
+    }
+
+    [Fact]
+    public async Task AnOpenedNoteHasTheLinksItsReaderMayFollow()
+    {
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(document: Document(isOwner: false)), new StubContexts(), references, UtcTime);
+
+        var document = await service.GetDocumentAsync(7, User, CancellationToken.None);
+
+        Assert.Equal((7, User), references.Linked);
+        Assert.Equal([Cr30080], document!.References);
+    }
+
+    [Fact]
+    public async Task AnInvisibleNoteReadsNoLinks()
+    {
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(document: null), new StubContexts(), references, UtcTime);
+
+        Assert.Null(await service.GetDocumentAsync(7, User, CancellationToken.None));
+        Assert.Null(references.Linked);
+    }
+
+    [Fact]
+    public async Task TheOwnerLooksUpAReferenceInTheNotesBoard()
+    {
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(summary: Note(7, NoteTypes.Journal, September, contextId: 9)), new StubContexts(), references, UtcTime);
+        using var active = new CancellationTokenSource();
+
+        var lookup = await service.LookUpReferenceAsync(User, 7, "Legat de CR 30080", active.Token);
+
+        Assert.Equal(NoteReferenceLookupStatus.Found, lookup.Status);
+        Assert.Equal((User, 9, 7, "Legat de CR 30080", active.Token), references.LookedUp);
+    }
+
+    [Fact]
+    public async Task OnlyTheOwnerLooksUpReferences()
+    {
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(summary: Note(7, NoteTypes.Journal, September, isOwner: false)), new StubContexts(), references, UtcTime);
+
+        Assert.Equal(NoteReferenceLookupStatus.Forbidden, (await service.LookUpReferenceAsync(User, 7, "CR 30080", CancellationToken.None)).Status);
+        Assert.Null(references.LookedUp);
+    }
+
+    [Fact]
+    public async Task ANoteTheUserMayNotSeeLooksUpNothing()
+    {
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(summary: null), new StubContexts(), references, UtcTime);
+
+        Assert.Equal(NoteReferenceLookupStatus.NotFound, (await service.LookUpReferenceAsync(User, 7, "CR 30080", CancellationToken.None)).Status);
+        Assert.Null(references.LookedUp);
+    }
+
+    [Fact]
+    public async Task ALookupStopsBeforeTheDataAccessWhenCancelled()
+    {
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(summary: Note(7, NoteTypes.Journal, September)), new StubContexts(), references, UtcTime);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.LookUpReferenceAsync(User, 7, "CR 30080", cancellation.Token));
+        Assert.Null(references.LookedUp);
     }
 
     private sealed class FixedTime(DateTimeOffset utcNow, TimeSpan offset) : TimeProvider
@@ -470,7 +803,8 @@ public sealed class NoteServiceTests
     }
 
     private sealed class StubNotes(NoteCreateStatus outcome = NoteCreateStatus.Created, IReadOnlyList<NoteSummary>? board = null,
-        NoteDocument? document = null, NoteSaveResult? saveResult = null, NoteSummary? summary = null, bool swapConflict = false) : INoteRepository
+        NoteDocument? document = null, NoteSaveResult? saveResult = null, NoteSummary? summary = null, bool swapConflict = false,
+        bool renamed = true, bool deleted = true) : INoteRepository
     {
         // The stored notes: a swap changes their orders, like the database.
         private readonly List<NoteSummary> stored = [.. board ?? []];
@@ -497,13 +831,13 @@ public sealed class NoteServiceTests
         public Task<bool> RenameAsync(int noteId, string ownerUserId, string? title, DateTime savedAtUtc, CancellationToken cancellationToken)
         {
             Renamed = (noteId, ownerUserId, title, savedAtUtc);
-            return Task.FromResult(true);
+            return Task.FromResult(renamed);
         }
 
         public Task<bool> DeleteAsync(int noteId, string ownerUserId, CancellationToken cancellationToken)
         {
             Deleted = (noteId, ownerUserId);
-            return Task.FromResult(true);
+            return Task.FromResult(deleted);
         }
 
         public Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken) =>
@@ -530,6 +864,41 @@ public sealed class NoteServiceTests
         {
             Added = note;
             return Task.FromResult(outcome);
+        }
+    }
+
+    // Records what NoteService asks of the references; WithLinksAsync marks the document it was given.
+    private sealed class StubReferences(NoteReferenceResolution? resolution = null) : INoteReferenceService
+    {
+        public (string OwnerUserId, int ContextId, int NoteId, IReadOnlyList<NoteBlockInput> Paragraphs)? Resolved { get; private set; }
+        public List<(int ContextId, string? PreviousTitle, string? Title)> Refreshed { get; } = [];
+        public (int NoteId, string UserId)? Linked { get; private set; }
+
+        public Task<NoteReferenceResolution> ResolveAsync(string ownerUserId, int contextId, int noteId,
+            IReadOnlyList<NoteBlockInput> paragraphs, CancellationToken cancellationToken)
+        {
+            Resolved = (ownerUserId, contextId, noteId, paragraphs);
+            return Task.FromResult(resolution ?? new NoteReferenceResolution([], [], new Dictionary<Guid, IReadOnlyList<NoteReferenceLink>>()));
+        }
+
+        public Task RefreshAsync(int contextId, string? previousTitle, string? title, CancellationToken cancellationToken)
+        {
+            Refreshed.Add((contextId, previousTitle, title));
+            return Task.CompletedTask;
+        }
+
+        public Task<NoteDocument> WithLinksAsync(NoteDocument document, string userId, CancellationToken cancellationToken)
+        {
+            Linked = (document.Id, userId);
+            return Task.FromResult(document with { References = [Cr30080] });
+        }
+
+        public (string OwnerUserId, int ContextId, int NoteId, string? Text, CancellationToken Token)? LookedUp { get; private set; }
+
+        public Task<NoteReferenceLookup> LookUpAsync(string ownerUserId, int contextId, int noteId, string? text, CancellationToken cancellationToken)
+        {
+            LookedUp = (ownerUserId, contextId, noteId, text, cancellationToken);
+            return Task.FromResult(new NoteReferenceLookup(NoteReferenceLookupStatus.Found, new(10, "CR 30080", "CR", 30080), [Cr30080]));
         }
     }
 

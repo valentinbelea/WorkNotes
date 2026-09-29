@@ -34,4 +34,13 @@ public sealed class NoteRulesTests
 
         Assert.Equal(new string('x', NoteRules.PreviewMaxLength) + "…", preview);
     }
+
+    [Fact]
+    public void ASavedNoteHasThePreviewTheBoardReadsOfItsParagraphs()
+    {
+        // The board reads the first paragraphs, PreviewSourceLength characters of each: the rest never shows.
+        Assert.Equal("Unu\nDoi\nTrei", NoteRules.PreviewOf(["Unu", "Doi", "Trei", "Patru"]));
+        Assert.Equal("Început", NoteRules.PreviewOf(["Început" + new string(' ', NoteRules.PreviewSourceLength) + "sfârșit"]));
+        Assert.Null(NoteRules.PreviewOf([]));
+    }
 }

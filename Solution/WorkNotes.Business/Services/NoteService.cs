@@ -3,7 +3,8 @@ using WorkNotes.Business.Models;
 
 namespace WorkNotes.Business.Services;
 
-public sealed class NoteService(INoteRepository notes, IWorkContextRepository contexts, TimeProvider time) : INoteService
+public sealed class NoteService(INoteRepository notes, IWorkContextRepository contexts, INoteReferenceService references, TimeProvider time)
+    : INoteService
 {
     public async Task<IReadOnlyList<NoteMonthGroup>> GetBoardAsync(string userId, int contextId, CancellationToken cancellationToken)
     {
@@ -37,9 +38,12 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
 
         // The journal is dated with the application's local calendar day.
         DateOnly? journalDate = noteType == NoteTypes.Journal ? DateOnly.FromDateTime(time.GetLocalNow().DateTime) : null;
-        return await notes.AddAsync(
-            new NewNote(contextId, userId, noteType, NoteRules.NormalizeTitle(title), journalDate, NoteVisibilities.Private),
+        var normalized = NoteRules.NormalizeTitle(title);
+        var status = await notes.AddAsync(new NewNote(contextId, userId, noteType, normalized, journalDate, NoteVisibilities.Private),
             cancellationToken);
+        // The references its title names now open it too.
+        if (status == NoteCreateStatus.Created) await references.RefreshAsync(contextId, null, normalized, cancellationToken);
+        return status;
     }
 
     public (int Year, int Month) GetCurrentMonth()
@@ -48,30 +52,57 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         return (now.Year, now.Month);
     }
 
-    public Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken)
+    public async Task<NoteDocument?> GetDocumentAsync(int noteId, string userId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        return notes.GetDocumentAsync(noteId, userId, cancellationToken);
+        var document = await notes.GetDocumentAsync(noteId, userId, cancellationToken);
+        return document is null ? null : await references.WithLinksAsync(document, userId, cancellationToken);
     }
 
-    public async Task<NoteSaveResult> SaveAsync(string userId, int noteId, string expectedVersion, string? title,
+    public async Task<NoteSaveResult> SaveAsync(string userId, int noteId, string expectedVersion, string? title, string? noteType,
         IReadOnlyList<NoteBlockInput> blocks, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
         if (!NoteRules.ValidTitle(title)) return new(NoteSaveStatus.InvalidTitle);
+        if (noteType is not null && !NoteTypes.IsValid(noteType)) return new(NoteSaveStatus.InvalidType);
         if (Normalize(blocks) is not { } paragraphs) return new(NoteSaveStatus.InvalidContent);
 
-        var document = await notes.GetDocumentAsync(noteId, userId, cancellationToken);
-        if (document is null) return new(NoteSaveStatus.NotFound);
+        // The note as its card showed it: the paragraphs themselves are read by the repository's save.
+        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
+        if (note is null) return new(NoteSaveStatus.NotFound);
         // Members may read a shared note; only its owner edits it.
-        if (!document.IsOwner) return new(NoteSaveStatus.Forbidden);
+        if (!note.IsOwner) return new(NoteSaveStatus.Forbidden);
         if (string.IsNullOrWhiteSpace(expectedVersion)) return new(NoteSaveStatus.Conflict);
 
-        return await notes.SaveAsync(
-            new NoteChanges(noteId, userId, expectedVersion, NoteRules.NormalizeTitle(title), paragraphs, SavedAtUtc()),
+        // A note that becomes a journal is dated with the local day it was created (the day a journal created then would
+        // have); an article has no date. A note that keeps its type keeps its date.
+        var type = noteType ?? note.NoteType;
+        var journalDate = type == note.NoteType ? note.JournalDate : type == NoteTypes.Journal ? LocalDay(note.CreatedAtUtc) : null;
+
+        // The references of the paragraphs are stored with them, in the same transaction.
+        var normalized = NoteRules.NormalizeTitle(title);
+        var resolution = await references.ResolveAsync(userId, note.ContextId, noteId, paragraphs, cancellationToken);
+        var result = await notes.SaveAsync(
+            new NoteChanges(noteId, userId, expectedVersion, normalized, type, journalDate, paragraphs, resolution.References, SavedAtUtc()),
             cancellationToken);
+        if (result.Status != NoteSaveStatus.Saved) return result;
+        // Other paragraphs of the board may name the note by its old or its new title.
+        if (normalized != note.Title) await references.RefreshAsync(note.ContextId, note.Title, normalized, cancellationToken);
+        return await WithCardAsync(WithLinks(result, resolution), userId, note, note with { Title = normalized, NoteType = type, JournalDate = journalDate },
+            paragraphs, cancellationToken);
+    }
+
+    public async Task<NoteReferenceLookup> LookUpReferenceAsync(string userId, int noteId, string? text, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
+        if (note is null) return new(NoteReferenceLookupStatus.NotFound);
+        // Members may read a shared note; only its owner writes in it.
+        if (!note.IsOwner) return new(NoteReferenceLookupStatus.Forbidden);
+        return await references.LookUpAsync(userId, note.ContextId, noteId, text, cancellationToken);
     }
 
     public Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken)
@@ -91,9 +122,10 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         if (!note.IsOwner) return new(NoteSaveStatus.Forbidden);
         var normalized = NoteRules.NormalizeTitle(title);
         var savedAtUtc = SavedAtUtc();
-        return await notes.RenameAsync(noteId, userId, normalized, savedAtUtc, cancellationToken)
-            ? new(NoteSaveStatus.Saved, note with { Title = normalized, ModifiedAtUtc = savedAtUtc })
-            : new(NoteSaveStatus.NotFound);
+        if (!await notes.RenameAsync(noteId, userId, normalized, savedAtUtc, cancellationToken)) return new(NoteSaveStatus.NotFound);
+        // The references of the board that name the note by its old or its new title follow.
+        await references.RefreshAsync(note.ContextId, note.Title, normalized, cancellationToken);
+        return new(NoteSaveStatus.Saved, note with { Title = normalized, ModifiedAtUtc = savedAtUtc });
     }
 
     public async Task<NoteDeleteStatus> DeleteAsync(string userId, int noteId, CancellationToken cancellationToken)
@@ -103,6 +135,8 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
         if (note is null) return NoteDeleteStatus.NotFound;
         if (!note.IsOwner) return NoteDeleteStatus.Forbidden;
+        // The references of the board that opened it no longer do (the deletion takes those rows away): nothing else to
+        // resolve, since a note deleted only takes a target away.
         return await notes.DeleteAsync(noteId, userId, cancellationToken) ? NoteDeleteStatus.Deleted : NoteDeleteStatus.NotFound;
     }
 
@@ -126,6 +160,40 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         var board = await GetBoardAsync(userId, note.ContextId, cancellationToken);
         var noteIds = board.FirstOrDefault(group => (group.Year, group.Month) == month)?.Notes.Select(item => item.Id).ToList() ?? [];
         return new(NoteOrderStatus.Saved, noteIds, versions);
+    }
+
+    // Where each saved paragraph shows its links now, for the editor: those of the references just stored with it, as
+    // the resolution found them in its text.
+    private static NoteSaveResult WithLinks(NoteSaveResult result, NoteReferenceResolution resolution)
+    {
+        if (resolution.References.Count == 0 || result.Blocks is null) return result;
+        return result with
+        {
+            Blocks = result.Blocks
+                .Select(block => block with { Links = resolution.Links.TryGetValue(block.Id, out var links) ? links : [] })
+                .ToList(),
+            References = resolution.Targets
+        };
+    }
+
+    // The saved note as its card on the board shows it now, from what was just stored (the board would read the same),
+    // so the board behind the editor follows the save without being read again: note is the card as it was, stored the
+    // same card with the title and type just saved. Only a save that moved the note to another month (a change made in
+    // the current month) reads the board, for that month's order; within a month a note keeps its place (its Order).
+    private async Task<NoteSaveResult> WithCardAsync(NoteSaveResult result, string userId, NoteSummary note, NoteSummary stored,
+        IReadOnlyList<NoteBlockInput> paragraphs, CancellationToken cancellationToken)
+    {
+        var saved = stored with
+        {
+            Preview = NoteRules.PreviewOf(paragraphs.Select(paragraph => paragraph.Content)),
+            // As on the board: the note counts as changed once its last change is later than its creation.
+            ModifiedAtUtc = result.ModifiedAtUtc > note.CreatedAtUtc ? result.ModifiedAtUtc : note.ModifiedAtUtc,
+            Version = result.Version ?? note.Version
+        };
+        var month = LocalMonth(saved.LastChangedAtUtc);
+        if (month == LocalMonth(note.LastChangedAtUtc)) return result with { Note = saved };
+        var board = await GetBoardAsync(userId, note.ContextId, cancellationToken);
+        return result with { Note = saved, Month = board.FirstOrDefault(group => (group.Year, group.Month) == month) };
     }
 
     // Audit times are kept to the second, the precision of the stored columns, so they read the same after a reload.
@@ -156,7 +224,11 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
 
     private (int Year, int Month) LocalMonth(DateTime utc)
     {
-        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), time.LocalTimeZone);
+        var local = LocalTime(utc);
         return (local.Year, local.Month);
     }
+
+    private DateOnly LocalDay(DateTime utc) => DateOnly.FromDateTime(LocalTime(utc));
+
+    private DateTime LocalTime(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), time.LocalTimeZone);
 }

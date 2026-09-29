@@ -22,6 +22,8 @@
         tabUrl = Url.Page("/Index", "NoteTab"),
         noteUrl = Url.Page("/Index"),
         closeUrl,
+        // How much of the text before a word just ended the lookup of a reference sends (NoteReferenceRules).
+        lookupLength = NoteReferenceRules.LookupLength,
         texts = new
         {
             placeholder = L["Editor_Placeholder"].Value, saved = L["Editor_StatusSaved"].Value, unsaved = L["Editor_StatusUnsaved"].Value,
@@ -33,7 +35,9 @@
     };
 }
 @* The note editor over its board, 90% of the window. Without JavaScript the open dialog is a CSS overlay;
-   modal.js makes it modal (Escape and a click outside go back to the board, after the unsaved-changes warning).
+   modal.js makes it modal; Close, Escape and a click outside close it over the board as it is, without loading the page
+   again (note-editor.js), or go back to the board's address when a tab has unsaved changes (after the warning) or the
+   board could not follow a save.
    Each open note is a tab (note-editor.js adds the notes opened later from the board, without reloading the page).
    The header has the tabs and, on the right, Minimize and Close (which closes the editor with all its tabs); each
    note's actions are in its own footer. Minimize only changes how the dialog is shown: the tabs keep their state,
@@ -52,7 +56,7 @@
             <button type="button" class="note-editor-icon" aria-label="@L["Editor_Minimize"]" title="@L["Editor_Minimize"]" data-editor-minimize hidden>
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 17.5h12" /></svg>
             </button>
-            <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]">
+            <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]" data-editor-close>
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
             </a>
         </div>
@@ -61,6 +65,32 @@
             <partial name="_NoteEditorTabPanel" model="note" />
         </div>
     </article>
+    @* The popup of a reference just typed (note-references.js puts a copy of it above the reference, as a CodeMirror
+       tooltip): the search while the server looks the text up, then the notes the reference opens with the button that
+       makes it a link now, or that no note has it in its title. The server's answer brings the message and the notes; the
+       note-reference-lookup--searching, --found or --missing class shows what belongs to each. *@
+    <template data-reference-lookup>
+        @* A live region as a whole: once the answer comes, a screen reader reads the message, the notes, the button and the
+           keys (the parts of the other states are hidden). *@
+        <div class="note-reference-lookup note-reference-lookup--searching" role="status" aria-atomic="true" aria-label="@L["Editor_ReferenceLookup"]">
+            <div class="note-reference-lookup__status">
+                <p class="note-reference-lookup__message">
+                    <svg class="note-reference-lookup__icon note-reference-lookup__icon--search" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="6" /><path d="m15 15 5 5" /></svg>
+                    <svg class="note-reference-lookup__icon note-reference-lookup__icon--found" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                    <svg class="note-reference-lookup__icon note-reference-lookup__icon--missing" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5.5M12 16.5v.01" /></svg>
+                    <span data-lookup-message>@L["Editor_ReferenceSearching"]</span>
+                </p>
+                <ul class="note-reference-lookup__notes" data-lookup-notes></ul>
+            </div>
+            <p class="note-reference-lookup__actions">
+                <button type="button" class="btn btn-primary note-reference-lookup__create" data-lookup-create>@L["Editor_ReferenceCreate"]</button>
+                <span class="note-reference-lookup__hint">@L["Editor_ReferenceHint"]</span>
+            </p>
+        </div>
+    </template>
+    <template data-reference-lookup-note>
+        <li class="note-reference-lookup__note"><span class="note-reference-lookup__type" data-lookup-type></span><span class="note-reference-lookup__name" data-lookup-name></span></li>
+    </template>
     @* The minimized editor, shown by the note-editor-dialog--minimized class only; note-editor.js fills it with the
        tab that is active when the editor is minimized. *@
     <div class="note-editor-minimized postit-panel note-sheet @typeClass" role="group" aria-label="@L["Editor_Minimized"]" data-editor-minimized>
@@ -76,7 +106,7 @@
         <button type="button" class="note-editor-icon" aria-label="@L["Editor_Maximize"]" title="@L["Editor_Maximize"]" data-editor-maximize>
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.5 6.5h11v11h-11Z" /></svg>
         </button>
-        <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]">
+        <a class="note-editor-icon" href="@closeUrl" aria-label="@L["Editor_CloseEditor"]" title="@L["Editor_CloseEditor"]" data-editor-close>
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
         </a>
     </div>

@@ -1,6 +1,7 @@
 // Note editor: CodeMirror 6 plus paragraph identity. A paragraph is the text between blank lines; it keeps a stable
 // id while it is edited, so the server can keep each paragraph's creation audit and change only what was modified.
-// The info bar shows that audit for the paragraph under the mouse, or at the cursor.
+// The info bar shows that audit for the paragraph under the mouse, or at the cursor. The links of internal references
+// are note-references.js (the server says where they are); opening one uses the editor's tabs.
 // Appearance comes from note-editor.css; texts come from the page (resources), never from this file.
 import {
     EditorState, StateField, StateEffect, Transaction, EditorView, Decoration, keymap, placeholder, highlightActiveLine,
@@ -8,6 +9,7 @@ import {
     search, searchKeymap, highlightSelectionMatches
 } from "../lib/codemirror/codemirror.js";
 import { showStatusMessage } from "./status-messages.js";
+import { noteReferences, setLinks, referenceDrawer } from "./note-references.js";
 
 // ---- Paragraphs of a document ------------------------------------------------------------------------------
 
@@ -100,6 +102,12 @@ function matchParagraphs(state) {
 // Paragraphs without a known id are new and get one now.
 export const identifyParagraphs = state => matchParagraphs(state).map(item => ({ ...item, id: item.id ?? newId() }));
 
+// A paragraph's links (from and to within its text, as the server sends them, with the notes each opens) in document
+// positions, for a paragraph that starts at from; a link that does not fit the paragraph is left out.
+const linksAt = (from, links, length) => (links ?? [])
+    .filter(link => link.from >= 0 && link.to > link.from && link.to <= length)
+    .map(link => ({ from: from + link.from, to: from + link.to, notes: link.notes }));
+
 // ---- Paragraph under the mouse -----------------------------------------------------------------------------
 
 const setHovered = StateEffect.define();
@@ -150,29 +158,39 @@ function createNoteEditor(panel, data, shared) {
     const infoElement = panel.querySelector("[data-editor-info]");
     const saveButton = panel.querySelector("[data-editor-save]");
     const titleInput = panel.querySelector("[data-editor-title]");
+    // The owner's type switch in the footer (journal / article); a read-only editor has none.
+    const typeSwitch = panel.querySelector("[data-editor-type]");
+    const chosenType = () => typeSwitch?.querySelector("input:checked")?.value ?? null;
     const messages = shared.messages;
+    const drawerElement = panel.querySelector("[data-editor-references]");
+    // The drawer of the note's references: its links open notes in the tabs, and each save brings its list.
+    const drawer = drawerElement ? referenceDrawer(drawerElement, { open: ids => shared.openNotes(ids), noteUrl: shared.noteUrl }) : null;
 
     // Audit texts (as stored, and with unsaved changes) and last saved content of each stored paragraph, by id.
     const auditById = new Map(data.blocks.map(block => [block.id, block]));
     const savedContentById = new Map(data.blocks.map(block => [block.id, block.content]));
 
-    // The stored paragraphs, separated by one blank line, with their ids at their positions.
+    // The stored paragraphs, separated by one blank line, with their ids and their links at their positions.
     let doc = "";
+    const initialLinks = [];
     const initialTracked = data.blocks.map((block, index) => {
         if (index > 0) doc += "\n\n";
         const from = doc.length;
         doc += block.content;
+        initialLinks.push(...linksAt(from, block.links, block.content.length));
         return { id: block.id, from, to: doc.length };
     });
 
     let version = data.version;
     let savedDoc = null;
     let savedTitle = titleInput?.value ?? "";
+    let savedType = chosenType();
     let saving = false;
     let problem = null;     // message of the last failed save
     let conflict = false;   // the note changed elsewhere: saving stays blocked until the page is reloaded
 
-    const isDirty = () => !data.readOnly && (!view.state.doc.eq(savedDoc) || (titleInput !== null && titleInput.value !== savedTitle));
+    const isDirty = () => !data.readOnly && (!view.state.doc.eq(savedDoc) || (titleInput !== null && titleInput.value !== savedTitle)
+        || chosenType() !== savedType);
 
     function updateStatus() {
         if (data.readOnly) return; // nothing is saved from a read-only editor
@@ -209,6 +227,7 @@ function createNoteEditor(panel, data, shared) {
             annotations: Transaction.addToHistory.of(false)
         });
         const title = titleInput?.value ?? "";
+        const noteType = chosenType();
         const blocks = paragraphs.map(paragraph => ({ id: paragraph.id, content: state.sliceDoc(paragraph.from, paragraph.to) }));
         saving = true;
         updateStatus();
@@ -216,7 +235,7 @@ function createNoteEditor(panel, data, shared) {
             const response = await fetch(data.saveUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "RequestVerificationToken": shared.token },
-                body: JSON.stringify({ version, title, blocks })
+                body: JSON.stringify({ version, title, noteType, blocks })
             });
             const body = await response.json().catch(() => ({}));
             if (!response.ok) {
@@ -228,6 +247,7 @@ function createNoteEditor(panel, data, shared) {
             version = body.version;
             savedDoc = state.doc;
             savedTitle = title;
+            savedType = noteType;
             problem = null;
             showStatusMessage(messages, "success", body.message);
             // The note's last change, shown by the minimized form when this tab is active.
@@ -240,6 +260,11 @@ function createNoteEditor(panel, data, shared) {
             savedContentById.clear();
             for (const block of body.blocks ?? []) auditById.set(block.id, block);
             for (const block of blocks) savedContentById.set(block.id, block.content);
+            const labels = new Map((body.references ?? []).map(target => [String(target.id), target.label]));
+            showSavedLinks(body, labels);
+            drawer?.show(body.referenceList, labels);
+            // The note's card on the board behind the window shows the save.
+            shared.showOnBoard(body.card);
         } catch {
             problem = texts.failed;
             showStatusMessage(messages, "error", problem);
@@ -248,6 +273,28 @@ function createNoteEditor(panel, data, shared) {
             updateStatus();
             updateInfo(view.state);
         }
+    }
+
+    // The server's answer about the text before a word just ended (INoteReferenceService.LookUpAsync), or null.
+    const findReference = (text, signal) => fetch(data.lookupUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json", "RequestVerificationToken": shared.token },
+        body: JSON.stringify({ text }),
+        signal
+    }).then(response => response.ok ? response.json() : null);
+
+    // The links of the saved text, drawn where its paragraphs are now. A paragraph edited while the save was on its way
+    // gets its links at the next save.
+    function showSavedLinks(body, labels) {
+        const places = new Map(view.state.field(trackedParagraphs).map(item => [item.id, item]));
+        const links = [];
+        for (const block of body.blocks ?? []) {
+            const place = places.get(block.id);
+            const content = savedContentById.get(block.id);
+            if (!place || content === undefined || view.state.sliceDoc(place.from, place.to) !== content) continue;
+            links.push(...linksAt(place.from, block.links, content.length));
+        }
+        view.dispatch({ effects: setLinks.of({ links, labels }), annotations: Transaction.addToHistory.of(false) });
     }
 
     const extensions = [
@@ -265,6 +312,12 @@ function createNoteEditor(panel, data, shared) {
         placeholder(texts.placeholder),
         EditorState.phrases.of(shared.phrases),
         EditorView.contentAttributes.of({ "aria-label": texts.content }),
+        // Before the default keys: Ctrl+Enter on a link opens its notes; Tab and Escape serve the lookup's popup first.
+        noteReferences({
+            links: initialLinks, targets: data.references ?? [], open: ids => shared.openNotes(ids),
+            // The owner's editor asks about the references it types.
+            lookup: data.readOnly || !data.lookupUrl || !shared.lookup ? null : { ...shared.lookup, find: findReference }
+        }),
         keymap.of([...searchKeymap, ...historyKeymap, ...defaultKeymap]),
         EditorView.updateListener.of(update => {
             if (update.docChanged) updateStatus();
@@ -280,9 +333,16 @@ function createNoteEditor(panel, data, shared) {
 
     saveButton?.addEventListener("click", save);
     titleInput?.addEventListener("input", updateStatus);
+    typeSwitch?.addEventListener("change", updateStatus);
 
     // Without JavaScript the page shows the text read-only; these parts only make sense with the editor running.
     if (saveButton) saveButton.hidden = false;
+    if (typeSwitch) {
+        // The switch takes the place of the type's name.
+        typeSwitch.hidden = false;
+        const typeName = panel.querySelector("[data-editor-type-name]");
+        if (typeName) typeName.hidden = true;
+    }
     const infoBar = panel.querySelector("[data-editor-info-bar]");
     if (infoBar) infoBar.hidden = false;
     updateStatus();
@@ -304,12 +364,29 @@ function createNoteEditor(panel, data, shared) {
 // note (after a confirmation when it has unsaved changes); the header's Close closes the window with all its tabs,
 // and leaving the page with unsaved changes in any tab asks first. Minimize and Maximize only change how the window
 // is shown: the tabs, their order, the active tab and every note's state stay as they are.
-function initializeEditorWindow(dialog, settings) {
+// The board behind the window follows each save (notes-board.js, note-editor:saved), so closing the window only takes
+// it away, without loading the page again, while nothing is unsaved; otherwise the page loads the board again.
+function initializeEditorWindow(dialog, settings, dataElement) {
+    const noteUrl = id => `${settings.noteUrl}?note=${id}`;
+    const lookupTemplate = dialog.querySelector("template[data-reference-lookup]");
+    const lookupNoteTemplate = dialog.querySelector("template[data-reference-lookup-note]");
     const shared = {
         texts: settings.texts,
         phrases: settings.phrases,
         messages: dialog.querySelector("[data-editor-messages]"),
-        token: dialog.querySelector("input[name='__RequestVerificationToken']")?.value ?? ""
+        token: dialog.querySelector("input[name='__RequestVerificationToken']")?.value ?? "",
+        // A link opens its notes in tabs of this window, like notes opened from the board.
+        openNotes: ids => openNotes(ids.map(String)),
+        noteUrl,
+        // The popup of a reference just typed (note-references.js), common to all tabs.
+        lookup: lookupTemplate && lookupNoteTemplate
+            ? { length: settings.lookupLength, template: lookupTemplate, noteTemplate: lookupNoteTemplate }
+            : null,
+        // A saved note's card (the save's answer) goes to the board, which marks the event handled once the card shows
+        // it; a save the board could not show makes closing the window load the board again.
+        showOnBoard: card => {
+            if (!card || document.dispatchEvent(new CustomEvent("note-editor:saved", { detail: card, cancelable: true }))) boardStale = true;
+        }
     };
     const windowPanel = dialog.querySelector("[data-editor-window]");
     const tabList = dialog.querySelector("[data-editor-tabs]");
@@ -318,9 +395,12 @@ function initializeEditorWindow(dialog, settings) {
     const tabs = new Map();         // note id -> { item, panel, editor }, in the order of the tab bar
     let activeId = null;
     let leaving = false;            // unsaved changes were already confirmed away
+    let boardStale = false;         // a save the board behind could not show
+    let removed = false;            // the window closed in place
+    const listeners = new AbortController(); // the document's and the window's listeners, removed with the window
 
     const isMinimized = () => dialog.classList.contains("note-editor-dialog--minimized");
-    const noteUrl = id => `${settings.noteUrl}?note=${id}`;
+    let referencesOpen = false;     // the references drawer, open or closed in every tab
 
     // The window's paper follows the active note's type, like its card on the board.
     function setSheetType(typeClass) {
@@ -351,16 +431,48 @@ function initializeEditorWindow(dialog, settings) {
         else tab.editor.view.requestMeasure();
     }
 
+    // The references drawer is open or closed for the whole window: a tab opened later shows it the same way, and
+    // opening or closing it in one tab does the same in the others.
+    function followReferencesDrawer(panel) {
+        const drawer = panel.querySelector("[data-editor-references]");
+        if (!drawer) return;
+        drawer.open = referencesOpen;
+        drawer.addEventListener("toggle", () => {
+            if (drawer.open === referencesOpen) return;
+            referencesOpen = drawer.open;
+            for (const tab of tabs.values()) {
+                const other = tab.panel.querySelector("[data-editor-references]");
+                if (other && other !== drawer) other.open = referencesOpen;
+            }
+        });
+    }
+
+    // A note's type as chosen in its footer (the radio has the classes and the name of its type): its tab and, while it is
+    // the active one, the window show it at once; the minimized form takes it from the panel. It is saved with the note.
+    function showType(id, option) {
+        const tab = tabs.get(id);
+        if (!tab || !option.checked) return;
+        tab.panel.dataset.typeClass = option.dataset.sheetClass;
+        tab.panel.dataset.typeName = option.dataset.typeName;
+        tab.item.classList.remove("note-editor-tab--journal", "note-editor-tab--article");
+        tab.item.classList.add(option.dataset.tabClass);
+        const name = tab.item.querySelector("[data-editor-tab-type]");
+        if (name) name.textContent = option.dataset.typeName;
+        if (id === activeId) setSheetType(option.dataset.sheetClass);
+    }
+
     function addTab(item, panel) {
         const id = item.dataset.editorTab;
         const data = JSON.parse(panel.querySelector("[data-editor-note]").textContent);
         const editor = createNoteEditor(panel, data, shared);
         tabs.set(id, { item, panel, editor });
+        followReferencesDrawer(panel);
         const label = item.querySelector("[data-editor-tab-title]");
         panel.querySelector("[data-editor-title]")?.addEventListener("input", () => {
             label.textContent = editor.title();
             label.title = label.textContent;
         });
+        panel.querySelector("[data-editor-type]")?.addEventListener("change", event => showType(id, event.target));
         item.querySelector("[data-editor-tab-select]").addEventListener("click", () => activate(id));
         const close = item.querySelector("[data-editor-tab-close]");
         close.hidden = false;
@@ -368,7 +480,28 @@ function initializeEditorWindow(dialog, settings) {
         return id;
     }
 
+    // Nothing to lose and nothing to show: every tab is saved and the board shows every save.
+    const closesInPlace = () => !boardStale && ![...tabs.values()].some(tab => tab.editor.isDirty());
+
+    // The window goes and the board behind it is used again as it is, without loading the page: the address becomes the
+    // board's (the close URL), as a new history entry, like the page it replaces (Back loads the note again), and the
+    // board puts the focus on the card of the active note (note-editor:closed).
+    function removeWindow() {
+        if (removed) return;
+        removed = true;
+        listeners.abort();
+        for (const tab of tabs.values()) tab.editor.view.destroy();
+        dialog.close();
+        dialog.remove();
+        dataElement.remove();
+        window.history.pushState(null, "", settings.closeUrl);
+        window.addEventListener("popstate", reloadOnHistory);
+        document.dispatchEvent(new CustomEvent("note-editor:closed", { detail: { id: activeId } }));
+    }
+
+    // The last tab was closed, its changes (if any) confirmed away: the window goes, in place unless the board missed a save.
     function closeWindow() {
+        if (!boardStale) { removeWindow(); return; }
         leaving = true;
         window.location.assign(settings.closeUrl);
     }
@@ -391,25 +524,49 @@ function initializeEditorWindow(dialog, settings) {
         if (activeId === id) activate(order[index + 1] ?? order[index - 1]);
     }
 
-    // A note opened from the board: its tab if it is already open, otherwise a new tab fetched from the server.
-    async function openNote(id) {
+    // A note opened from the board or from a reference: its tab if it is already open, otherwise a new tab fetched from
+    // the server. The other tabs keep everything, unsaved changes included. With show false the tab is only added (or
+    // left as it is), hidden behind the active one. False when the note could not be opened.
+    async function openNote(id, { show = true } = {}) {
         if (isMinimized()) restore({ focus: false });
-        if (tabs.has(id)) { activate(id); return; }
+        if (tabs.has(id)) { if (show) activate(id); return true; }
         try {
             const response = await fetch(`${settings.tabUrl}&note=${encodeURIComponent(id)}`, { headers: { Accept: "text/html" } });
             if (!response.ok) throw new Error(String(response.status));
             const fragment = document.createElement("template");
             fragment.innerHTML = await response.text();
+            if (removed) return false; // the window closed meanwhile
             const item = fragment.content.querySelector("[data-editor-tab]");
             const panel = fragment.content.querySelector("[data-editor-panel]");
             if (!item || !panel) throw new Error("fragment");
-            if (tabs.has(id)) { activate(id); return; } // opened twice while loading
+            if (tabs.has(id)) { if (show) activate(id); return true; } // opened twice while loading
+            if (!show) {
+                // Not the selected tab: its panel stays hidden until the tab is chosen.
+                item.querySelector("[data-editor-tab-select]").setAttribute("aria-selected", "false");
+                item.querySelector("[data-editor-tab-select]").tabIndex = -1;
+                panel.hidden = true;
+            }
             tabList.append(item);
             panels.append(panel);
-            activate(addTab(item, panel));
+            const added = addTab(item, panel);
+            if (show) activate(added);
+            return true;
         } catch {
             showStatusMessage(shared.messages, "error", shared.texts.openFailed);
+            return false;
         }
+    }
+
+    // A reference's notes, in order: each gets its tab (an open note keeps its own), then the first one that opened is
+    // shown. One note is the same as opening it from the board.
+    async function openNotes(ids) {
+        if (ids.length === 1) return openNote(ids[0]);
+        let first = null;
+        for (const id of ids) {
+            if (await openNote(id, { show: false }) && first === null) first = id;
+        }
+        if (first !== null) activate(first);
+        return first !== null;
     }
 
     function minimize() {
@@ -459,31 +616,61 @@ function initializeEditorWindow(dialog, settings) {
     minimized.querySelector("[data-editor-maximize]").addEventListener("click", () => restore());
     minimized.addEventListener("dblclick", event => { if (!event.target.closest("a, button")) restore(); });
 
+    // Close (in the header and on the minimized form), Escape and a click beside the window (modal.js, modal:close) take
+    // the window away in place when they can; otherwise Close is a link to the board and modal.js goes there, and leaving
+    // the page asks first about unsaved changes.
+    for (const link of dialog.querySelectorAll("[data-editor-close]")) {
+        link.addEventListener("click", event => {
+            if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || !closesInPlace()) return;
+            event.preventDefault();
+            removeWindow();
+        });
+    }
+    dialog.addEventListener("modal:close", event => {
+        if (!closesInPlace()) return;
+        event.preventDefault();
+        removeWindow();
+    });
+
+    const { signal } = listeners;
     // Ctrl+S / Cmd+S saves the active note, not while the editor is minimized.
     document.addEventListener("keydown", event => {
         if (!isMinimized() && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
             event.preventDefault();
             tabs.get(activeId)?.editor.save();
         }
-    });
-    // Leaving the page (the header's Close, Escape, the board) asks first when any tab has unsaved changes.
+    }, { signal });
+    // Leaving the page (Close or Escape with unsaved changes, the board) asks first when any tab has unsaved changes.
     window.addEventListener("beforeunload", event => {
         if (!leaving && [...tabs.values()].some(tab => tab.editor.isDirty())) event.preventDefault();
-    });
+    }, { signal });
     // Open and double-click on a board card (notes-board.js) come here while the editor is on the page.
     document.addEventListener("note-editor:open", event => {
         event.preventDefault();
         openNote(String(event.detail.id));
-    });
+    }, { signal });
     // Two cards swapped on the board: the tabs of those notes take the notes' new versions.
     document.addEventListener("note-board:versions", event => {
         for (const change of event.detail) tabs.get(String(change.id))?.editor.followVersion(change.previous, change.version);
-    });
+    }, { signal });
 
     const first = dialog.querySelector("[data-editor-tab]");
     activate(addTab(first, dialog.querySelector("[data-editor-panel]")));
 }
 
-const editorDialog = document.querySelector("dialog.note-editor-dialog");
-const dataElement = document.getElementById("note-editor-data");
-if (editorDialog && dataElement) initializeEditorWindow(editorDialog, JSON.parse(dataElement.textContent));
+// Back or Forward to an address the page took without loading (the board once the window closed in place) loads it.
+const reloadOnHistory = () => window.location.reload();
+
+// Sets up the editor window on the page, once: the one the page loads with (/?note={id}), or the one notes-board.js has
+// just put there. notes-board.js calls it after importing this module, which runs only once, so a window opened again
+// after one closed in place is set up too.
+const startedWindows = new WeakSet();
+export function startEditor() {
+    const dialog = document.querySelector("dialog.note-editor-dialog");
+    const dataElement = document.getElementById("note-editor-data");
+    if (!dialog || !dataElement || startedWindows.has(dialog)) return;
+    startedWindows.add(dialog);
+    initializeEditorWindow(dialog, JSON.parse(dataElement.textContent), dataElement);
+}
+
+startEditor();

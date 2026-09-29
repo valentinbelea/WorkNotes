@@ -16,19 +16,20 @@ Baza existentă, livrată în version_0.01 și version_0.02:
 
 ## În lucru
 
-- PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; referințele interne între note (`NoteReferences`, `version_0.02/002_CreateNoteReferences.sql`).
+- PR #4 (branch `main_task_02`): schimburi succesive prin drag-and-drop, fără blocare cât timp se salvează un schimb anterior; deschiderea și închiderea notelor fără reîncărcarea tablei, care urmează salvările din editor; schimbarea tipului unei note din editor; referințele interne CR/bug între note, cu destinațiile aflate din titluri (toate notele cu referința în titlu), relații pe paragraf în `NoteReferences`, cu notele fiecărei referințe în `NoteReferenceTargets` și cu ID-ul fiecărei referințe din catalogul `WorkReferences`, tipurile configurabile din `ReferenceTypes` (ținute în memorie), sertarul referințelor din editor, popup-ul referinței abia scrise și reindexarea conținutului existent prin `version_0.02/004_ReplaceNoteReferences.sql`–`012_RefreshNoteReferences.sql` ([ADR-003](decisions/ADR-003-internal-references.md)); corecția selecției din editor.
 
 ## Etapele următoare
 
 Pașii rămași din planul inițial, în ordinea lui:
 
-1. **WorkReferences** — catalogul de CR-uri și buguri pe context (unic pe `ContextId + ReferenceType + Code`), cu pagina lui.
+1. **WorkReferences** — catalogul de CR-uri și buguri, cu pagina lui. Catalogul există din PR #4, comun tuturor contextelor (unic pe tip + număr, cerința utilizatorului din 2026-09-28), fără pagină; rămân pagina, titlul și URL-ul extern. TODO: Necesită clarificare — dacă titlul și URL-ul unui CR se păstrează pe context ([SECURITY.md](SECURITY.md)).
 2. **Asocieri** — `NoteWorkReferences` (notă ↔ referințe) și `NoteBlockWorkReferences` (paragraf ↔ referințe); căutarea tuturor explicațiilor după codul CR-ului.
 3. **NoteLinks** — legături externe pe notă sau pe paragraf.
 4. **Platforme** și `NotePlatforms`, dacă intră în prima interfață.
 5. **Editor** — evidențierea referințelor în text (ancore actualizate la editare), autocomplete și popup-uri pentru referințe.
 6. **Ulterior**, când există modulele: clienți, proiecte, branch-uri, evenimente, release-uri și publish-uri.
-7. Lista „Referințe către această notă” în editor, din `NoteReferences`, cu sursele pe care cititorul le poate vedea (propusă în PR #4; depinde de integrarea lui).
+7. Lista „Referințe către această notă” în editor, din `NoteReferenceTargets` (indexul pe `TargetNoteId`) și `NoteReferences`, cu paragrafele sursă pe care cititorul le poate vedea (propusă în PR #4; depinde de integrarea lui).
+8. Semnalarea în editor a referințelor fără destinație din textul deja scris (acum le listează doar `012_RefreshNoteReferences.sql`). O referință fără notă abia scrisă este semnalată de popup-ul referinței abia scrise (PR #4, 2026-09-29). Referințele cu mai multe note sunt link către toate, din 2026-09-28.
 
 ## Îmbunătățiri
 
@@ -48,7 +49,8 @@ Limitări cunoscute care pot deveni îmbunătățiri ([CURRENT-STATUS.md](CURREN
 - păstrarea identității unui paragraf mutat prin tăiere și lipire;
 - reordonarea de la tastatură și pe ecrane tactile;
 - afișarea taburilor pe telefon;
-- mutarea imediată a cardului după redenumire.
+- mutarea imediată a cardului după redenumirea de pe card (după o salvare din editor, cardul se mută deja, cu PR #4);
+- modificările altor membri pe tabla deschisă, fără reîncărcare (cu PR #4, nici închiderea editorului nu mai reîncarcă tabla).
 
 ## Idei încă neaprobate
 
@@ -76,7 +78,8 @@ Propuneri rezultate din analiza documentației din 2026-09-25, neaprobate:
 | Evidențierea referințelor în editor | ancore în text actualizate la editare |
 | `NotePlatforms` | modulul de platforme și răspunsul la întrebarea despre prima interfață |
 | `NoteClients`, `NoteProjects`, `NoteBranches`, `NoteEvents`, `NoteReleases`, `NotePublishes` | modulele respective |
-| Lista „Referințe către această notă” | integrarea PR #4 (`NoteReferences`) |
+| Lista „Referințe către această notă” | integrarea PR #4 (`NoteReferences`, `NoteReferenceTargets`) |
+| Pagina catalogului, titlul și URL-ul unui CR | integrarea PR #4 (`WorkReferences`) și decizia despre păstrarea lor pe context |
 | Editarea notelor partajate de colegi | stabilirea permisiunilor |
 
 Ordinea din „Etapele următoare” este cea a planului inițial. TODO: Necesită clarificare — prioritățile efective și versiunea în care intră fiecare etapă.

@@ -13,6 +13,9 @@ public static class NoteDates
 
     public static string Full(DateTime utc) => utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture);
 
+    // A month of the board (yyyy-MM): on the month's list, and in a save's answer when the note moved to that month.
+    public static string MonthKey(int year, int month) => $"{year:0000}-{month:00}";
+
     // A card shows its last change next to the creation date once the note was changed and the two dates read differently.
     public static bool ShowsModified(NoteSummary note) =>
         note.ModifiedAtUtc is { } modifiedAtUtc && Card(modifiedAtUtc) != Card(note.CreatedAtUtc);

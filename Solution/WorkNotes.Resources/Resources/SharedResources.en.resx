@@ -111,7 +111,7 @@
 <data name="Button_ShowBoard" xml:space="preserve"><value>Show</value></data>
 <data name="Field_Content" xml:space="preserve"><value>Note content</value></data>
 <data name="Editor_Placeholder" xml:space="preserve"><value>Write here. A blank line separates paragraphs.</value></data>
-<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S saves · Ctrl+F searches · Ctrl+Z undoes · Esc closes · a blank line starts a new paragraph</value></data>
+<data name="Editor_Help" xml:space="preserve"><value>Ctrl+S saves · Ctrl+F searches · Ctrl+Z undoes · Ctrl+Enter opens the reference at the cursor · Esc closes · a blank line starts a new paragraph</value></data>
 <data name="Editor_ReadOnly" xml:space="preserve"><value>You can read this note; only its owner can change it.</value></data>
 <data name="Editor_NoScript" xml:space="preserve"><value>The editor needs JavaScript. The note's content is shown below, read-only.</value></data>
 <data name="Editor_StatusSaved" xml:space="preserve"><value>Saved</value></data>
@@ -170,4 +170,14 @@
 <data name="Notes_ReorderFailed" xml:space="preserve"><value>The order of the notes could not be saved. Please try again.</value></data>
 <data name="Notes_ReorderInvalidTarget" xml:space="preserve"><value>A note can only swap places with another note of the same month.</value></data>
 <data name="Notes_ReorderConflict" xml:space="preserve"><value>The notes changed in the meantime and the order was not saved. Reload the page.</value></data>
+<data name="Notes_ReferenceTarget" xml:space="preserve"><value>“{0}” ({1})</value></data>
+<data name="Editor_References" xml:space="preserve"><value>References</value></data>
+<data name="Editor_ReferencesHelp" xml:space="preserve"><value>The references in this note; a click opens the notes of each. The list is updated when the note is saved.</value></data>
+<data name="Editor_ReferencesEmpty" xml:space="preserve"><value>This note has no references to other notes.</value></data>
+<data name="Editor_ReferenceLookup" xml:space="preserve"><value>Reference lookup</value></data>
+<data name="Editor_ReferenceSearching" xml:space="preserve"><value>Looking for the reference…</value></data>
+<data name="Editor_ReferenceFound" xml:space="preserve"><value>The reference {0} opens:</value></data>
+<data name="Editor_ReferenceMissing" xml:space="preserve"><value>Reference not found: no note has {0} in its title.</value></data>
+<data name="Editor_ReferenceCreate" xml:space="preserve"><value>Make it a reference</value></data>
+<data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab makes it · Esc closes</value></data>
 </root>

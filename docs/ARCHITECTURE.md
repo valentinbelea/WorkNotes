@@ -33,12 +33,16 @@ Business nu are nicio referință de proiect sau pachet. Interfețele de acces l
 | `IWorkContextService` | `WorkNotes.Business/Services/WorkContextService.cs` | `Pages/Contexts/Index.cshtml`, `Pages/Index.cshtml` |
 | `IContextMemberService` | `WorkNotes.Business/Services/ContextMemberService.cs` | `Pages/Contexts/Index.cshtml` |
 | `INoteService` | `WorkNotes.Business/Services/NoteService.cs` | `Pages/Index.cshtml` |
+| `INoteReferenceService` (PR #4) | `WorkNotes.Business/Services/NoteReferenceService.cs` | `NoteService` |
+| `IReferenceTypeService` (PR #4) | `WorkNotes.Business/Services/ReferenceTypeService.cs`, cu `ReferenceTypeCache` (singleton, numai datele) | `NoteReferenceService` |
 | `IAccountService` | `WorkNotes.DataAccess/Identity/IdentityAccountService.cs` | `Pages/Account` (Register, Index, ChangePassword) |
 | `IAuthenticationService` | `WorkNotes.DataAccess/Identity/IdentityAccountService.cs` | `Pages/Account` (Login, Logout) |
 | `IApplicationVersionRepository` | `WorkNotes.DataAccess/Repositories/ApplicationVersionRepository.cs` | `ApplicationVersionService` |
 | `IWorkContextRepository` | `WorkNotes.DataAccess/Repositories/WorkContextRepository.cs` | `WorkContextService`, `ContextMemberService`, `NoteService` |
 | `IContextMemberRepository` | `WorkNotes.DataAccess/Repositories/ContextMemberRepository.cs` | `ContextMemberService` |
 | `INoteRepository` | `WorkNotes.DataAccess/Repositories/NoteRepository.cs` | `NoteService` |
+| `INoteReferenceRepository` (PR #4) | `WorkNotes.DataAccess/Repositories/NoteRepository.cs` | `NoteReferenceService` |
+| `IReferenceTypeRepository` (PR #4) | `WorkNotes.DataAccess/Repositories/ReferenceTypeRepository.cs` | `ReferenceTypeService` |
 
 Contractele de cont sunt implementate direct în DataAccess, peste `UserManager` / `SignInManager`; regulile independente de infrastructură sunt în `WorkNotes.Business/Models/AccountRules.cs`. Serviciile Business verifică apartenența la context și proprietatea prin `IWorkContextRepository` și `INoteRepository` înainte de orice modificare.
 
@@ -48,28 +52,29 @@ Contractele de cont sunt implementate direct în DataAccess, peste `UserManager`
 
 - localizarea: `AddLocalization`, `RequestLocalizationOptions` din `LocalizationConfiguration`, `IStringLocalizer` fără parametru generic legat (singleton) la `IStringLocalizer<SharedResources>`, `LocalizedMvcOptions` pentru mesajele de model binding, `AddRazorPages().AddDataAnnotationsLocalization` cu catalogul `SharedResources`;
 - `AddProblemDetails`, autentificarea cu cookie-urile Identity (`AddIdentityCookies`), `AddAuthorization` și `ConfigureApplicationCookie` (vezi [SECURITY.md](SECURITY.md));
-- serviciile Business, scoped: `IApplicationVersionService`, `IWorkContextService`, `IContextMemberService`, `INoteService`; `TimeProvider.System` ca singleton;
+- serviciile Business, scoped: `IApplicationVersionService`, `IWorkContextService`, `IContextMemberService`, `INoteService` și, cu PR #4, `INoteReferenceService` și `IReferenceTypeService`; cu PR #4, `ReferenceTypeCache` ca singleton (numai parserul tipurilor de referință și momentul citirii lor, fără dependențe); `TimeProvider.System` ca singleton;
 - `AddDataAccess(connectionString)`, cu `ConnectionStrings:WorkNotes` obligatoriu (excepție la pornire dacă lipsește);
 - `IdentityErrorDescriber` → `LocalizedIdentityErrorDescriber`, scoped.
 
-`AddDataAccess` (DataAccess): `WorkNotesDbContext` și `AccountsDbContext` cu `UseSqlServer` pe același connection string; repository-urile, scoped; `AddIdentityCore<ApplicationUser>` cu politica de parolă și blocare, `AddEntityFrameworkStores<AccountsDbContext>`, `AddSignInManager`, `AccountClaimsPrincipalFactory` (adaugă prenumele și numele în claims); `IdentityAccountService` scoped, expus prin `IAccountService` și `IAuthenticationService`.
+`AddDataAccess` (DataAccess): `WorkNotesDbContext` și `AccountsDbContext` cu `UseSqlServer` pe același connection string; repository-urile, scoped (cu PR #4, `NoteRepository` și pentru `INoteReferenceRepository`, plus `ReferenceTypeRepository`); `AddIdentityCore<ApplicationUser>` cu politica de parolă și blocare, `AddEntityFrameworkStores<AccountsDbContext>`, `AddSignInManager`, `AccountClaimsPrincipalFactory` (adaugă prenumele și numele în claims); `IdentityAccountService` scoped, expus prin `IAccountService` și `IAuthenticationService`.
 
 Pipeline-ul HTTP, în ordine: `UseRequestLocalization` → în afara Development: `UseExceptionHandler`, `UseHsts`, `UseHttpsRedirection` → `UseAuthentication` → `UseAuthorization` → `MapStaticAssets` → `MapRazorPages().WithStaticAssets()`.
 
 ## DTO-uri și ViewModel-uri
 
-- Modelele Business (`WorkNotes.Business/Models`) sunt `sealed record`-uri imutabile: `WorkContext`, `ContextMemberDetails`, `AccountProfile`, `AccountResult`, `NewNote`, `NoteSummary`, `NoteDocument`, `NoteBlockDetails`, `NoteBlockInput`, `NoteBlockAudit`, `NoteChanges`, `NoteMonthGroup`, `NoteSaveResult`, `NoteRenameResult`, `NoteOrderResult`, `NoteVersionChange`. Ele circulă între Business, DataAccess și Web; paginile și partialele le afișează direct (de exemplu `_NoteCard.cshtml` primește un `NoteSummary`, editorul un `NoteDocument`).
-- ViewModel-urile Web (`WorkNotes.Web/ViewModels`) sunt numai pentru intrări, cu DataAnnotations ale căror mesaje sunt chei .resx: `LoginInput`, `RegisterInput` (extinde `ProfileInput`), `ProfileInput`, `ChangePasswordInput`, `WorkContextInput`, `ContextMemberInput`, `NewNoteInput`; `NoteSaveRequest` / `NoteBlockRequest` sunt corpul JSON trimis de editor.
+- Modelele Business (`WorkNotes.Business/Models`) sunt `sealed record`-uri imutabile: `WorkContext`, `ContextMemberDetails`, `AccountProfile`, `AccountResult`, `NewNote`, `NoteSummary`, `NoteDocument`, `NoteBlockDetails`, `NoteBlockInput`, `NoteBlockAudit`, `NoteChanges`, `NoteMonthGroup`, `NoteSaveResult`, `NoteRenameResult`, `NoteOrderResult`, `NoteVersionChange`; PR #4 adaugă `NoteReferenceMatch`, `NoteBlockReference`, `NoteReferenceLink`, `NoteReferenceTarget`, `NoteBlockTarget`, `NoteReferenceSource`, `NoteReferenceResolution` (cu linkurile paragrafelor salvate) și `NoteReferenceLookup` (cu `NoteReferenceLookupStatus`: referința cu care se termină un text abia scris și notele ei), plus clasa `NoteReferenceParser` (imutabilă, citește referințele cu tipurile configurate), iar `NoteBlockDetails` și `NoteBlockAudit` primesc pozițiile linkurilor (`Links`); o referință stocată (`NoteBlockReference`) și un link (`NoteReferenceLink`) au lista notelor pe care le deschid (`TargetNoteIds`), iar un link poartă și textul, tipul și numărul referinței (cu forma normalizată, `NormalizedReference`), după care Web grupează linkurile în sertarul referințelor. Ele circulă între Business, DataAccess și Web; paginile și partialele le afișează direct (de exemplu `_NoteCard.cshtml` primește un `NoteSummary`, editorul un `NoteDocument`).
+- ViewModel-urile Web (`WorkNotes.Web/ViewModels`) sunt numai pentru intrări, cu DataAnnotations ale căror mesaje sunt chei .resx: `LoginInput`, `RegisterInput` (extinde `ProfileInput`), `ProfileInput`, `ChangePasswordInput`, `WorkContextInput`, `ContextMemberInput`, `NewNoteInput`; `NoteSaveRequest` / `NoteBlockRequest` sunt corpul JSON trimis de editor (cu PR #4 și tipul ales, `NoteType`), iar cu PR #4 `NoteReferenceLookupRequest` (textul de dinaintea unui cuvânt abia terminat).
 - Entitățile EF (`WorkNotes.DataAccess/Entities`) nu ies din DataAccess: repository-urile le proiectează în modele Business și folosesc alias-uri (`using NoteEntity = WorkNotes.DataAccess.Entities.Note;`) acolo unde numele coincid.
-- Ajutoarele de prezentare din Web: `Notes/NoteDates.cs` (formatele datelor și textele de audit), `Notes/NoteCardStyle.cs` (clasele de culoare și înclinare), `Navigation/NavigationSections.cs` (subtitlul din header și grupul de meniu deschis), `Messages/StatusMessage*.cs` (mesajele de salvare prin TempData).
+- Ajutoarele de prezentare din Web: `Notes/NoteDates.cs` (formatele datelor și textele de audit), `Notes/NoteCardStyle.cs` (clasele de culoare și înclinare), `Notes/NoteReferences.cs` (PR #4: tooltipurile, datele linkurilor pentru editor, paragrafele cu linkuri fără JavaScript și lista sertarului referințelor, `List` / `ListData`, din pozițiile date de serviciu), `Navigation/NavigationSections.cs` (subtitlul din header și grupul de meniu deschis), `Messages/StatusMessage*.cs` (mesajele de salvare prin TempData).
 
 ## Accesul la date
 
-- Două contexte pe aceeași bază: `WorkNotesDbContext` (generat prin scaffolding: `ContextMembers`, `DatabaseVersion`, `Notes`, `NoteBlocks`, `WorkContexts`) și `AccountsDbContext` (`IdentityUserContext<ApplicationUser>`, mapare manuală a `Users` și a tabelelor `AspNetUser*`). `ContextMemberRepository` citește membrii din primul și conturile din al doilea, prin interogări separate.
+- Două contexte pe aceeași bază: `WorkNotesDbContext` (generat prin scaffolding: `ContextMembers`, `DatabaseVersion`, `Notes`, `NoteBlocks`, `WorkContexts` și, cu PR #4, `NoteReferences`, `NoteReferenceTargets`, `WorkReferences` și `ReferenceTypes`) și `AccountsDbContext` (`IdentityUserContext<ApplicationUser>`, mapare manuală a `Users` și a tabelelor `AspNetUser*`). `ContextMemberRepository` citește membrii din primul și conturile din al doilea, prin interogări separate.
 - Citirile folosesc `AsNoTracking` și proiecții în modele Business; previzualizarea cardurilor citește în SQL numai primele 3 paragrafe (câte 300 de caractere), iar `NoteRules.BuildPreview` construiește textul.
 - Scrierile folosesc entități urmărite și `SaveChangesAsync` (contexte, membri, note noi, salvarea editorului) sau instrucțiuni set-based `ExecuteUpdateAsync` / `ExecuteDeleteAsync` (redenumire, ștergere, eliminarea unui membru, schimbul ordinii).
 - Filtrele de acces sunt aplicate în fiecare interogare: `ForMember(userId)` pentru contexte și `VisibleTo(userId)` pentru note (nearhivate, în contexte în care utilizatorul este membru, proprii sau cu vizibilitatea `Context`); modificările filtrează și după proprietar.
-- Tranzacții explicite: crearea unei note (citirea `MIN([Order])` cu `UPDLOCK, HOLDLOCK`) și schimbul a două note (un singur `UPDATE` condiționat de `RowVersion`, apoi citirea noilor versiuni). Concurența, cheile și regulile de ștergere sunt în [DATABASE.md](DATABASE.md).
+- Tranzacții explicite: crearea unei note (citirea `MIN([Order])` cu `UPDLOCK, HOLDLOCK`) și schimbul a două note (un singur `UPDATE` condiționat de `RowVersion`, apoi citirea noilor versiuni). Cu PR #4 și ștergerea unei note (serializabilă: întâi referințele pentru care era singura notă, apoi rândurile `NoteReferenceTargets` care o deschid din celelalte, apoi nota) și recalcularea referințelor după un titlu (numai paragrafele cu `RowVersion` nemodificat). Concurența, cheile și regulile de ștergere sunt în [DATABASE.md](DATABASE.md).
+- PR #4: referințele interne sunt citite din text numai în Business, de `NoteReferenceParser`, construit din tipurile active din `ReferenceTypes` (implicit `CR` și `BUG`). `ReferenceTypeService` (scoped) îl ia din `ReferenceTypeCache` (singleton) și citește din nou tipurile prin `IReferenceTypeRepository` după 5 minute; o cerere folosește același parser de la început la sfârșit. `NoteReferenceService` este singurul serviciu care citește referințe: linkurile din răspunsul unei salvări vin în `NoteReferenceResolution`. Salvarea unei note le primește rezolvate de `INoteReferenceService.ResolveAsync`, fiecare cu toate notele ei, și le scrie în același `SaveChangesAsync` cu paragrafele (`NoteReferences` și `NoteReferenceTargets`), fiecare cu ID-ul ei din catalogul `WorkReferences`: `NoteRepository` îl caută după forma normalizată și adaugă prin SQL (`INSERT … WHERE NOT EXISTS` cu `UPDLOCK, HOLDLOCK`) referințele care lipsesc, iar modelele Business nu îl poartă; `GetCandidatesAsync` (notele contextului vizibile unui utilizator, cu cifrele numerelor în titlu) și `GetSourcesAsync` (paragrafele contextului care conțin cifrele) sunt doar filtre, iar serviciul citește referințele din titluri și paragrafe. Recalcularea după un titlu schimbă și legăturile paragrafelor altor membri ai contextului, după ce poate vedea proprietarul fiecărui paragraf.
 - Erorile SQL așteptate sunt traduse în coduri de stare: 2601/2627 (unicitate) → nume duplicat, membru existent sau e-mail folosit; 547 (cheie externă) → context în uz, cont sau context dispărut; `DbUpdateConcurrencyException` → conflict.
 - Valorile `datetime2` citite primesc `DateTimeKind.Utc`; auditul este salvat la precizia de o secundă a coloanelor.
 
@@ -77,7 +82,7 @@ Pipeline-ul HTTP, în ordine: `UseRequestLocalization` → în afara Development
 
 - Rezultatele așteptate sunt coduri de stare Business (`NoteSaveStatus`, `WorkContextSaveStatus` etc.), nu excepții. Web le transformă: `NotFound` → 404, `Forbidden` → 403 (`StatusCode(403)`, nu `Forbid()`, care ar redirecționa la autentificare), erorile de validare → `ModelState` cu mesaje din .resx, succesul → cheia mesajului în TempData și redirect (Post/Redirect/Get).
 - O resursă din afara contextelor utilizatorului răspunde 404, fără a-i confirma existența; o acțiune rezervată proprietarului, cerută de un membru, răspunde 403.
-- Handlerele JSON (`SaveNote`, `SwapNotes`, `RenameNote` cu `Accept: application/json`) răspund `{ "message": "…" }` localizat, cu 400, 401, 403, 404 sau 409.
+- Handlerele JSON (`SaveNote`, `SwapNotes`, `RenameNote` cu `Accept: application/json` și, cu PR #4, `ReferenceLookup`) răspund `{ "message": "…" }` localizat, cu 400, 401, 403, 404 sau 409.
 - Erorile de programare (de exemplu `ArgumentException` pentru un utilizator lipsă) și cele neașteptate se propagă. În afara Development, `UseExceptionHandler()` împreună cu `AddProblemDetails()` produce un răspuns ProblemDetails; în Development se folosește pagina de excepții pentru dezvoltatori, implicită în ASP.NET Core. Nu există pagini proprii pentru 404/403/500 (vezi [CURRENT-STATUS.md](CURRENT-STATUS.md#probleme-cunoscute)).
 - Anularea (`OperationCanceledException`) se propagă; serviciile verifică tokenul înainte de accesul la date. Datele lipsă nu sunt tratate ca erori și invers.
 
@@ -99,14 +104,27 @@ Afișarea tablei, `GET /?context=5`:
 Salvarea din editor, `POST /?handler=SaveNote&note={id}` cu corp JSON:
 
 1. Razor Pages validează tokenul antiforgery din antetul `RequestVerificationToken`.
-2. `IndexModel.OnPostSaveNoteAsync` → `INoteService.SaveAsync`: validează titlul și paragrafele (`NoteRules`), verifică vizibilitatea, proprietarul și versiunea.
-3. `NoteRepository.SaveAsync` compară paragrafele cu cele salvate și scrie numai diferențele, cu verificarea `RowVersion`.
-4. Răspunsul JSON conține noua versiune, mesajul localizat, data ultimei modificări și textele de audit ale paragrafelor; o eroare conține numai mesajul.
+2. `IndexModel.OnPostSaveNoteAsync` → `INoteService.SaveAsync`: validează titlul și paragrafele (`NoteRules`) și, cu PR #4, tipul ales (`NoteTypes`; o notă devenită jurnal primește ziua locală a creării), verifică vizibilitatea, proprietarul și versiunea (cu PR #4, pe cardul notei, `GetSummaryAsync`, fără să-i citească toate paragrafele).
+3. PR #4: `INoteReferenceService.ResolveAsync` citește referințele din paragrafe, cu tipurile configurate (`IReferenceTypeService`), și le caută destinațiile printre notele contextului vizibile proprietarului (`INoteReferenceRepository.GetCandidatesAsync`): toate notele cu referința în titlu, în afară de nota salvată.
+4. `NoteRepository.SaveAsync` compară paragrafele cu cele salvate și scrie numai diferențele, cu verificarea `RowVersion`; cu PR #4, în același `SaveChangesAsync` și referințele paragrafelor, cu notele lor (`NoteReferences`, `NoteReferenceTargets`) și cu ID-urile lor din `WorkReferences` (o referință nouă este adăugată în catalog înainte).
+5. PR #4: dacă titlul s-a schimbat, `INoteReferenceService.RefreshAsync` recalculează în context referințele pe care titlul le-a câștigat sau le-a pierdut (la fel după redenumirea de pe card și crearea unei note; ștergerea unei note își scoate singură rândurile, fără recalculare).
+6. PR #4: `NoteService` construiește din textul salvat cardul notei (`NoteSaveResult.Note`: titlul, previzualizarea cu `NoteRules.PreviewOf`, data ultimei modificări, versiunea), fără o citire nouă; numai o notă trecută astfel în altă lună (luna curentă) citește tabla, pentru ordinea acelei luni (`NoteSaveResult.Month`).
+7. Răspunsul JSON conține noua versiune, mesajul localizat, data ultimei modificări și textele de audit ale paragrafelor (cu PR #4 și pozițiile linkurilor fiecărui paragraf și notele lor, lista sertarului referințelor, `referenceList`, și cardul notei, `card`: titlul, numele, etichetele Open și Delete, previzualizarea, data și, după o mutare, cheia lunii cu notele ei); o eroare conține numai mesajul. Cu PR #4, `note-editor.js` dă cardul tablei (`note-editor:saved`), iar `notes-board.js` îl arată pe card.
+
+Căutarea referinței abia scrise (PR #4), `POST /?handler=ReferenceLookup&note={id}` cu corp JSON:
+
+1. `note-references.js` o trimite când un caracter din `wordEnds` (sau Tab) urmează imediat unei cifre, cu textul rândului de până acolo (cel mult `NoteReferenceRules.LookupLength` caractere) și cu tokenul antiforgery în antetul `RequestVerificationToken`.
+2. `IndexModel.OnPostReferenceLookupAsync` → `INoteService.LookUpReferenceAsync`: nota trebuie să fie vizibilă utilizatorului (altfel 404) și a lui (altfel 403).
+3. `INoteReferenceService.LookUpAsync` citește, cu tipurile configurate, referința cu care se termină textul (`NoteReferenceRules.EndingReference`) și îi caută notele ca la salvare (`INoteReferenceRepository.GetCandidatesAsync`, fără nota însăși).
+4. Răspunsul JSON: `found` (locul referinței în text, mesajul localizat și notele, cu titlul, tipul și tooltipul lor), `missing` (mesajul „Referință inexistentă…”) sau `none`.
 
 Fluxurile principale:
 
 ```text
 Pages/Index    → INoteService → NoteService → INoteRepository → NoteRepository → WorkNotesDbContext
+NoteService    → INoteReferenceService → NoteReferenceService → INoteReferenceRepository → NoteRepository → WorkNotesDbContext (PR #4)
+NoteReferenceService → IReferenceTypeService → ReferenceTypeService → ReferenceTypeCache (singleton) sau IReferenceTypeRepository → ReferenceTypeRepository → WorkNotesDbContext (PR #4)
+note-references.js → POST ?handler=ReferenceLookup → INoteService.LookUpReferenceAsync → INoteReferenceService.LookUpAsync → INoteReferenceRepository.GetCandidatesAsync (PR #4)
 Pages/Contexts → IWorkContextService → WorkContextService → IWorkContextRepository → WorkContextRepository → WorkNotesDbContext
 Pages/Contexts → IContextMemberService → ContextMemberService → IContextMemberRepository → ContextMemberRepository → WorkNotesDbContext (ContextMembers) + AccountsDbContext (Users)
 Pages/Account  → IAccountService / IAuthenticationService → IdentityAccountService → UserManager / SignInManager → AccountsDbContext
@@ -125,9 +143,10 @@ Footer         → ApplicationVersionViewComponent → IApplicationVersionServic
 | `/?note={id}` | Editorul peste tablă, cu nota într-un tab |
 | `/?delete={id}` | Confirmarea ștergerii unei note |
 | `/?handler=NoteTab&note={id}` (GET) | Un tab nou pentru editorul deja deschis (fragment HTML) |
-| `/?handler=SaveNote&note={id}` (POST JSON) | Salvarea unei note din editor |
+| `/?handler=SaveNote&note={id}` (POST JSON) | Salvarea unei note din editor; cu PR #4, răspunsul are și cardul notei, pentru tabla din spate |
 | `/?handler=CreateNote`, `RenameNote`, `DeleteNote` (POST) | Crearea, redenumirea pe loc, ștergerea; adresele deschise cu GET revin la tablă |
 | `/?handler=SwapNotes` (POST, răspuns JSON) | Schimbul a două note din aceeași lună; răspunde cu ordinea lunii și noile versiuni |
+| `/?handler=ReferenceLookup&note={id}` (POST JSON, PR #4) | Referința cu care se termină textul abia scris în notă (numai proprietarul): `found` cu locul ei și notele, `missing` sau `none` |
 | `/Contexts`, `?add=true`, `?edit={id}`, `?delete={id}`, `?members={id}` | Contextele și overlay-urile lor; handlerele POST `Delete`, `AddMember`, `RemoveMember` |
 | `/Account/Register`, `/Account/Login`, `/Account`, `/Account/ChangePassword`, `/Account/Logout` | Conturile; deconectarea numai prin POST |
 | `/Language` (POST) | Schimbarea limbii |
@@ -140,8 +159,9 @@ Starea overlay-urilor este în URL: fiecare dialog se poate deschide și fără 
 | --- | --- |
 | `Pages/Shared/_Layout.cshtml`, `_MainMenu.cshtml`, `_LanguageSelector.cshtml` | Header, meniul sertar, selectorul de limbă, zona de mesaje, footerul |
 | `Pages/Shared/_NoteCard.cshtml`, `_NewNoteCard.cshtml` | Post-it-urile de pe tablă (notă salvată, notă nouă) |
+| `_NoteTypeIcon.cshtml` (PR #4) | Iconul unui tip de notă, pentru comutatoarele de tip ale cardului nou și ale editorului |
 | `Pages/Shared/_NoteEditorDialog.cshtml` | Fereastra editorului: header cu sigla, taburile, Minimizează, Închide; forma minimizată |
-| `_NoteEditorTabButton`, `_NoteEditorTabPanel`, `_NoteEditorTab` | Un tab al editorului: butonul, panoul notei, fragmentul pentru un tab adăugat |
+| `_NoteEditorTabButton`, `_NoteEditorTabPanel`, `_NoteEditorTab` | Un tab al editorului: butonul, panoul notei (cu PR #4, textul și, în dreapta lui, sertarul referințelor, în `note-sheet__body`), fragmentul pentru un tab adăugat |
 | `_DeleteNoteDialog.cshtml` | Confirmarea ștergerii unei note |
 | `_StatusMessage.cshtml` și `WorkNotes.Web/Messages` | Mesajele de salvare (succes, avertisment, eroare) și transportul lor prin TempData |
 | `Shared/Components/ApplicationVersion/Default.cshtml` | Versiunea din footer |
@@ -152,11 +172,12 @@ Numai comportament; aspectul vine din clase CSS ([CODING-STANDARDS.md](CODING-ST
 
 | Fișier | Încărcare | Rol |
 | --- | --- | --- |
-| `notes-board.js` | layout, modul ES | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există), schimbul a două carduri prin drag-and-drop |
-| `note-editor.js` | pagina principală, modul ES, numai cu editorul deschis | Câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; primește noile versiuni după un schimb (`note-board:versions`) |
+| `notes-board.js` | layout, modul ES | Schimbarea contextului, cardul „Notă nouă”, redenumirea pe loc, deschiderea notelor (în editorul deschis, dacă există), schimbul a două carduri prin drag-and-drop; cu PR #4, cardul unei note salvate în editor arată salvarea și trece în luna nouă (`note-editor:saved`), iar la închiderea editorului focusul revine pe card (`note-editor:closed`) |
+| `note-editor.js` | pagina principală, modul ES, numai cu editorul deschis | Câte un CodeMirror pe tab, identitatea paragrafelor, salvarea, taburile, minimizarea; primește noile versiuni după un schimb (`note-board:versions`); cu PR #4, sertarul referințelor este deschis sau închis la fel în toate taburile; cu PR #4, închiderea fără modificări nesalvate scoate fereastra din pagină, fără reîncărcare (ascultătorii ei, cu un `AbortController`), iar `startEditor`, apelat de `notes-board.js`, pregătește fereastra adusă din nou; cu PR #4, tipul ales în footerul unei note trece imediat pe foaie, pe tab și în forma minimizată și se salvează cu nota |
+| `note-references.js` (PR #4) | importat de `note-editor.js` | Linkurile referințelor interne, desenate din pozițiile trimise de server; click și Ctrl+Enter deschid notele linkului în taburile editorului (`openNotes`, prima notă este arătată); sertarul referințelor (`referenceDrawer`): linkurile lui deschid notele în taburi, iar după salvare lista este refăcută din template-ul lui; popup-ul referinței abia scrise (`referenceLookup`): un caracter din `wordEnds` (sau Tab) după o cifră întreabă serverul, iar răspunsul se arată ca tooltip CodeMirror deasupra referinței, din template-ul dialogului; nu citește referințe din text |
 | `status-messages.js` | importat de cele două module | Afișarea mesajelor de salvare din template-urile randate de server |
-| `modal.js`, `navigation.js`, `language.js`, `validation.js` | layout, `defer` | Dialogurile modale, meniul, selectorul de limbă, validarea client |
-| `lib/codemirror/codemirror.js` | importat de `note-editor.js` | CodeMirror 6, construit din `Solution/tools/codemirror` |
+| `modal.js`, `navigation.js`, `language.js`, `validation.js` | layout, `defer` | Dialogurile modale (cu PR #4, evenimentul anulabil `modal:close`, prin care editorul se închide pe loc), meniul, selectorul de limbă, validarea client |
+| `lib/codemirror/codemirror.js` | importat de `note-editor.js` | CodeMirror 6, construit din `Solution/tools/codemirror` (cu PR #4 exportă și `showTooltip` și `tooltips`) |
 
 ## CSS
 

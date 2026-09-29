@@ -61,7 +61,8 @@
 .note-type-switch__option:hover { color: var(--wn-primary-hover); }
 .note-type-switch__option:has(input:checked) { color: var(--wn-primary); border-bottom-color: var(--wn-primary); }
 .note-type-switch__option:has(input:focus-visible) { outline: 3px solid var(--wn-primary); outline-offset: 2px; }
-.note-type-switch__option svg { width: 1.4rem; height: 1.4rem; }
+/* The switch draws its own icons, on the new-note card and in the editor's footer. */
+.note-type-switch__option svg { width: 1.4rem; height: 1.4rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 /* Popover with the type's name; the same text is the radio's accessible label. */
 .note-type-switch__tip { position: absolute; z-index: 2; bottom: calc(100% + 6px); left: 50%; padding: .2rem .5rem; border-radius: 4px; color: var(--wn-on-primary); background: var(--wn-text); font-size: .75rem; font-weight: 600; white-space: nowrap; transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity var(--wn-motion); }
 .note-type-switch__option:hover .note-type-switch__tip, .note-type-switch__option:has(input:focus-visible) .note-type-switch__tip { opacity: 1; }
