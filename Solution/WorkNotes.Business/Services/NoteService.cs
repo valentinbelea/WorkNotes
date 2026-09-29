@@ -86,6 +86,17 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         return WithLinks(result, resolution);
     }
 
+    public async Task<NoteReferenceLookup> LookUpReferenceAsync(string userId, int noteId, string? text, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
+        if (note is null) return new(NoteReferenceLookupStatus.NotFound);
+        // Members may read a shared note; only its owner writes in it.
+        if (!note.IsOwner) return new(NoteReferenceLookupStatus.Forbidden);
+        return await references.LookUpAsync(userId, note.ContextId, noteId, text, cancellationToken);
+    }
+
     public Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);

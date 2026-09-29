@@ -20,6 +20,9 @@ public static class NoteReferenceRules
     public const int MaxNumberLength = 18;
     // The longest text read as one reference: the longest type, the spaces and the digits (NoteReferences.ReferenceText).
     public const int MaxTextLength = MaxTypeLength + MaxSeparatorLength + MaxNumberLength;
+    // The lookup of a reference just typed reads only the end of the text: the longest reference and the character before
+    // it, which says whether the reference starts a word.
+    public const int LookupLength = MaxTextLength + 1;
 
     // A type as dbo.ReferenceTypes stores it: 1 to 10 capital ASCII letters (CR, BUG).
     public static bool ValidType(string? type) =>
@@ -28,6 +31,17 @@ public static class NoteReferenceRules
     // The form references are compared and stored by: CR:30080, BUG:1234 (the number without leading zeros).
     public static string Normalize(string referenceType, long referenceNumber) =>
         $"{referenceType}:{referenceNumber.ToString(CultureInfo.InvariantCulture)}";
+
+    // The reference a text ends with (the one just typed, before the separator that ends it), with its start in the text
+    // given; null when no reference ends the text. Only the last LookupLength characters are read.
+    public static NoteReferenceMatch? EndingReference(NoteReferenceParser parser, string? text)
+    {
+        ArgumentNullException.ThrowIfNull(parser);
+        if (string.IsNullOrEmpty(text)) return null;
+        var from = Math.Max(0, text.Length - LookupLength);
+        var end = parser.Find(text[from..]).LastOrDefault(match => from + match.Start + match.Length == text.Length);
+        return end is null ? null : end with { Start = from + end.Start };
+    }
 
     // For each reference, the notes whose title has it, each note once.
     public static IReadOnlyDictionary<string, IReadOnlyList<int>> NotesByTitleReference(NoteReferenceParser parser,
@@ -57,7 +71,7 @@ public static class NoteReferenceRules
         {
             var targetNoteIds = targetsOf(match.NormalizedReference);
             if (targetNoteIds.Count > 0)
-                links.Add(new NoteReferenceLink(match.Start, match.Length, match.ReferenceType, match.ReferenceNumber, targetNoteIds));
+                links.Add(new NoteReferenceLink(match.Start, match.Text, match.ReferenceType, match.ReferenceNumber, targetNoteIds));
         }
         return links;
     }

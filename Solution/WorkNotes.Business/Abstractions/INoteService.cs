@@ -17,6 +17,9 @@ public interface INoteService
     // Only the owner saves; the paragraphs are the whole content of the note, in document order. Their references are
     // stored with them; a new title also updates the references of the board that name the note.
     Task<NoteSaveResult> SaveAsync(string userId, int noteId, string expectedVersion, string? title, IReadOnlyList<NoteBlockInput> blocks, CancellationToken cancellationToken);
+    // Only the owner, who writes the note: the reference the text ends with (the text of a paragraph up to where the owner
+    // is typing) and the notes it would open (INoteReferenceService.LookUpAsync).
+    Task<NoteReferenceLookup> LookUpReferenceAsync(string userId, int noteId, string? text, CancellationToken cancellationToken);
     // Null when the note does not exist or the user may not see it.
     Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken);
     // Only the owner renames a note, from its card; an empty title makes it untitled. The references of the board that

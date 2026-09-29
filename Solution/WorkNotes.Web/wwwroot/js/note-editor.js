@@ -266,6 +266,14 @@ function createNoteEditor(panel, data, shared) {
         }
     }
 
+    // The server's answer about the text before a word just ended (INoteReferenceService.LookUpAsync), or null.
+    const findReference = (text, signal) => fetch(data.lookupUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json", "RequestVerificationToken": shared.token },
+        body: JSON.stringify({ text }),
+        signal
+    }).then(response => response.ok ? response.json() : null);
+
     // The links of the saved text, drawn where its paragraphs are now. A paragraph edited while the save was on its way
     // gets its links at the next save.
     function showSavedLinks(body, labels) {
@@ -295,8 +303,12 @@ function createNoteEditor(panel, data, shared) {
         placeholder(texts.placeholder),
         EditorState.phrases.of(shared.phrases),
         EditorView.contentAttributes.of({ "aria-label": texts.content }),
-        // Before the default keys: Ctrl+Enter on a link opens its notes.
-        noteReferences({ links: initialLinks, targets: data.references ?? [], open: ids => shared.openNotes(ids) }),
+        // Before the default keys: Ctrl+Enter on a link opens its notes; Tab and Escape serve the lookup's popup first.
+        noteReferences({
+            links: initialLinks, targets: data.references ?? [], open: ids => shared.openNotes(ids),
+            // The owner's editor asks about the references it types.
+            lookup: data.readOnly || !data.lookupUrl || !shared.lookup ? null : { ...shared.lookup, find: findReference }
+        }),
         keymap.of([...searchKeymap, ...historyKeymap, ...defaultKeymap]),
         EditorView.updateListener.of(update => {
             if (update.docChanged) updateStatus();
@@ -338,6 +350,8 @@ function createNoteEditor(panel, data, shared) {
 // is shown: the tabs, their order, the active tab and every note's state stay as they are.
 function initializeEditorWindow(dialog, settings) {
     const noteUrl = id => `${settings.noteUrl}?note=${id}`;
+    const lookupTemplate = dialog.querySelector("template[data-reference-lookup]");
+    const lookupNoteTemplate = dialog.querySelector("template[data-reference-lookup-note]");
     const shared = {
         texts: settings.texts,
         phrases: settings.phrases,
@@ -345,7 +359,11 @@ function initializeEditorWindow(dialog, settings) {
         token: dialog.querySelector("input[name='__RequestVerificationToken']")?.value ?? "",
         // A link opens its notes in tabs of this window, like notes opened from the board.
         openNotes: ids => openNotes(ids.map(String)),
-        noteUrl
+        noteUrl,
+        // The popup of a reference just typed (note-references.js), common to all tabs.
+        lookup: lookupTemplate && lookupNoteTemplate
+            ? { length: settings.lookupLength, template: lookupTemplate, noteTemplate: lookupNoteTemplate }
+            : null
     };
     const windowPanel = dialog.querySelector("[data-editor-window]");
     const tabList = dialog.querySelector("[data-editor-tabs]");

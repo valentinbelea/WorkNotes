@@ -135,6 +135,45 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
         };
     }
 
+    // Called by note-references.js while the owner types, with a JSON body (the antiforgery token in the
+    // RequestVerificationToken header): the reference the text ends with, for the popup under it. found: where it is in
+    // the text and the notes it opens; missing: no note has it in its title; none: the text ends with no reference.
+    public async Task<IActionResult> OnPostReferenceLookupAsync(int note, [FromBody] NoteReferenceLookupRequest? request,
+        CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
+        var lookup = await notes.LookUpReferenceAsync(UserId, note, request?.Text, cancellationToken);
+        return lookup switch
+        {
+            { Status: NoteReferenceLookupStatus.Found, Match: { } found, Targets: { } targets } => new JsonResult(new
+            {
+                status = "found",
+                start = found.Start,
+                length = found.Length,
+                message = localizer["Editor_ReferenceFound", found.Text].Value,
+                // Each note with its tooltip line, its title and its type, for the popup and for the link it makes.
+                notes = targets.Select(target => new
+                {
+                    id = target.Id,
+                    label = NoteReferences.Label(localizer, target),
+                    title = target.Title ?? localizer["Notes_Untitled"].Value,
+                    type = target.NoteType == NoteTypes.Article ? localizer["NoteType_Article"].Value : localizer["NoteType_Journal"].Value,
+                    article = target.NoteType == NoteTypes.Article
+                })
+            }),
+            { Status: NoteReferenceLookupStatus.NoNote, Match: { } missing } => new JsonResult(new
+            {
+                status = "missing",
+                start = missing.Start,
+                length = missing.Length,
+                message = localizer["Editor_ReferenceMissing", missing.Text].Value
+            }),
+            { Status: NoteReferenceLookupStatus.Forbidden } => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
+            { Status: NoteReferenceLookupStatus.NotFound } => EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound"),
+            _ => new JsonResult(new { status = "none" })
+        };
+    }
+
     // The title field of a card. With JavaScript it posts in the background and gets JSON back (Accept: application/json);
     // without it, Enter submits the form and the board is shown again with a message.
     public async Task<IActionResult> OnPostRenameNoteAsync(int note, int? context, string? title, CancellationToken cancellationToken)

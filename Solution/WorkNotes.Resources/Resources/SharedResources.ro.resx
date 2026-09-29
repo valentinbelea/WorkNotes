@@ -172,6 +172,12 @@
 <data name="Notes_ReorderConflict" xml:space="preserve"><value>Notele s-au schimbat între timp, iar ordinea nu a fost salvată. Reîncarcă pagina.</value></data>
 <data name="Notes_ReferenceTarget" xml:space="preserve"><value>„{0}” ({1})</value></data>
 <data name="Editor_References" xml:space="preserve"><value>Referințe</value></data>
-<data name="Editor_ReferencesHelp" xml:space="preserve"><value>Referințele din această notă și notele pe care le deschid. Lista se actualizează la salvare.</value></data>
+<data name="Editor_ReferencesHelp" xml:space="preserve"><value>Referințele din această notă; un click deschide notele fiecăreia. Lista se actualizează la salvare.</value></data>
 <data name="Editor_ReferencesEmpty" xml:space="preserve"><value>Nota nu are referințe către alte note.</value></data>
+<data name="Editor_ReferenceLookup" xml:space="preserve"><value>Căutarea referinței</value></data>
+<data name="Editor_ReferenceSearching" xml:space="preserve"><value>Se caută referința…</value></data>
+<data name="Editor_ReferenceFound" xml:space="preserve"><value>Referința {0} deschide:</value></data>
+<data name="Editor_ReferenceMissing" xml:space="preserve"><value>Referință inexistentă: nicio notă nu are {0} în titlu.</value></data>
+<data name="Editor_ReferenceCreate" xml:space="preserve"><value>Transformă în referință</value></data>
+<data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab transformă · Esc închide</value></data>
 </root>

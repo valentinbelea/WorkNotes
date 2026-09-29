@@ -30,13 +30,13 @@ public static class NoteReferences
     public static IEnumerable<object> Targets(IStringLocalizer localizer, IReadOnlyList<NoteReferenceTarget>? targets) =>
         (targets ?? []).Select(target => new { id = target.Id, label = Label(localizer, target) });
 
-    // One entry of the references drawer: a reference of the note, named by its type and number (CR 30080), and the
-    // notes it opens.
+    // One entry of the references drawer: a reference of the note, as its first link writes it (CR_30080), and the notes
+    // it opens.
     public sealed record ListEntry(string Label, IReadOnlyList<NoteReferenceTarget> Notes);
 
     // The references drawer of a note: each reference its paragraphs show as a link, once, in the order it first appears
-    // in the text, with all the notes its links open (in the order of their ids) among the notes given. The paragraphs'
-    // links come in document order.
+    // in the text and named as it is written there, with all the notes its links open (in the order of their ids) among
+    // the notes given. The paragraphs' links come in document order.
     public static IReadOnlyList<ListEntry> List(IEnumerable<IReadOnlyList<NoteReferenceLink>?> paragraphs, IReadOnlyList<NoteReferenceTarget>? targets)
     {
         var known = (targets ?? []).ToDictionary(target => target.Id);
@@ -49,7 +49,7 @@ public static class NoteReferences
                 if (!byReference.TryGetValue(link.NormalizedReference, out var notes))
                 {
                     byReference[link.NormalizedReference] = notes = [];
-                    entries.Add(($"{link.ReferenceType} {link.ReferenceNumber.ToString(CultureInfo.InvariantCulture)}", notes));
+                    entries.Add((link.Text, notes));
                 }
                 notes.UnionWith(link.TargetNoteIds.Where(known.ContainsKey));
             }

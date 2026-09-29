@@ -163,6 +163,38 @@ public sealed class NoteReferenceRulesTests
         Assert.Empty(NoteReferenceRules.TargetsOf(titles, "CR:777", 7));
     }
 
+    [Theory]
+    // The reference that ends the text, where it starts, as written; none when the text goes on after it.
+    [InlineData("Vezi CR 30080", 5, "CR 30080")]
+    [InlineData("bug_1234", 0, "bug_1234")]
+    [InlineData("CR 30080, apoi Bug-12", 15, "Bug-12")]
+    [InlineData("(cr30080", 1, "cr30080")]
+    [InlineData("CR 30080 ", -1, null)]
+    [InlineData("CR 30080x", -1, null)]
+    [InlineData("xCR 30080", -1, null)]
+    [InlineData("30080", -1, null)]
+    public void TheReferenceJustTypedEndsTheText(string text, int start, string? written)
+    {
+        var match = NoteReferenceRules.EndingReference(Parser, text);
+
+        Assert.Equal((start, written), match is null ? (-1, null) : (match.Start, match.Text));
+    }
+
+    [Fact]
+    public void OnlyTheEndOfTheTextIsReadForTheReferenceJustTyped()
+    {
+        // The longest reference there can be: a type of ten letters, the most spaces and digits.
+        var parser = new NoteReferenceParser(["ABCDEFGHIJ"]);
+        var longest = "ABCDEFGHIJ" + new string(' ', NoteReferenceRules.MaxSeparatorLength) + new string('9', NoteReferenceRules.MaxNumberLength);
+        var text = new string('x', 1000) + " " + longest;
+
+        var match = NoteReferenceRules.EndingReference(parser, text);
+
+        Assert.Equal((1001, longest), (match!.Start, match.Text));
+        // The character before it is read too: a letter there makes the reference part of a longer word.
+        Assert.Null(NoteReferenceRules.EndingReference(parser, new string('x', 1000) + longest));
+    }
+
     [Fact]
     public void EveryPlaceAParagraphWritesALinkedReferenceIsALink()
     {
@@ -172,6 +204,8 @@ public sealed class NoteReferenceRulesTests
 
         Assert.Equal([(0, 8), (10, 8), (22, 8)], links.Select(link => (link.Start, link.Length)));
         Assert.Equal(["CR 30080", "cr-30080", "CR_30080"], links.Select(link => text.Substring(link.Start, link.Length)));
+        // Each link has its text as the paragraph writes it.
+        Assert.Equal(["CR 30080", "cr-30080", "CR_30080"], links.Select(link => link.Text));
         // Each place is the same reference, whatever its form, and opens all the notes of the reference.
         Assert.All(links, link => Assert.Equal(("CR", 30080L, "CR:30080"), (link.ReferenceType, link.ReferenceNumber, link.NormalizedReference)));
         Assert.All(links, link => Assert.Equal([12, 15], link.TargetNoteIds));

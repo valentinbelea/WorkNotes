@@ -76,6 +76,23 @@ public sealed class NoteReferenceService(INoteReferenceRepository references, IR
         }
     }
 
+    public async Task<NoteReferenceLookup> LookUpAsync(string ownerUserId, int contextId, int noteId, string? text,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
+        cancellationToken.ThrowIfCancellationRequested();
+        var parser = await types.GetParserAsync(cancellationToken);
+        var match = NoteReferenceRules.EndingReference(parser, text);
+        if (match is null) return new(NoteReferenceLookupStatus.NoReference);
+        var candidates = await references.GetCandidatesAsync(ownerUserId, contextId, [match.ReferenceNumber], cancellationToken);
+        var titles = NoteReferenceRules.NotesByTitleReference(parser, candidates.Select(candidate => (candidate.Id, candidate.Title)));
+        // The note itself is never a target, whatever its title.
+        var targetIds = NoteReferenceRules.TargetsOf(titles, match.NormalizedReference, noteId);
+        if (targetIds.Count == 0) return new(NoteReferenceLookupStatus.NoNote, match);
+        return new(NoteReferenceLookupStatus.Found, match,
+            candidates.Where(candidate => targetIds.Contains(candidate.Id)).OrderBy(candidate => candidate.Id).ToList());
+    }
+
     public async Task<NoteDocument> WithLinksAsync(NoteDocument document, string userId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(document);

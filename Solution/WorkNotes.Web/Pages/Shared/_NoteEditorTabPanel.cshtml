@@ -12,6 +12,8 @@
         version = note.Version,
         readOnly = !note.IsOwner,
         saveUrl = Url.Page("/Index", "SaveNote", new { note = note.Id }),
+        // Only its owner writes in a note, so only the owner looks up the references just typed.
+        lookupUrl = note.IsOwner ? Url.Page("/Index", "ReferenceLookup", new { note = note.Id }) : null,
         // The notes the links of the text open, with their tooltips.
         references = NoteReferences.Targets(L, note.References),
         // Each paragraph with its audit text (created / modified), shown in the info bar, and where it shows links.
@@ -53,10 +55,11 @@
                 }
             </noscript>
         </div>
-        @* The drawer of the note's references, beside the text: each reference of the text that is a link, once, with the
-           notes it opens. A details element, so it opens and closes without JavaScript, and its links go to the notes'
-           pages (/?note={id}). With JavaScript a click opens them in the editor's tabs instead, the drawer stays open or
-           closed in every tab, and the list follows each save (from the templates below). *@
+        @* The drawer of the note's references, beside the text: each reference of the text that is a link, once, as its
+           first link writes it, with the notes it opens as its tooltip. A details element, so it opens and closes without
+           JavaScript, and each link goes to the page of its first note (/?note={id}). With JavaScript a click opens all
+           its notes in the editor's tabs instead, the drawer stays open or closed in every tab, and the list follows each
+           save (from the template below). *@
         <details class="note-references" data-editor-references>
             <summary class="note-references__toggle">
                 <svg class="note-references__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 6.5 9 12l5.5 5.5" /></svg>
@@ -73,23 +76,11 @@
                             <a class="note-references__reference" href="@Url.Page("/Index", new { note = entry.Notes[0].Id })"
                                data-note-reference="@string.Join(" ", entry.Notes.Select(target => target.Id))"
                                title="@string.Join("\n", entry.Notes.Select(target => NoteReferences.Label(L, target)))">@entry.Label</a>
-                            <ul class="note-references__notes">
-                                @foreach (var target in entry.Notes)
-                                {
-                                    <li><a class="note-references__note" href="@Url.Page("/Index", new { note = target.Id })" data-note-reference="@target.Id">@NoteReferences.Label(L, target)</a></li>
-                                }
-                            </ul>
                         </li>
                     }
                 </ul>
                 <template data-references-entry>
-                    <li class="note-references__item">
-                        <a class="note-references__reference" data-references-reference></a>
-                        <ul class="note-references__notes" data-references-notes></ul>
-                    </li>
-                </template>
-                <template data-references-note>
-                    <li><a class="note-references__note" data-references-target></a></li>
+                    <li class="note-references__item"><a class="note-references__reference" data-references-reference></a></li>
                 </template>
             </div>
         </details>

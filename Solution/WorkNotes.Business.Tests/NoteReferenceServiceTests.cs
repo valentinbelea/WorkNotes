@@ -230,6 +230,96 @@ public sealed class NoteReferenceServiceTests
     }
 
     [Fact]
+    public async Task TheReferenceJustTypedIsFoundWithAllItsNotes()
+    {
+        var repository = new StubRepository { Candidates = { [Owner] = [Test30080, Cr30080, new(7, "CRs cu CR 30080", NoteTypes.Journal)] } };
+
+        var lookup = await LookUp(repository, "Raportul lunar, legat de cr_30080");
+
+        Assert.Equal(NoteReferenceLookupStatus.Found, lookup.Status);
+        Assert.Equal((25, "cr_30080", "CR:30080"), (lookup.Match!.Start, lookup.Match.Text, lookup.Match.NormalizedReference));
+        // All the notes with the reference in their title, in the order of their ids; never the note itself (7).
+        Assert.Equal([Cr30080, Test30080], lookup.Targets);
+        var read = Assert.Single(repository.CandidatesRead);
+        Assert.Equal((Owner, 5, 30080L), (read.UserId, read.ContextId, Assert.Single(read.Numbers)));
+    }
+
+    [Fact]
+    public async Task AReferenceNoNoteHasInItsTitleIsFoundWithoutNotes()
+    {
+        var repository = new StubRepository { Candidates = { [Owner] = [Cr30080] } };
+
+        var lookup = await LookUp(repository, "Vezi CR 30083");
+
+        Assert.Equal(NoteReferenceLookupStatus.NoNote, lookup.Status);
+        Assert.Equal("CR 30083", lookup.Match!.Text);
+        Assert.Null(lookup.Targets);
+    }
+
+    [Theory]
+    [InlineData("Am cumpărat 3")]
+    [InlineData("29.09.2026")]
+    [InlineData("XCR 30080")]
+    [InlineData("CR 30080 export")]
+    [InlineData("TASK 12")]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task ATextThatDoesNotEndWithAReferenceLooksUpNoNote(string? text)
+    {
+        var repository = new StubRepository { Candidates = { [Owner] = [Cr30080] } };
+
+        var lookup = await LookUp(repository, text);
+
+        Assert.Equal(NoteReferenceLookupStatus.NoReference, lookup.Status);
+        Assert.Null(lookup.Match);
+        Assert.Empty(repository.CandidatesRead);
+    }
+
+    [Fact]
+    public async Task OnlyTheEndOfALongTextIsRead()
+    {
+        var repository = new StubRepository { Candidates = { [Owner] = [Cr30080] } };
+        var text = new string('a', 5000) + " CR 30080";
+
+        var lookup = await LookUp(repository, text);
+
+        Assert.Equal(NoteReferenceLookupStatus.Found, lookup.Status);
+        Assert.Equal(5001, lookup.Match!.Start);
+        // A letter right before the type still makes it part of a longer word, however long the text.
+        Assert.Equal(NoteReferenceLookupStatus.NoReference, (await LookUp(repository, new string('a', 5000) + "CR 30080")).Status);
+    }
+
+    [Fact]
+    public async Task ALookupReadsTheConfiguredTypes()
+    {
+        var repository = new StubRepository { Candidates = { [Owner] = [new(30, "TASK-12 migrare", NoteTypes.Article)] } };
+
+        var lookup = await new NoteReferenceService(repository, new StubTypes("CR", "TASK"), Time)
+            .LookUpAsync(Owner, 5, 7, "Vezi task 12", CancellationToken.None);
+
+        Assert.Equal(NoteReferenceLookupStatus.Found, lookup.Status);
+        Assert.Equal(("task 12", 30), (lookup.Match!.Text, Assert.Single(lookup.Targets!).Id));
+    }
+
+    [Fact]
+    public async Task ALookupStopsBeforeTheDataAccessWhenCancelledAndPassesTheToken()
+    {
+        var repository = new StubRepository { Candidates = { [Owner] = [Cr30080] } };
+        var types = new StubTypes("CR", "BUG");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            new NoteReferenceService(repository, types, Time).LookUpAsync(Owner, 5, 7, "CR 30080", cancellation.Token));
+        Assert.Empty(repository.CandidatesRead);
+        Assert.Equal(0, types.Reads);
+
+        using var active = new CancellationTokenSource();
+        await new NoteReferenceService(repository, types, Time).LookUpAsync(Owner, 5, 7, "CR 30080", active.Token);
+        Assert.Equal(active.Token, repository.CandidatesToken);
+    }
+
+    [Fact]
     public async Task ARefreshResolvesOnlyTheReferencesOneTitleHasAndTheOtherHasNot()
     {
         var paragraph = Guid.NewGuid();
@@ -438,6 +528,10 @@ public sealed class NoteReferenceServiceTests
     private static (int Start, int Length, string Notes) Shown(NoteReferenceLink link) =>
         (link.Start, link.Length, string.Join(",", link.TargetNoteIds));
 
+    // The lookup of the owner of note 7 of board 5, as the editor asks for it.
+    private static Task<NoteReferenceLookup> LookUp(StubRepository repository, string? text) =>
+        new NoteReferenceService(repository, Types, Time).LookUpAsync(Owner, 5, 7, text, CancellationToken.None);
+
     private static Task Refresh(StubRepository repository, string? previousTitle, string? title) =>
         new NoteReferenceService(repository, Types, Time).RefreshAsync(5, previousTitle, title, CancellationToken.None);
 
@@ -482,6 +576,7 @@ public sealed class NoteReferenceServiceTests
         public List<(int ContextId, long[] Numbers)> SourcesRead { get; } = [];
         public List<Replacement> Replaced { get; } = [];
         public (int NoteId, string UserId)? TargetsRead { get; private set; }
+        public CancellationToken CandidatesToken { get; private set; }
 
         private static bool HasDigits(string? text, IReadOnlyCollection<long> numbers) =>
             text is not null && numbers.Any(number => text.Contains(number.ToString(System.Globalization.CultureInfo.InvariantCulture)));
@@ -490,6 +585,7 @@ public sealed class NoteReferenceServiceTests
             CancellationToken cancellationToken)
         {
             CandidatesRead.Add((userId, contextId, [.. numbers]));
+            CandidatesToken = cancellationToken;
             return Task.FromResult<IReadOnlyList<NoteReferenceTarget>>(
                 (Candidates.TryGetValue(userId, out var visible) ? visible : []).Where(note => HasDigits(note.Title, numbers)).ToList());
         }

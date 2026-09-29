@@ -84,22 +84,58 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 @media (forced-colors: active) {
     .note-sheet__editor .cm-editor .cm-note-reference { color: LinkText; }
 }
+/* The popup of a reference just typed (note-references.js), above it: a small white sheet, as the first suggestion of
+   references had. The search shows only when the answer takes a moment (a text that is no reference closes it before);
+   then the notes the reference opens (the type in the colour of its paper, the title) with the button that makes it a
+   link, or the message that no note has it in its title. It never takes the focus by itself. */
+.note-sheet__editor .cm-editor .note-reference-lookup { display: grid; gap: .4rem; width: max-content; max-width: min(24rem, calc(100vw - 2rem)); max-height: 16rem; padding: .55rem .65rem; overflow-y: auto; border: 1px solid var(--wn-border); border-radius: var(--wn-radius); color: var(--wn-text); background: var(--wn-surface); box-shadow: var(--wn-shadow-raised); font-family: var(--wn-font); font-size: .875rem; line-height: 1.4; }
+.note-sheet__editor .cm-editor .note-reference-lookup--searching { color: var(--wn-muted); animation: note-reference-lookup-appear var(--wn-motion) 250ms both; }
+.note-reference-lookup__status { display: grid; gap: .35rem; }
+.note-reference-lookup__message { display: flex; align-items: center; gap: .45rem; margin: 0; font-weight: 600; }
+.note-reference-lookup__icon { display: none; flex: none; width: 1.15rem; height: 1.15rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.note-reference-lookup--searching .note-reference-lookup__icon--search { display: block; animation: note-reference-lookup-search .8s ease-in-out infinite alternate; }
+.note-reference-lookup--found .note-reference-lookup__icon--found { display: block; color: var(--wn-primary); }
+.note-reference-lookup--missing .note-reference-lookup__icon--missing { display: block; color: var(--wn-warning); }
+.note-reference-lookup__notes { display: grid; gap: .25rem; margin: 0; padding: 0; list-style: none; }
+.note-reference-lookup__note { display: flex; align-items: baseline; gap: .5rem; }
+.note-reference-lookup__type { flex: none; padding: .05rem .4rem; border-radius: 4px; background: var(--wn-note-paper); box-shadow: inset 0 0 0 1px rgb(36 58 54 / 18%); font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.note-reference-lookup__note--article .note-reference-lookup__type { background: var(--wn-note-sage); }
+.note-reference-lookup__name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.note-reference-lookup__actions { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .75rem; margin: .1rem 0 0; }
+.note-reference-lookup .note-reference-lookup__create { min-height: 36px; padding: .3rem .8rem; }
+@media (pointer: coarse) {
+    .note-reference-lookup .note-reference-lookup__create { min-height: 44px; }
+}
+.note-reference-lookup__hint { color: var(--wn-muted); font-size: .75rem; }
+.note-reference-lookup:not(.note-reference-lookup--found) :is(.note-reference-lookup__notes, .note-reference-lookup__actions) { display: none; }
+@keyframes note-reference-lookup-appear { from { opacity: 0; } }
+@keyframes note-reference-lookup-search { to { opacity: .4; } }
+@media (prefers-reduced-motion: reduce) {
+    .note-sheet__editor .cm-editor .note-reference-lookup--searching { animation-duration: 1ms; }
+    .note-reference-lookup--searching .note-reference-lookup__icon--search { animation: none; }
+}
+@media (forced-colors: active) {
+    .note-sheet__editor .cm-editor .note-reference-lookup { border-color: CanvasText; }
+    .note-reference-lookup__type { box-shadow: none; border: 1px solid CanvasText; }
+}
 /* The text and, beside it on the right, the drawer of the note's references (_NoteEditorTabPanel). */
 .note-sheet__body { display: flex; flex: 1 1 auto; gap: .75rem; min-height: 0; }
 .note-sheet__body > .note-sheet__editor { min-width: 0; }
 /* The references drawer: closed, a narrow strip beside the text, with its name written downwards and the number of
-   references; open, a column with each reference once and the notes it opens, which scrolls on its own. Its paper is the
-   sheet's colour lightened as under the text, but opaque, so the list passes under its sticky header. */
-.note-references { flex: none; width: 3rem; min-height: 0; overflow: auto; border-radius: var(--wn-radius); background: color-mix(in srgb, var(--postit-color, var(--wn-note-paper)) 55%, var(--wn-surface)); scrollbar-width: thin; }
+   references; open, a column with each reference once, a link as the text first writes it, which scrolls on its own.
+   Its paper is the sheet's colour lightened as under the text, but opaque, so the list passes under its sticky header. */
+.note-references { --references-paper: color-mix(in srgb, var(--postit-color, var(--wn-note-paper)) 55%, var(--wn-surface)); flex: none; width: 3rem; min-height: 0; overflow: auto; border-radius: var(--wn-radius); background: var(--references-paper); scrollbar-width: thin; }
 .note-references[open] { width: clamp(14rem, 30%, 22rem); }
-.note-references__toggle { position: sticky; top: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: .6rem; min-height: 44px; padding: .75rem .25rem; border-radius: var(--wn-radius); color: var(--wn-muted); background: inherit; font-size: .875rem; font-weight: 650; list-style: none; cursor: pointer; }
+/* The toggle has its own opaque paper: the summary's parent is the details element's slot, so background: inherit would
+   leave it transparent over the list scrolling under it. Open, it is a header a shade deeper than the list. */
+.note-references__toggle { position: sticky; top: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: .6rem; min-height: 44px; padding: .75rem .25rem; border-radius: var(--wn-radius); color: var(--wn-muted); background-color: var(--references-paper); font-size: .875rem; font-weight: 650; list-style: none; cursor: pointer; }
 .note-references__toggle::-webkit-details-marker { display: none; }
 .note-references__toggle:hover { color: var(--wn-text); background-image: linear-gradient(rgb(36 58 54 / 8%), rgb(36 58 54 / 8%)); }
 /* Inside the drawer's scroll, the focus ring is drawn within the toggle, where it cannot be cut off. */
 .note-references__toggle:focus-visible { outline-offset: -3px; }
 .note-references:not([open]) > .note-references__toggle { height: 100%; }
 .note-references:not([open]) .note-references__label { writing-mode: vertical-rl; }
-.note-references[open] > .note-references__toggle { flex-direction: row; padding: .6rem .75rem; border-bottom: 1px dashed var(--wn-input-border); border-radius: var(--wn-radius) var(--wn-radius) 0 0; color: var(--wn-text); }
+.note-references[open] > .note-references__toggle { flex-direction: row; padding: .6rem .75rem; border-bottom: 1px dashed var(--wn-input-border); border-radius: var(--wn-radius) var(--wn-radius) 0 0; color: var(--wn-text); background-color: color-mix(in srgb, var(--postit-color, var(--wn-note-paper)) 85%, var(--wn-surface)); }
 .note-references__icon { flex: none; width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .note-references[open] .note-references__icon { transform: rotate(180deg); }
 .note-references__count { display: inline-grid; place-items: center; min-width: 1.6rem; height: 1.6rem; padding: 0 .4rem; border-radius: 999px; color: var(--wn-on-primary); background: var(--wn-primary); font-size: .75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -107,10 +143,8 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 .note-references__content { padding: .75rem .9rem 1rem; }
 .note-references__help { margin: 0 0 .75rem; color: var(--wn-muted); font-size: .8rem; }
 .note-references__empty { margin: 0; color: var(--wn-muted); font-size: .875rem; }
-.note-references__list { display: grid; gap: .9rem; margin: 0; padding: 0; list-style: none; }
-.note-references__reference { font-weight: 700; }
-.note-references__notes { display: grid; gap: .3rem; margin: .3rem 0 0; padding: 0 0 0 .75rem; border-inline-start: 2px solid rgb(36 58 54 / 15%); list-style: none; font-size: .875rem; }
-.note-references__note { overflow-wrap: anywhere; }
+.note-references__list { display: grid; gap: .55rem; margin: 0; padding: 0; list-style: none; }
+.note-references__reference { font-weight: 700; overflow-wrap: anywhere; }
 /* On a narrow window the drawer goes under the text, as a bar that opens downwards. */
 @media (max-width: 700px) {
     .note-sheet__body { flex-direction: column; }
