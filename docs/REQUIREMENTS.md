@@ -33,6 +33,7 @@ Statusurile sunt stabilite după codul de pe `main` (commit `504c01e`, 2026-09-2
 ## Jurnal / articol
 
 - [x] Două tipuri de notă: jurnal (datat cu ziua locală) și articol (fără dată).
+- [~] Schimbarea tipului unei note în editor, din jurnal în articol și invers, salvată odată cu nota (o notă devenită jurnal este datată cu ziua creării) — implementată în PR #4, neintegrată în `main`.
 - [x] Mai multe jurnale pe zi.
 - [x] Titlul este opțional, cel mult 200 de caractere; o notă fără titlu apare „Fără titlu”.
 - [x] Notele noi sunt private; o notă `Context` este vizibilă membrilor contextului, numai pentru citire.
@@ -136,6 +137,6 @@ Implementate în PR #4 (branch `main_task_02`), neintegrate în `main`; regulile
 
 **Implementate** (version_0.01 și version_0.02): conturile, localizarea ro/en/pl, designul, contextele și membrii, tabla pe contexte și luni, post-it-urile cu creare, redenumire și ștergere pe loc, editorul cu paragrafe auditate, taburi și minimizare, mesajele de salvare, ordonarea prin drag-and-drop, versiunea în footer.
 
-**În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare, deschiderea și închiderea notelor fără reîncărcarea tablei, care urmează salvările din editor, și referințele interne CR/bug între note, cu reindexarea conținutului existent, sertarul referințelor din editor și popup-ul referinței abia scrise, plus corecția selecției din editor.
+**În lucru**: PR #4 — schimburi succesive prin drag-and-drop fără blocare, deschiderea și închiderea notelor fără reîncărcarea tablei, care urmează salvările din editor, schimbarea tipului unei note din editor și referințele interne CR/bug între note, cu reindexarea conținutului existent, sertarul referințelor din editor și popup-ul referinței abia scrise, plus corecția selecției din editor.
 
 **Planificate**: referințele de lucru CR/bug și asocierile lor, legăturile externe, evidențierea referințelor, salvarea automată, vizibilitatea și arhivarea din interfață, paragraful important, editarea notelor partajate, platformele și modulele ulterioare. Ordinea și dependențele sunt în [ROADMAP.md](ROADMAP.md).

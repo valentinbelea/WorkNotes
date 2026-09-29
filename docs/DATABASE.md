@@ -76,7 +76,7 @@ Cheia primară este `ContextId` + `UserId`; indexul `IX_ContextMembers_UserId` s
 | `OwnerUserId` | nvarchar(128) NOT NULL | proprietarul; cheie externă către `Users` |
 | `NoteType` | nvarchar(20) NOT NULL | `Journal` / `Article` (`CK_Notes_NoteType`) |
 | `Title` | nvarchar(200) NULL | opțional |
-| `JournalDate` | date NULL | obligatorie pentru jurnal (`CK_Notes_JournalDate`) |
+| `JournalDate` | date NULL | obligatorie pentru jurnal (`CK_Notes_JournalDate`); PR #4: la schimbarea tipului din editor, ziua locală a creării pentru un jurnal, NULL pentru un articol |
 | `Visibility` | nvarchar(20) NOT NULL | `Private` (implicit) / `Context` (`CK_Notes_Visibility`) |
 | `CreatedAtUtc`, `CreatedByUserId` | datetime2(0), nvarchar(128) | auditul creării |
 | `ModifiedAtUtc`, `ModifiedByUserId` | datetime2(0), nvarchar(128) | auditul ultimei modificări; la inserare egal cu crearea |
@@ -202,7 +202,7 @@ Indexul unic `UX_Notes_DailyJournal` (un jurnal pe proprietar, context și zi), 
 - `Notes` și `NoteBlocks`: `CreatedAtUtc`, `CreatedByUserId`, `ModifiedAtUtc`, `ModifiedByUserId`. `ContextMembers`: `AddedAtUtc`. `WorkContexts` nu are audit.
 - Aplicația scrie momentele trunchiate la secundă (`NoteService`), ca să se citească la fel după reîncărcare.
 - `Notes.ModifiedAtUtc` este NOT NULL și primește la inserare aceeași valoare ca `CreatedAtUtc`; `NoteRepository` raportează o notă cu `ModifiedAtUtc` egal cu crearea ca nemodificată (`ModifiedAtUtc = null` în `NoteSummary`). Tabla folosește ultima modificare, `ISNULL(ModifiedAtUtc, CreatedAtUtc)`.
-- Mutarea unui paragraf (schimbarea `Position`) și schimbul ordinii pe tablă nu modifică auditul; numai schimbarea textului sau a titlului îl actualizează.
+- Mutarea unui paragraf (schimbarea `Position`) și schimbul ordinii pe tablă nu modifică auditul; numai schimbarea textului sau a titlului îl actualizează (cu PR #4, și a tipului notei).
 
 ## Reguli de ștergere
 

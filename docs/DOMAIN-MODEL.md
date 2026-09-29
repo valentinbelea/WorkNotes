@@ -65,6 +65,7 @@ Tabla nu este o entitate: este afișarea notelor unui context, grupate pe luni.
 - Reguli:
   - orice membru al contextului poate crea note în el; o notă nouă este privată;
   - un jurnal este datat cu ziua locală a aplicației în momentul creării; se pot crea oricâte jurnale pe zi; un articol nu are dată;
+  - PR #4: proprietarul poate schimba tipul notei în editor, din jurnal în articol și invers, salvat odată cu nota; o notă devenită jurnal primește ziua locală în care a fost creată, un articol nu are dată, iar o notă care își păstrează tipul își păstrează data; schimbarea tipului este o modificare a notei (ultima modificare), ca a titlului;
   - titlul este opțional (captura nu se blochează), cel mult 200 de caractere, fără caractere de control, normalizat prin `Trim`; un titlu gol înseamnă „Fără titlu”;
   - o notă `Private` este văzută numai de proprietar; o notă `Context` este văzută de membrii contextului, numai pentru citire; numai proprietarul o editează, o redenumește, o șterge și îi schimbă locul;
   - ultima modificare este `ISNULL(ModifiedAtUtc, CreatedAtUtc)` (`NoteSummary.LastChangedAtUtc`); o notă nemodificată de la creare nu are dată de modificare;
@@ -73,7 +74,7 @@ Tabla nu este o entitate: este afișarea notelor unui context, grupate pe luni.
   - proprietarul poate schimba locurile a două note ale sale din același context și din aceeași lună locală; schimbul nu modifică auditul, deci nicio notă nu își schimbă luna;
   - o notă arhivată (`ArchivedAtUtc` completat) nu este vizibilă nicăieri; arhivarea nu are încă interfață;
   - ștergerea elimină nota împreună cu paragrafele ei.
-- Statusuri: `NoteCreateStatus` (`Created`, `InvalidType`, `InvalidTitle`, `ContextNotFound`), `NoteSaveStatus` (`Saved`, `NotFound`, `Forbidden`, `Conflict`, `InvalidTitle`, `InvalidContent`), `NoteDeleteStatus` (`Deleted`, `NotFound`, `Forbidden`), `NoteOrderStatus` (`Saved`, `NotFound`, `Forbidden`, `InvalidTarget`, `Conflict`).
+- Statusuri: `NoteCreateStatus` (`Created`, `InvalidType`, `InvalidTitle`, `ContextNotFound`), `NoteSaveStatus` (`Saved`, `NotFound`, `Forbidden`, `Conflict`, `InvalidTitle`, `InvalidContent`; PR #4: `InvalidType`), `NoteDeleteStatus` (`Deleted`, `NotFound`, `Forbidden`), `NoteOrderStatus` (`Saved`, `NotFound`, `Forbidden`, `InvalidTarget`, `Conflict`).
 
 ### Paragraf (NoteBlock)
 

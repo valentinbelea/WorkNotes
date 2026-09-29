@@ -52,6 +52,10 @@ Apoi, tot pe 2026-09-29, la cererea utilizatorului (închiderea editorului înt�
 - **Changed** — închiderea editorului (Închide, Escape, click în afara ferestrei, × pe ultimul tab, Închide din forma minimizată) nu mai reîncarcă pagina cât timp niciun tab nu are modificări nesalvate: fereastra dispare, adresa devine a tablei (o intrare nouă în istoric; Back redeschide nota), iar focusul trece pe cardul notei active. Cu modificări nesalvate, închiderea încarcă tabla ca înainte, după avertizare; la fel după o salvare pe care tabla nu a putut-o arăta. Pe o tablă de 300 de note, închiderea durează circa 0,1 s, față de 0,6–0,8 s. `modal.js` trimite evenimentul `modal:close`, `note-editor.js` exportă `startEditor`, iar modulele comunică prin `note-editor:saved` și `note-editor:closed`.
 - **Documentation** — regula de design din `AGENTS.md` (reordonările DOM ale tablei) cuprinde și mutarea cardului unei note salvate în luna curentă; deciziile 90–94.
 
+Apoi, tot pe 2026-09-29, la cererea utilizatorului (în editor, schimbarea tipului unei note: din jurnal în articol sau invers):
+
+- **Added** — proprietarul schimbă tipul notei din footerul ei din editor, cu același comutator ca pe cardul „Notă nouă” (iconurile sunt acum partialul comun `_NoteTypeIcon`, cu stilul lor în comutator): foaia, tabul și forma minimizată iau imediat tipul ales, nota are modificări nesalvate, iar Salvează sau Ctrl+S salvează tipul odată cu nota (`noteType` în corpul `SaveNote`); cardul de pe tablă își schimbă culoarea și numele tipului. O notă devenită jurnal primește ziua locală a creării ei, un articol nu are dată, iar schimbarea tipului actualizează ultima modificare. Un tip necunoscut primește 400 (`NoteSaveStatus.InvalidType`). Fără JavaScript și pentru cei care doar citesc, footerul arată în continuare numele tipului. Fără script SQL și fără chei .resx noi.
+
 ## [0.02] — integrată în `main` pe 2026-09-25 (PR #3)
 
 ### Added
