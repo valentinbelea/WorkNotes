@@ -106,7 +106,7 @@ export const identifyParagraphs = state => matchParagraphs(state).map(item => ({
 // positions, for a paragraph that starts at from; a link that does not fit the paragraph is left out.
 const linksAt = (from, links, length) => (links ?? [])
     .filter(link => link.from >= 0 && link.to > link.from && link.to <= length)
-    .map(link => ({ from: from + link.from, to: from + link.to, notes: link.notes }));
+    .map(link => ({ from: from + link.from, to: from + link.to, notes: link.notes, reference: link.reference }));
 
 // ---- Paragraph under the mouse -----------------------------------------------------------------------------
 
@@ -163,6 +163,10 @@ function createNoteEditor(panel, data, shared) {
     const chosenType = () => typeSwitch?.querySelector("input:checked")?.value ?? null;
     const messages = shared.messages;
     const drawerElement = panel.querySelector("[data-editor-references]");
+    // The branches linked to the references of the text now (the page's, then each answer's): a click on a reference that
+    // has one asks whether to open its notes or the branch.
+    let gitLinks = data.gitReferences ?? [];
+    const applyGit = list => { gitLinks = list ?? []; drawer?.showGit(list); };
     // The drawer of the note's references: its links open notes in the tabs, and each save brings its list. The owner's
     // drawer also removes the branches linked to the references (removeGitReference, below).
     const drawer = drawerElement
@@ -267,7 +271,7 @@ function createNoteEditor(panel, data, shared) {
             const labels = new Map((body.references ?? []).map(target => [String(target.id), target.label]));
             showSavedLinks(body, labels);
             drawer?.show(body.referenceList, labels);
-            drawer?.showGit(body.gitReferences);
+            applyGit(body.gitReferences);
             // The note's card on the board behind the window shows the save.
             shared.showOnBoard(body.card);
         } catch {
@@ -320,7 +324,7 @@ function createNoteEditor(panel, data, shared) {
             });
             const body = await response.json().catch(() => ({}));
             if (!response.ok) return { ok: false, message: body.message ?? texts.gitFailed };
-            drawer?.showGit(body.gitReferences);
+            applyGit(body.gitReferences);
             showStatusMessage(messages, "success", body.message);
             return { ok: true };
         } catch {
@@ -337,7 +341,7 @@ function createNoteEditor(panel, data, shared) {
                 showStatusMessage(messages, "error", body.message ?? texts.gitFailed);
                 return;
             }
-            drawer?.showGit(body.gitReferences);
+            applyGit(body.gitReferences);
             showStatusMessage(messages, "success", body.message);
         } catch {
             showStatusMessage(messages, "error", texts.gitFailed);
@@ -376,6 +380,8 @@ function createNoteEditor(panel, data, shared) {
         // Before the default keys: Ctrl+Enter on a link opens its notes; Tab and Escape serve the lookup's popup first.
         noteReferences({
             links: initialLinks, targets: data.references ?? [], open: ids => shared.openNotes(ids),
+            // Where a reference goes besides its notes: the branches linked to it, if any.
+            choice: shared.choice ? { ...shared.choice, branches: reference => gitLinks.filter(link => link.normalized === reference) } : null,
             // The owner's editor asks about the references it types.
             lookup: data.readOnly || !data.lookupUrl || !shared.lookup ? null : {
                 ...shared.lookup, find: findReference,
@@ -453,6 +459,10 @@ function initializeEditorWindow(dialog, settings, dataElement) {
         // The repositories the Git option of that popup offers, and the one chosen last, kept for all tabs.
         gitRepositories: settings.gitRepositories ?? [],
         gitChoice: { repository: null },
+        // The popup of a reference that leads to its notes and to a branch, common to all tabs.
+        choice: dialog.querySelector("template[data-reference-choice]") && dialog.querySelector("template[data-reference-choice-branch]")
+            ? { template: dialog.querySelector("template[data-reference-choice]"), branchTemplate: dialog.querySelector("template[data-reference-choice-branch]") }
+            : null,
         // A saved note's card (the save's answer) goes to the board, which marks the event handled once the card shows
         // it; a save the board could not show makes closing the window load the board again.
         showOnBoard: card => {

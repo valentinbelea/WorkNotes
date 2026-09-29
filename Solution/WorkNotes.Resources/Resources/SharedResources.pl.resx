@@ -243,4 +243,8 @@
 <data name="Editor_GitBranchNotFound" xml:space="preserve"><value>Gałąź nie istnieje w repozytorium lub jej nazwa nie zawiera referencji.</value></data>
 <data name="Editor_ReferenceHintGit" xml:space="preserve"><value>Shift+Tab: Git · Esc zamyka</value></data>
 <data name="Editor_GitReferenceGone" xml:space="preserve"><value>Referencja Git już nie istnieje.</value></data>
+<data name="Editor_ReferenceChoice" xml:space="preserve"><value>To odwołanie prowadzi do dwóch miejsc</value></data>
+<data name="Editor_ReferenceChoiceNotes" xml:space="preserve"><value>Otwórz notatki</value></data>
+<data name="Editor_ReferenceChoiceGit" xml:space="preserve"><value>Albo gałąź w GitHubie, w nowej karcie:</value></data>
+<data name="Editor_ReferenceChoiceHint" xml:space="preserve"><value>Tab: notatki · Shift+Tab: Git · Esc zamyka</value></data>
 </root>

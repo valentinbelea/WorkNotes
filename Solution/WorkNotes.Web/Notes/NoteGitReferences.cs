@@ -19,6 +19,7 @@ public static class NoteGitReferences
         (references ?? []).Select(reference => new
         {
             id = reference.Id,
+            normalized = reference.NormalizedReference,
             reference = Label(reference.NormalizedReference),
             repository = reference.RepositoryFullName,
             branch = reference.Name,

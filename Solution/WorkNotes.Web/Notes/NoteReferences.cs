@@ -24,7 +24,7 @@ public static class NoteReferences
     // A paragraph's links for note-editor.js: from and to count characters of the paragraph's text; notes are the notes
     // the link opens, in order.
     public static IEnumerable<object> Links(IReadOnlyList<NoteReferenceLink>? links) =>
-        (links ?? []).Select(link => new { from = link.Start, to = link.Start + link.Length, notes = link.TargetNoteIds });
+        (links ?? []).Select(link => new { from = link.Start, to = link.Start + link.Length, notes = link.TargetNoteIds, reference = link.NormalizedReference });
 
     // The notes the links open, each with its tooltip.
     public static IEnumerable<object> Targets(IStringLocalizer localizer, IReadOnlyList<NoteReferenceTarget>? targets) =>

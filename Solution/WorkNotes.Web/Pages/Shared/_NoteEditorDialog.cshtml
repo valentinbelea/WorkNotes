@@ -118,6 +118,27 @@
             </button>
         </li>
     </template>
+    @* The popup of a link whose reference also has branches linked to it (note-references.js, above the link): open its
+       notes (the application reference) or a branch on GitHub, in a new tab. Without a branch linked, a click opens the
+       notes at once. *@
+    <template data-reference-choice>
+        <div class="note-reference-lookup note-reference-choice" role="group" aria-label="@L["Editor_ReferenceChoice"]">
+            <p class="note-reference-lookup__actions">
+                <button type="button" class="btn btn-primary note-reference-lookup__create" data-choice-notes>@L["Editor_ReferenceChoiceNotes"]</button>
+            </p>
+            <p class="note-reference-choice__label">@L["Editor_ReferenceChoiceGit"]</p>
+            <ul class="note-reference-lookup__branches" data-choice-branches></ul>
+            <p class="note-reference-lookup__hint">@L["Editor_ReferenceChoiceHint"]</p>
+        </div>
+    </template>
+    <template data-reference-choice-branch>
+        <li class="note-reference-lookup__branch-item">
+            <a class="note-reference-lookup__branch" data-choice-branch target="_blank" rel="noopener noreferrer">
+                <svg class="note-reference-lookup__branch-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="7" cy="6" r="2" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="9" r="2" /><path d="M7 8v8M17 11c0 3-4 3-10 5" /></svg>
+                <span class="note-reference-lookup__branch-name"><span data-choice-repository></span> · <span data-choice-name></span></span>
+            </a>
+        </li>
+    </template>
     <template data-reference-lookup-note>
         <li class="note-reference-lookup__note"><span class="note-reference-lookup__type" data-lookup-type></span><span class="note-reference-lookup__name" data-lookup-name></span></li>
     </template>

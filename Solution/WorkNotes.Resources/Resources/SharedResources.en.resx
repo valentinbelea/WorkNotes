@@ -243,4 +243,8 @@
 <data name="Editor_GitBranchNotFound" xml:space="preserve"><value>The branch does not exist in the repository or its name does not contain the reference.</value></data>
 <data name="Editor_ReferenceHintGit" xml:space="preserve"><value>Shift+Tab: Git · Esc closes</value></data>
 <data name="Editor_GitReferenceGone" xml:space="preserve"><value>The Git reference no longer exists.</value></data>
+<data name="Editor_ReferenceChoice" xml:space="preserve"><value>This reference leads to two places</value></data>
+<data name="Editor_ReferenceChoiceNotes" xml:space="preserve"><value>Open the notes</value></data>
+<data name="Editor_ReferenceChoiceGit" xml:space="preserve"><value>Or the GitHub branch, in a new tab:</value></data>
+<data name="Editor_ReferenceChoiceHint" xml:space="preserve"><value>Tab: the notes · Shift+Tab: Git · Esc closes</value></data>
 </root>

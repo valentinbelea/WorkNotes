@@ -243,4 +243,8 @@
 <data name="Editor_GitBranchNotFound" xml:space="preserve"><value>Branch-ul nu există în repository sau numele lui nu conține referința.</value></data>
 <data name="Editor_ReferenceHintGit" xml:space="preserve"><value>Shift+Tab: Git · Esc închide</value></data>
 <data name="Editor_GitReferenceGone" xml:space="preserve"><value>Referința Git nu mai există.</value></data>
+<data name="Editor_ReferenceChoice" xml:space="preserve"><value>Această referință duce în două locuri</value></data>
+<data name="Editor_ReferenceChoiceNotes" xml:space="preserve"><value>Deschide notele</value></data>
+<data name="Editor_ReferenceChoiceGit" xml:space="preserve"><value>Sau branch-ul din GitHub, într-un tab nou:</value></data>
+<data name="Editor_ReferenceChoiceHint" xml:space="preserve"><value>Tab: notele · Shift+Tab: Git · Esc închide</value></data>
 </root>

@@ -21,6 +21,8 @@
         gitBranchesUrl = note.IsOwner ? Url.Page("/Index", "GitBranches", new { note = note.Id }) : null,
         gitAddUrl = note.IsOwner ? Url.Page("/Index", "AddGitReference", new { note = note.Id }) : null,
         gitRemoveUrl = note.IsOwner ? Url.Page("/Index", "RemoveGitReference", new { note = note.Id }) : null,
+        // The branches linked to the references of the text: a click on a reference that has one asks where to go.
+        gitReferences = NoteGitReferences.Data(L, gitList),
         // The notes the links of the text open, with their tooltips.
         references = NoteReferences.Targets(L, note.References),
         // Each paragraph with its audit text (created / modified), shown in the info bar, and where it shows links.

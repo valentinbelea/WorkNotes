@@ -21,6 +21,10 @@ const addLink = StateEffect.define({
     map: (link, changes) => ({ ...link, from: changes.mapPos(link.from, 1), to: changes.mapPos(link.to, -1) })
 });
 
+// The popup of a reference that leads to two places (its notes and a branch linked to it), at { pos, notes, branches } or null.
+const openChoice = StateEffect.define();
+const closeChoice = StateEffect.define();
+
 // The characters that end a word. Typed right after a digit, one of them asks the server whether the text before it ends
 // with a reference; Tab does the same (it inserts nothing). Typed right next to a link, one of them leaves it a link.
 // Only the server reads references (a date or a quantity ends with no reference, so nothing is shown for it).
@@ -42,21 +46,24 @@ function keepsLink(changes, from, to) {
 }
 
 // A link's mark: its class, its tooltip (one line per note) and the ids of its notes, in order, for opening them.
-const linkMark = (notes, title) => Decoration.mark({ class: "cm-note-reference", attributes: { title, "data-note-reference": notes.join(" ") } });
+const linkMark = (notes, title, reference) => Decoration.mark({
+    class: "cm-note-reference", attributes: { title, "data-note-reference": notes.join(" "), "data-reference": reference ?? "" }
+});
 
 function build(links, labels, length) {
     const marks = [];
     for (const link of links) {
         const notes = Array.isArray(link.notes) ? link.notes.map(String) : [];
         if (!(link.from >= 0 && link.to > link.from && link.to <= length) || notes.length === 0) continue;
-        marks.push(linkMark(notes, notes.map(note => labels.get(note) ?? "").filter(Boolean).join("\n")).range(link.from, link.to));
+        marks.push(linkMark(notes, notes.map(note => labels.get(note) ?? "").filter(Boolean).join("\n"), link.reference).range(link.from, link.to));
     }
     return Decoration.set(marks, true);
 }
 
 // links: the links of the text as loaded ({ from, to, notes } in document positions); targets: [{ id, label }];
-// open(ids): opens notes in the editor's tabs; lookup: what referenceLookup needs, or null in a read-only editor.
-export function noteReferences({ links, targets, open, lookup }) {
+// open(ids): opens notes in the editor's tabs; choice: { template, branchTemplate, branches(reference) } for the popup of a reference
+// that also has branches linked to it, or null; lookup: what referenceLookup needs, or null in a read-only editor.
+export function noteReferences({ links, targets, open, lookup, choice }) {
     const labels = new Map(targets.map(target => [String(target.id), target.label]));
 
     const shown = StateField.define({
@@ -68,25 +75,35 @@ export function noteReferences({ links, targets, open, lookup }) {
             for (const effect of transaction.effects) {
                 if (effect.is(setLinks)) next = build(effect.value.links, effect.value.labels, transaction.state.doc.length);
                 else if (effect.is(addLink) && effect.value.to > effect.value.from)
-                    next = next.update({ add: [linkMark(effect.value.notes, effect.value.title).range(effect.value.from, effect.value.to)] });
+                    next = next.update({ add: [linkMark(effect.value.notes, effect.value.title, effect.value.reference).range(effect.value.from, effect.value.to)] });
             }
             return next;
         },
         provide: field => EditorView.decorations.from(field)
     });
 
-    // The notes of the link at a position (the cursor inside it, or right before or after it), or null.
+    // The link at a position (the cursor inside it, or right before or after it): its notes, its reference and its end.
     function linkAt(state, pos) {
-        let notes = null;
+        let found = null;
         state.field(shown).between(pos, pos, (from, to, value) => {
-            notes = value.spec.attributes["data-note-reference"].split(" ");
+            found = { notes: value.spec.attributes["data-note-reference"].split(" "), reference: value.spec.attributes["data-reference"], to };
             return false;
         });
-        return notes;
+        return found;
     }
+
+    // A link with no branch linked to its reference opens its notes at once; one with branches asks where to go.
+    function follow(view, notes, reference, to) {
+        const branches = choice && reference ? choice.branches(reference) : [];
+        if (branches.length === 0) { open(notes); return; }
+        view.dispatch({ effects: openChoice.of({ pos: to, notes, branches }) });
+    }
+
+    const choiceField = choice ? referenceChoice(choice, open) : null;
 
     const extensions = [
         shown,
+        ...(choiceField ?? []),
         EditorView.domEventHandlers({
             click(event, view) {
                 const link = event.target instanceof Element ? event.target.closest("[data-note-reference]") : null;
@@ -94,16 +111,16 @@ export function noteReferences({ links, targets, open, lookup }) {
                 // The click that ends a selection only selects.
                 if (!view.state.selection.main.empty) return false;
                 event.preventDefault();
-                open(link.dataset.noteReference.split(" "));
+                follow(view, link.dataset.noteReference.split(" "), link.dataset.reference, view.posAtDOM(link, link.childNodes.length));
                 return true;
             }
         }),
         keymap.of([{
             key: "Mod-Enter",
             run(view) {
-                const notes = linkAt(view.state, view.state.selection.main.head);
-                if (notes === null) return false;
-                open(notes);
+                const found = linkAt(view.state, view.state.selection.main.head);
+                if (found === null) return false;
+                follow(view, found.notes, found.reference, found.to);
                 return true;
             }
         }])
@@ -113,6 +130,76 @@ export function noteReferences({ links, targets, open, lookup }) {
         state.field(shown).between(to, to, (start, end) => { if (end === to) linked = true; });
         return linked;
     })] : extensions;
+}
+
+// ---- The choice of a reference with a branch ------------------------------------------------------------------------
+
+// The popup above a link whose reference also has branches linked to it: open its notes (the application reference) or a
+// branch on GitHub, in a new tab. Tab does the first, Shift+Tab the second (the list gets the focus when there are
+// several branches), Escape closes it; typing, moving the cursor or leaving the editor closes it too.
+function referenceChoice({ template, branchTemplate }, open) {
+    const field = StateField.define({
+        create: () => null,
+        update(value, transaction) {
+            for (const effect of transaction.effects) {
+                if (effect.is(openChoice)) return effect.value;
+                if (effect.is(closeChoice)) return null;
+            }
+            return value && (transaction.docChanged || transaction.selectionSet) ? null : value;
+        },
+        provide: f => showTooltip.from(f, value => value && { pos: value.pos, above: true, strictSide: false, create: view => popup(view, value) })
+    });
+
+    function popup(view, value) {
+        const dom = template.content.firstElementChild.cloneNode(true);
+        const close = () => view.dispatch({ effects: closeChoice.of(null) });
+        dom.querySelector("[data-choice-notes]").addEventListener("click", () => { close(); open(value.notes); view.focus(); });
+        dom.querySelector("[data-choice-branches]").replaceChildren(...value.branches
+            .filter(branch => typeof branch.url === "string" && branch.url.startsWith("https://"))
+            .map(branch => {
+                const item = branchTemplate.content.firstElementChild.cloneNode(true);
+                const link = item.querySelector("[data-choice-branch]");
+                link.href = branch.url;
+                link.title = `${branch.repository}: ${branch.branch}`;
+                link.querySelector("[data-choice-repository]").textContent = branch.repository;
+                link.querySelector("[data-choice-name]").textContent = branch.branch;
+                link.addEventListener("click", () => setTimeout(close, 0));
+                return item;
+            }));
+        // A click keeps the focus in the text; the links still open.
+        dom.addEventListener("mousedown", event => event.preventDefault());
+        dom.addEventListener("keydown", event => {
+            if (event.key !== "Escape") return;
+            event.preventDefault();
+            close();
+            view.focus();
+        });
+        return { dom, offset: { x: 0, y: 4 } };
+    }
+
+    const keys = keymap.of([
+        { key: "Escape", run(view) { if (!view.state.field(field, false)) return false; view.dispatch({ effects: closeChoice.of(null) }); return true; } },
+        { key: "Tab", run(view) {
+            const value = view.state.field(field, false);
+            if (!value) return false;
+            view.dispatch({ effects: closeChoice.of(null) });
+            open(value.notes);
+            return true;
+        } },
+        { key: "Shift-Tab", run(view) {
+            const value = view.state.field(field, false);
+            if (!value) return false;
+            const links = [...view.dom.querySelectorAll("[data-choice-branch]")];
+            if (links.length === 1) {
+                links[0].click();
+                return true;
+            }
+            links[0]?.focus();
+            return links.length > 0;
+        } }
+    ]);
+    const closeOnBlur = EditorView.domEventHandlers({ blur(event, view) { if (view.state.field(field, false)) view.dispatch({ effects: closeChoice.of(null) }); return false; } });
+    return [field, keys, closeOnBlur];
 }
 
 // ---- The lookup of a reference just typed --------------------------------------------------------------------------
@@ -191,7 +278,7 @@ function referenceLookup({ length, find, template, noteTemplate, branchTemplate,
         const effects = [closeLookup.of(value.token)];
         if (!linkEndsAt(view.state, value.to))
             effects.push(addLink.of({ from: value.from, to: value.to, notes: value.notes.map(note => String(note.id)),
-                title: value.notes.map(note => note.label).join("\n") }));
+                title: value.notes.map(note => note.label).join("\n"), reference: value.reference }));
         view.dispatch({ effects });
         view.focus();
         return true;
