@@ -15,15 +15,22 @@ namespace WorkNotes.Web.Pages.Account;
 public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthorizationCookie authorizationCookie) : PageModel
 {
     public bool IsConfigured => gitHub.IsConfigured;
+    public bool HasEmail => UserEmail is not null;
     public GitConnection? Connection { get; private set; }
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    private string? UserEmail => User.FindFirstValue(ClaimTypes.Email)?.Trim().ToLowerInvariant() is { Length: > 0 } email
+        ? email
+        : null;
 
-    public async Task OnGetAsync(CancellationToken cancellationToken) =>
-        Connection = await gitHub.GetAsync(UserId, cancellationToken);
+    public async Task OnGetAsync(CancellationToken cancellationToken)
+    {
+        if (HasEmail) Connection = await gitHub.GetAsync(UserId, cancellationToken);
+    }
 
     public IActionResult OnPostConnect()
     {
+        if (!HasEmail) return Message("GitHub_EmailRequired", StatusMessageKind.Error);
         if (!gitHub.IsConfigured) return Message("GitHub_NotConfigured", StatusMessageKind.Error);
 
         var authorization = gitHub.StartAuthorization(CallbackUrl());
@@ -35,6 +42,7 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
     public async Task<IActionResult> OnGetCallbackAsync(string? code, string? state, string? error,
         CancellationToken cancellationToken)
     {
+        if (!HasEmail) return Message("GitHub_EmailRequired", StatusMessageKind.Error);
         var pending = authorizationCookie.Take(HttpContext, UserId);
         var status = await gitHub.CompleteAuthorizationAsync(UserId, pending, new GitHubCallback(code, state, error),
             CallbackUrl(), cancellationToken);
@@ -50,7 +58,9 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
     }
 
     public async Task<IActionResult> OnPostVerifyAsync(CancellationToken cancellationToken) =>
-        await gitHub.VerifyAsync(UserId, cancellationToken) switch
+        !HasEmail
+            ? Message("GitHub_EmailRequired", StatusMessageKind.Error)
+            : await gitHub.VerifyAsync(UserId, cancellationToken) switch
         {
             GitVerifyStatus.Valid => Message("GitHub_Valid"),
             GitVerifyStatus.NotConnected => Message("GitHub_NotConnected", StatusMessageKind.Warning),
@@ -60,7 +70,9 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
         };
 
     public async Task<IActionResult> OnPostDisconnectAsync(CancellationToken cancellationToken) =>
-        await gitHub.DisconnectAsync(UserId, cancellationToken) switch
+        !HasEmail
+            ? Message("GitHub_EmailRequired", StatusMessageKind.Error)
+            : await gitHub.DisconnectAsync(UserId, cancellationToken) switch
         {
             GitDisconnectStatus.Disconnected => Message("GitHub_Disconnected"),
             GitDisconnectStatus.NotRevoked => Message("GitHub_NotRevoked", StatusMessageKind.Warning),
