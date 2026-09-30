@@ -24,3 +24,7 @@ Pagina `/admin/configuration` acceptă Client ID, Client secret, scopes și call
 Setați `DataProtection:KeysPath` la un director persistent, privat identității aplicației și comun tuturor instanțelor. `SetApplicationName("WorkNotes")` trebuie să rămână identic. Pe Windows cheile din director sunt protejate suplimentar cu DPAPI; identitatea pool-ului trebuie păstrată la deploy. Directorul nu poate fi temporar, nu trebuie publicat împreună cu aplicația și trebuie inclus în backup. Pierderea ori schimbarea cheilor face imposibilă decriptarea configurației și a tokenurilor existente.
 
 La hosting verificați: aplicarea scriptului `004`, drepturile SQL minime, existența și persistența directorului de chei după restart/deploy, HTTPS, permisiunile identității asupra directorului și absența secretelor din loguri. Testați login invalid/valid, salvarea și păstrarea secretului gol, restartul, logout-ul și redirectarea tuturor rutelor protejate.
+
+## Consumarea configurației de integrare
+
+`GitHubOAuthClient` citește `IGitHubConfigurationService.GetCredentialAsync` pentru fiecare autorizare, exchange, refresh și revocare. Callback URL din tabelă este sursa autoritară pentru ambele cereri OAuth care trimit `redirect_uri`; Web nu îl suprascrie. O salvare administrativă este observată de operațiile ulterioare fără restart. Dacă valorile se schimbă între pornirea autorizării și callback, exchange-ul folosește configurația curentă și GitHub poate refuza cererea; utilizatorul poate porni o autorizare nouă.

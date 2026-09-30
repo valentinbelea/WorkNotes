@@ -48,9 +48,6 @@ TODO: Necesită clarificare — furnizorul sau serverul de găzduire, numărul d
 | `Logging:LogLevel` | Nivelurile de log | `Default = Information`, `Microsoft.AspNetCore = Warning` |
 | `AllowedHosts` | Host-urile acceptate | `*` în configurația versionată |
 | `ASPNETCORE_ENVIRONMENT` | Mediul | `Development` în profilurile locale |
-| `GitHub:ClientId` | ID-ul aplicației GitHub (0.03) | Din GitHub App (recomandat) sau OAuth App înregistrată pentru mediu; gol în `appsettings.json`; fără el pagina Conectare GitHub spune că nu este configurată |
-| `GitHub:ClientSecret` | Secretul aplicației GitHub (0.03) | Secret: User Secrets în Development (`dotnet user-secrets set "GitHub:ClientSecret" "…" --project WorkNotes.Web`), variabila `GitHub__ClientSecret` în rest; niciodată în Git |
-| `GitHub:Scopes` | Scopurile OAuth App (0.03) | Gol pentru o GitHub App (permisiunile sunt ale aplicației); pentru o OAuth App, `repo` pentru repository-uri private |
 | `DataProtection:KeysPath` | Folderul cheilor Data Protection (0.03) | Recomandat pe mediile găzduite: persistent, comun instanțelor, accesibil numai identității aplicației; cheile protejează cookie-urile și tokenurile GitHub stocate. Pe Windows sunt criptate cu DPAPI |
 
 Fișierele: `appsettings.json` (comun), `appsettings.Development.json` (numai logging). Credențialele nu se pun în fișiere versionate; proiectul Web are `UserSecretsId`, deci User Secrets funcționează în Development.
@@ -92,3 +89,7 @@ TODO: Necesită clarificare — nu există o procedură de backup documentată (
 
 - Scripturile SQL sunt numai înainte; nu există scripturi de rollback, iar rândurile din `DatabaseVersion` nu se șterg ([VERSIONING.md](VERSIONING.md#rollback)).
 - TODO: Necesită clarificare — procedura de rollback a aplicației (revenirea la publicarea anterioară) și a bazei (de exemplu restaurarea unui backup).
+
+### Configurația GitHub administrată
+
+Aplicați explicit scriptul existent `Scripts/version_0.03/004_CreateAdministration.sql`, configurați bootstrap-ul admin și salvați Client ID, Client secret, scopes și callback URL în `/admin/configuration`. Nu setați aceste valori în secțiunea `GitHub`; aceasta păstrează numai endpoint-urile și timeout-ul nesensibile. `DataProtection:KeysPath` trebuie să fie persistent și disponibil aceleiași identități după restart/deploy.

@@ -158,3 +158,5 @@ Versiunea 0.03 este dedicată integrării cu Git, la cererea utilizatorului din 
 - [x] Zona `/admin` nu este legată din meniul public și folosește autentificare, cookie și tabela `AdminUsers` separate.
 - [x] Configurația globală GitHub se editează din meniul admin; Client ID și Client secret sunt protejate reversibil, iar secretul nu revine în formular.
 - [~] Punerea în funcțiune cere aplicarea explicită a scriptului 004, parola inițială aleasă de operator și un `DataProtection:KeysPath` persistent.
+
+- [x] Configurația tehnică OAuth (Client ID, Client secret, scopes, callback URL) este singletonul `GitHubConfigurations`, administrat în `/admin/configuration` și citit asincron la fiecare operație; configurația lipsă/nedecriptabilă este „neconfigurat”, fără mascarea erorilor SQL.

@@ -37,12 +37,41 @@ public sealed class GitHubConfigurationServiceTests
         Assert.Equal(expected, await new GitHubConfigurationService(new Repository()).SaveAsync(input, TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task CredentialReadPropagatesCancellationToken()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var repository = new Repository();
+
+        await new GitHubConfigurationService(repository).GetCredentialAsync(cancellation.Token);
+
+        Assert.Equal(cancellation.Token, repository.CredentialToken);
+    }
+
+    [Fact]
+    public async Task CredentialRepositoryFailuresAreNotConvertedToMissingConfiguration()
+    {
+        var expected = new InvalidOperationException("database unavailable");
+        var service = new GitHubConfigurationService(new Repository { CredentialFailure = expected });
+
+        Assert.Same(expected, await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetCredentialAsync(TestContext.Current.CancellationToken)));
+    }
+
     private sealed class Repository : IGitHubConfigurationRepository
     {
         public GitHubConfiguration? Current { get; init; }
         public GitHubConfigurationInput? Saved { get; private set; }
+        public CancellationToken CredentialToken { get; private set; }
+        public Exception? CredentialFailure { get; init; }
         public Task<GitHubConfiguration?> GetAsync(CancellationToken cancellationToken) => Task.FromResult(Current);
-        public Task<GitHubConfigurationCredential?> GetCredentialAsync(CancellationToken cancellationToken) => Task.FromResult<GitHubConfigurationCredential?>(null);
+        public Task<GitHubConfigurationCredential?> GetCredentialAsync(CancellationToken cancellationToken)
+        {
+            CredentialToken = cancellationToken;
+            return CredentialFailure is null
+                ? Task.FromResult<GitHubConfigurationCredential?>(null)
+                : Task.FromException<GitHubConfigurationCredential?>(CredentialFailure);
+        }
         public Task SaveAsync(GitHubConfigurationInput input, CancellationToken cancellationToken) { Saved = input; return Task.CompletedTask; }
     }
 }

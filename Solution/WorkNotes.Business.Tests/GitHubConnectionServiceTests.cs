@@ -7,31 +7,29 @@ namespace WorkNotes.Business.Tests;
 public sealed class GitHubConnectionServiceTests
 {
     private const string UserId = "user-1";
-    private const string Callback = "https://localhost:7190/Account/GitHub/Callback";
     private static readonly DateTimeOffset UtcNow = new(2026, 9, 29, 12, 0, 0, 500, TimeSpan.Zero);
     private static readonly DateTime Now = new(2026, 9, 29, 12, 0, 0, DateTimeKind.Utc);
     private static readonly GitHubPendingAuthorization Pending = new("state-1", "verifier-1");
     private static readonly GitTokens Issued = new("access-2", null, null, null, " repo ");
 
     [Fact]
-    public void AuthorizationSendsTheStateAndTheChallengeOfItsVerifier()
+    public async Task AuthorizationSendsTheStateAndTheChallengeOfItsVerifier()
     {
         var gitHub = new StubGitHub();
         var service = Service(gitHub, new StubConnections());
 
-        var authorization = service.StartAuthorization(Callback);
+        var authorization = await service.StartAuthorizationAsync(CancellationToken.None);
 
-        Assert.Equal(gitHub.AuthorizationUrl, authorization.Url);
-        Assert.Equal(authorization.Pending.State, gitHub.ReceivedState);
-        Assert.Equal(GitAuthorizationRules.CodeChallenge(authorization.Pending.CodeVerifier), gitHub.ReceivedChallenge);
-        Assert.Equal(Callback, gitHub.ReceivedRedirectUri);
-        Assert.NotEqual(authorization.Pending.State, service.StartAuthorization(Callback).Pending.State);
+        Assert.Equal(gitHub.AuthorizationUrl, authorization!.Url);
+        Assert.Equal(authorization!.Pending.State, gitHub.ReceivedState);
+        Assert.Equal(GitAuthorizationRules.CodeChallenge(authorization!.Pending.CodeVerifier), gitHub.ReceivedChallenge);
+        Assert.NotEqual(authorization!.Pending.State, (await service.StartAuthorizationAsync(CancellationToken.None))!.Pending.State);
     }
 
     [Fact]
-    public void AuthorizationCannotStartWithoutConfiguration() =>
-        Assert.Throws<InvalidOperationException>(
-            () => Service(new StubGitHub { IsConfigured = false }, new StubConnections()).StartAuthorization(Callback));
+    public async Task AuthorizationCannotStartWithoutConfiguration() =>
+        Assert.Null(await Service(new StubGitHub { IsConfigured = false }, new StubConnections())
+            .StartAuthorizationAsync(CancellationToken.None));
 
     [Fact]
     public async Task ACallbackIsExchangedWithTheVerifierAndSavesTheAccount()
@@ -40,10 +38,10 @@ public sealed class GitHubConnectionServiceTests
         var connections = new StubConnections();
 
         var status = await Service(gitHub, connections).CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback("code-1", "state-1", null), Callback, CancellationToken.None);
+            new GitHubCallback("code-1", "state-1", null), CancellationToken.None);
 
         Assert.Equal(GitConnectStatus.Connected, status);
-        Assert.Equal(("code-1", "verifier-1", Callback), gitHub.ReceivedExchange);
+        Assert.Equal(("code-1", "verifier-1"), gitHub.ReceivedExchange);
         Assert.Equal("access-2", gitHub.ReceivedAccessToken);
         var saved = Assert.Single(connections.Saves);
         Assert.Equal((UserId, GitProviders.GitHub), (saved.UserId, saved.Provider));
@@ -60,7 +58,7 @@ public sealed class GitHubConnectionServiceTests
         var connections = new StubConnections();
 
         var status = await Service(gitHub, connections).CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback("code-1", state, null), Callback, CancellationToken.None);
+            new GitHubCallback("code-1", state, null), CancellationToken.None);
 
         Assert.Equal(GitConnectStatus.InvalidState, status);
         Assert.Null(gitHub.ReceivedExchange);
@@ -73,7 +71,7 @@ public sealed class GitHubConnectionServiceTests
         var gitHub = new StubGitHub();
 
         var status = await Service(gitHub, new StubConnections()).CompleteAuthorizationAsync(UserId, null,
-            new GitHubCallback("code-1", "state-1", null), Callback, CancellationToken.None);
+            new GitHubCallback("code-1", "state-1", null), CancellationToken.None);
 
         Assert.Equal(GitConnectStatus.InvalidState, status);
         Assert.Null(gitHub.ReceivedExchange);
@@ -83,7 +81,7 @@ public sealed class GitHubConnectionServiceTests
     public async Task AnErrorWithAnotherStateIsAnInvalidState()
     {
         var status = await Service(new StubGitHub(), new StubConnections()).CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback(null, "state-2", "access_denied"), Callback, CancellationToken.None);
+            new GitHubCallback(null, "state-2", "access_denied"), CancellationToken.None);
 
         Assert.Equal(GitConnectStatus.InvalidState, status);
     }
@@ -97,7 +95,7 @@ public sealed class GitHubConnectionServiceTests
         var connections = new StubConnections();
 
         var status = await Service(gitHub, connections).CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback(null, "state-1", error), Callback, CancellationToken.None);
+            new GitHubCallback(null, "state-1", error), CancellationToken.None);
 
         Assert.Equal(expected, status);
         Assert.Null(gitHub.ReceivedExchange);
@@ -108,7 +106,7 @@ public sealed class GitHubConnectionServiceTests
     public async Task ACallbackWithoutACodeIsRejected()
     {
         var status = await Service(new StubGitHub(), new StubConnections()).CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback(" ", "state-1", null), Callback, CancellationToken.None);
+            new GitHubCallback(" ", "state-1", null), CancellationToken.None);
 
         Assert.Equal(GitConnectStatus.Rejected, status);
     }
@@ -122,7 +120,7 @@ public sealed class GitHubConnectionServiceTests
         var connections = new StubConnections();
 
         var status = await Service(gitHub, connections).CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback("code-1", "state-1", null), Callback, CancellationToken.None);
+            new GitHubCallback("code-1", "state-1", null), CancellationToken.None);
 
         Assert.Equal(expected, status);
         Assert.Null(gitHub.ReceivedAccessToken);
@@ -138,7 +136,7 @@ public sealed class GitHubConnectionServiceTests
         var gitHub = new StubGitHub { Account = Result<GitAccount>(accountStatus) };
 
         var status = await Service(gitHub, connections).CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback("code-1", "state-1", null), Callback, CancellationToken.None);
+            new GitHubCallback("code-1", "state-1", null), CancellationToken.None);
 
         Assert.Equal(expected, status);
         Assert.Empty(connections.Saves);
@@ -151,7 +149,7 @@ public sealed class GitHubConnectionServiceTests
         var gitHub = new StubGitHub { Account = GitProviderResult<GitAccount>.Succeeded(new GitAccount("1", new string('a', 101))) };
 
         var status = await Service(gitHub, connections).CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback("code-1", "state-1", null), Callback, CancellationToken.None);
+            new GitHubCallback("code-1", "state-1", null), CancellationToken.None);
 
         Assert.Equal(GitConnectStatus.Rejected, status);
         Assert.Empty(connections.Saves);
@@ -163,7 +161,7 @@ public sealed class GitHubConnectionServiceTests
         var gitHub = new StubGitHub { IsConfigured = false };
 
         var status = await Service(gitHub, new StubConnections()).CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback("code-1", "state-1", null), Callback, CancellationToken.None);
+            new GitHubCallback("code-1", "state-1", null), CancellationToken.None);
 
         Assert.Equal(GitConnectStatus.NotConfigured, status);
         Assert.Null(gitHub.ReceivedExchange);
@@ -359,7 +357,7 @@ public sealed class GitHubConnectionServiceTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.GetAsync(UserId, cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback("code-1", "state-1", null), Callback, cancellation.Token));
+            new GitHubCallback("code-1", "state-1", null), cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.VerifyAsync(UserId, cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.DisconnectAsync(UserId, cancellation.Token));
         Assert.Equal(0, connections.Calls);
@@ -374,7 +372,7 @@ public sealed class GitHubConnectionServiceTests
         var connections = new StubConnections();
 
         await Service(gitHub, connections).CompleteAuthorizationAsync(UserId, Pending,
-            new GitHubCallback("code-1", "state-1", null), Callback, cancellation.Token);
+            new GitHubCallback("code-1", "state-1", null), cancellation.Token);
 
         Assert.All(gitHub.ReceivedTokens.Concat(connections.ReceivedTokens), token => Assert.Equal(cancellation.Token, token));
         Assert.NotEmpty(gitHub.ReceivedTokens);
@@ -411,6 +409,11 @@ public sealed class GitHubConnectionServiceTests
     private sealed class StubGitHub : IGitHubOAuthClient
     {
         public bool IsConfigured { get; init; } = true;
+        public Task<bool> IsConfiguredAsync(CancellationToken cancellationToken)
+        {
+            ReceivedTokens.Add(cancellationToken);
+            return Task.FromResult(IsConfigured);
+        }
         public string AuthorizationUrl { get; } = "https://github.com/login/oauth/authorize?test";
         public GitProviderResult<GitTokens> Exchange { get; init; } = GitProviderResult<GitTokens>.Succeeded(Issued);
         public GitProviderResult<GitTokens> Refresh { get; init; } = GitProviderResult<GitTokens>.Rejected;
@@ -420,24 +423,24 @@ public sealed class GitHubConnectionServiceTests
 
         public string? ReceivedState { get; private set; }
         public string? ReceivedChallenge { get; private set; }
-        public string? ReceivedRedirectUri { get; private set; }
-        public (string Code, string Verifier, string RedirectUri)? ReceivedExchange { get; private set; }
+        public (string Code, string Verifier)? ReceivedExchange { get; private set; }
         public string? ReceivedRefreshToken { get; private set; }
         public string? ReceivedAccessToken { get; private set; }
         public string? RevokedToken { get; private set; }
         public List<CancellationToken> ReceivedTokens { get; } = [];
 
-        public string GetAuthorizationUrl(string state, string codeChallenge, string redirectUri)
+        public Task<string?> GetAuthorizationUrlAsync(string state, string codeChallenge, CancellationToken cancellationToken)
         {
-            (ReceivedState, ReceivedChallenge, ReceivedRedirectUri) = (state, codeChallenge, redirectUri);
-            return AuthorizationUrl;
+            ReceivedTokens.Add(cancellationToken);
+            (ReceivedState, ReceivedChallenge) = (state, codeChallenge);
+            return Task.FromResult<string?>(IsConfigured ? AuthorizationUrl : null);
         }
 
-        public Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri,
+        public Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier,
             CancellationToken cancellationToken)
         {
             ReceivedTokens.Add(cancellationToken);
-            ReceivedExchange = (code, codeVerifier, redirectUri);
+            ReceivedExchange = (code, codeVerifier);
             return Task.FromResult(Exchange);
         }
 

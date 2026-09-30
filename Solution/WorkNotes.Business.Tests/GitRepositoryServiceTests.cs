@@ -234,7 +234,7 @@ public sealed class GitRepositoryServiceTests
         public bool Truncated { get; init; }
         public string? ReceivedAccessToken { get; private set; }
         public CancellationToken ReceivedToken { get; private set; }
-        public bool IsConfigured => true;
+        public Task<bool> IsConfiguredAsync(CancellationToken cancellationToken) => Task.FromResult(true);
 
         public Task<GitProviderResult<GitRepositoryCatalog>> GetRepositoriesAsync(string accessToken, CancellationToken cancellationToken)
         {
@@ -249,8 +249,8 @@ public sealed class GitRepositoryServiceTests
 
         public Task<GitProviderResult<GitBranchCatalog>> GetBranchesAsync(string accessToken, string repositoryFullName, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<GitProviderResult<string>> GetBranchAsync(string accessToken, string repositoryFullName, string branchName, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public string GetAuthorizationUrl(string state, string codeChallenge, string redirectUri) => throw new NotSupportedException();
-        public Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<string?> GetAuthorizationUrlAsync(string state, string codeChallenge, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<GitProviderResult<GitTokens>> RefreshAsync(string refreshToken, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<GitProviderResult<GitAccount>> GetAccountAsync(string accessToken, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<GitProviderStatus> RevokeAsync(string accessToken, CancellationToken cancellationToken) => throw new NotSupportedException();

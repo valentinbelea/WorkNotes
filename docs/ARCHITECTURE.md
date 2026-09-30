@@ -243,3 +243,7 @@ Singurele referințe la DataAccess și Integrations din Web sunt `using WorkNote
 # Fluxul administrării
 
 `Admin Razor Pages → IAdminAuthenticationService / IGitHubConfigurationService → implementări Business/DataAccess → WorkNotesDbContext`. Web emite și șterge numai cookie-ul schemei admin; DataAccess verifică hashul și protejează credențialele. `IGitHubConfigurationService.GetCredentialAsync` este contractul server-side prin care integrarea poate obține valorile decriptate fără a le expune paginii.
+
+## Configurația OAuth GitHub
+
+`GitHubOAuthClient` consumă `IGitHubConfigurationService` (Business), care ajunge asincron prin `IGitHubConfigurationRepository` la `WorkNotesDbContext`. Clientul Integrations nu referă DataAccess. `IsConfiguredAsync`, `GetAuthorizationUrlAsync` și `StartAuthorizationAsync` propagă anularea. Clientul citește din nou credențialele pentru autorizare, schimbul codului, refresh și revocare; `CallbackUrl` din tabelă este unica sursă pentru `redirect_uri`.

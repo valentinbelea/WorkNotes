@@ -482,7 +482,7 @@ public sealed class NoteGitReferenceServiceTests
         public string? ReceivedRepository { get; private set; }
         public string? ReceivedBranch { get; private set; }
         public List<CancellationToken> ReceivedTokens { get; } = [];
-        public bool IsConfigured => true;
+        public Task<bool> IsConfiguredAsync(CancellationToken cancellationToken) => Task.FromResult(true);
 
         public Task<GitProviderResult<GitBranchCatalog>> GetBranchesAsync(string accessToken, string repositoryFullName, CancellationToken cancellationToken)
         {
@@ -510,8 +510,8 @@ public sealed class NoteGitReferenceServiceTests
             });
         }
 
-        public string GetAuthorizationUrl(string state, string codeChallenge, string redirectUri) => throw new NotSupportedException();
-        public Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<string?> GetAuthorizationUrlAsync(string state, string codeChallenge, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<GitProviderResult<GitTokens>> RefreshAsync(string refreshToken, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<GitProviderResult<GitAccount>> GetAccountAsync(string accessToken, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<GitProviderResult<GitRepositoryCatalog>> GetRepositoriesAsync(string accessToken, CancellationToken cancellationToken) => throw new NotSupportedException();
