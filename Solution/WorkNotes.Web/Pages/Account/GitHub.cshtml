@@ -14,6 +14,9 @@
 else if (!Model.IsConfigured)
 {
     <p class="text-muted">@L["GitHub_NotConfiguredHelp"]</p>
+    <form method="post" asp-page-handler="Connect">
+        <button type="submit" class="btn btn-primary">@L["Button_ConnectGitHub"]</button>
+    </form>
 }
 else if (Model.Connection is { } connection)
 {

@@ -28,11 +28,12 @@
                 _ => "GitHub_Unavailable"
             }]
         </p>
-        @if (selection.Status is GitRepositoryStatus.NotConnected or GitRepositoryStatus.ReconnectRequired)
+        @if (selection.Status is GitRepositoryStatus.NotConfigured or GitRepositoryStatus.NotConnected
+            or GitRepositoryStatus.ReconnectRequired)
         {
             <div class="actions">
                 <a class="btn btn-primary" asp-page="/Account/GitHub">
-                    @L[selection.Status == GitRepositoryStatus.NotConnected ? "Button_ConnectGitHub" : "Button_ReconnectGitHub"]
+                    @L[selection.Status == GitRepositoryStatus.ReconnectRequired ? "Button_ReconnectGitHub" : "Button_ConnectGitHub"]
                 </a>
             </div>
         }
