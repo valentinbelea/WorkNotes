@@ -12,25 +12,23 @@ namespace WorkNotes.Web.Pages.Account;
 // The user's GitHub connection: /Account/GitHub shows it, Connect sends the browser to GitHub, GitHub sends it back to
 // /Account/GitHub/Callback (the callback URL registered on GitHub), Verify and Disconnect change it.
 [Authorize]
-public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthorizationCookie authorizationCookie) : PageModel
+public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthorizationCookie authorizationCookie,
+    IAccountService accounts) : PageModel
 {
     public bool IsConfigured => gitHub.IsConfigured;
-    public bool HasEmail => UserEmail is not null;
+    public bool HasEmail { get; private set; }
     public GitConnection? Connection { get; private set; }
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-    private string? UserEmail => User.FindFirstValue(ClaimTypes.Email)?.Trim().ToLowerInvariant() is { Length: > 0 } email
-        ? email
-        : null;
-
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
+        HasEmail = await HasUserEmailAsync(cancellationToken);
         if (HasEmail) Connection = await gitHub.GetAsync(UserId, cancellationToken);
     }
 
-    public IActionResult OnPostConnect()
+    public async Task<IActionResult> OnPostConnectAsync(CancellationToken cancellationToken)
     {
-        if (!HasEmail) return Message("GitHub_EmailRequired", StatusMessageKind.Error);
+        if (!await HasUserEmailAsync(cancellationToken)) return Message("GitHub_EmailRequired", StatusMessageKind.Error);
         if (!gitHub.IsConfigured) return Message("GitHub_NotConfigured", StatusMessageKind.Error);
 
         var authorization = gitHub.StartAuthorization(CallbackUrl());
@@ -42,7 +40,7 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
     public async Task<IActionResult> OnGetCallbackAsync(string? code, string? state, string? error,
         CancellationToken cancellationToken)
     {
-        if (!HasEmail) return Message("GitHub_EmailRequired", StatusMessageKind.Error);
+        if (!await HasUserEmailAsync(cancellationToken)) return Message("GitHub_EmailRequired", StatusMessageKind.Error);
         var pending = authorizationCookie.Take(HttpContext, UserId);
         var status = await gitHub.CompleteAuthorizationAsync(UserId, pending, new GitHubCallback(code, state, error),
             CallbackUrl(), cancellationToken);
@@ -58,7 +56,7 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
     }
 
     public async Task<IActionResult> OnPostVerifyAsync(CancellationToken cancellationToken) =>
-        !HasEmail
+        !await HasUserEmailAsync(cancellationToken)
             ? Message("GitHub_EmailRequired", StatusMessageKind.Error)
             : await gitHub.VerifyAsync(UserId, cancellationToken) switch
         {
@@ -70,7 +68,7 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
         };
 
     public async Task<IActionResult> OnPostDisconnectAsync(CancellationToken cancellationToken) =>
-        !HasEmail
+        !await HasUserEmailAsync(cancellationToken)
             ? Message("GitHub_EmailRequired", StatusMessageKind.Error)
             : await gitHub.DisconnectAsync(UserId, cancellationToken) switch
         {
@@ -86,6 +84,14 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
 
     private string CallbackUrl() =>
         Url.PageLink("/Account/GitHub", "Callback") ?? throw new InvalidOperationException("No callback URL.");
+
+    private async Task<bool> HasUserEmailAsync(CancellationToken cancellationToken)
+    {
+        var email = User.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrWhiteSpace(email))
+            email = (await accounts.GetProfileAsync(UserId, cancellationToken))?.Email;
+        return !string.IsNullOrWhiteSpace(email?.Trim().ToLowerInvariant());
+    }
 
     private RedirectToPageResult Message(string key, StatusMessageKind kind = StatusMessageKind.Success)
     {

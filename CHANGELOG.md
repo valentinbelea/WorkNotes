@@ -11,6 +11,7 @@ Categorii: **Added** (funcționalități noi), **Changed** (comportament modific
 Creată la cererea utilizatorului din 2026-09-29 ([docs/VERSIONING.md](docs/VERSIONING.md#versiunea-curentă), decizia 98), pentru integrarea cu GitHub.
 
 - **Fixed** — `/Repositories` tratează acum lipsa conexiunii ca setare personală a utilizatorului autentificat și oferă direct acțiunea „Conectează GitHub”; lipsa configurației OAuth este descrisă separat ca indisponibilitate tehnică a integrării. Emailul normalizat din identitatea autentificată este obligatoriu înainte de citirea, conectarea sau modificarea conexiunii GitHub; stocarea rămâne izolată prin cheia internă stabilă `UserId`. Mesajele pentru email lipsă și stările actualizate sunt localizate ro/en/pl.
+- **Fixed** — butonul de conectare GitHub apare și pentru sesiunile autentificate create înainte ca emailul să fie inclus în claims: `AccountClaimsPrincipalFactory` adaugă acum claim-ul de email, iar paginile GitHub citesc profilul de cont drept fallback autoritar pentru cookie-urile existente.
 
 Primul pas, tot pe 2026-09-29, la cererea utilizatorului (o secțiune de autentificare în Git; GitHub, OAuth, proiect nou):
 
