@@ -35,6 +35,8 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 
 ## Probleme cunoscute
 
+Zona de administrare și configurația globală GitHub sunt implementate în cod și pregătite prin `version_0.03/004_CreateAdministration.sql`. Scriptul nu a fost aplicat de agent; administratorul inițial apare numai când operatorul furnizează secretul `AdminBootstrap:Password`. Detaliile sunt în [ADMIN_CONFIGURATION.md](ADMIN_CONFIGURATION.md).
+
 Limitări documentate în version_0.01–0.02:
 
 - [!] Pe `main`, în Firefox, Escape nu închide fereastra editorului: Firefox anulează navigarea pornită de `modal.js` din evenimentul `cancel` al tastei (verificat pe 2026-09-28 în Firefox 136); butonul Închide funcționează. Corecția este în PR #4.

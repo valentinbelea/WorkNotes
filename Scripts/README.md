@@ -35,7 +35,8 @@ Scripts/
     ├── 000_UpdateDatabaseVersion.sql
     ├── 001_CreateGitConnections.sql
     ├── 002_CreateGitRepositories.sql
-    └── 003_CreateGitReferences.sql
+    ├── 003_CreateGitReferences.sql
+    └── 004_CreateAdministration.sql
 ```
 
 ## Convenții de denumire
@@ -76,6 +77,7 @@ Baza `WorkNotes.db` trebuie să existe. Se aplică întâi `version_0.01`, apoi 
 | 23 | `version_0.03/001_CreateGitConnections.sql` | Creează `dbo.GitConnections` (conturile GitHub conectate, cu tokenurile criptate de aplicație; cheia `UserId` + `Provider`, cascadă cu `Users`), dacă lipsește; afișează coloanele |
 | 24 | `version_0.03/002_CreateGitRepositories.sql` | Creează `dbo.GitRepositories` (repository-urile importate de fiecare utilizator, cascadă cu `Users`) și indexul unic `UX_GitRepositories_UserId_Provider_ExternalId`, dacă lipsesc; afișează coloanele |
 | 25 | `version_0.03/003_CreateGitReferences.sql` | Creează `dbo.GitReferences` (catalogul branch-urilor: furnizor, repository, tip `Branch`, nume în colație BIN2, unic pe cele patru) și `dbo.NoteBlockGitReferences` (paragraf ↔ referință Git ↔ referință din catalog `WorkReferences`, cascadă cu paragraful, cheie unică pe cele trei ID-uri), cu indexurile lor, dacă lipsesc; afișează coloanele |
+| 26 | `version_0.03/004_CreateAdministration.sql` | Creează `dbo.AdminUsers`, indexul unic pe numele administratorului și configurația GitHub globală `dbo.GitHubConfigurations` (un singur rând, credențiale protejate), fără a insera secrete |
 
 Comentariul din antetul `006_CreateNotes.sql` („A Journal is daily: one per owner, context and date”) descrie regula inițială, înlocuită de `007_AllowSeveralJournalsPerDay.sql`; scriptul livrat nu se modifică.
 
@@ -109,6 +111,7 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\001_CreateGitConnections.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\002_CreateGitRepositories.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\003_CreateGitReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\004_CreateAdministration.sql'
 ```
 
 `sqlcmd` are nevoie de opțiunea `-I` (`QUOTED_IDENTIFIER ON`): fără ea, scripturile cu indecși filtrați sau coloane calculate se opresc cu eroarea 1934; SSMS o setează implicit.

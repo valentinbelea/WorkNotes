@@ -285,3 +285,6 @@ Clicul pe o referință din text (sau Ctrl+Enter cu cursorul pe ea) deschide dir
 - [x] Semantică: dialoguri native cu focus captiv, `role=tablist` / `tab` / `tabpanel` în editor, `aria-current` în meniu, `role=status` și `role=alert` pentru stări și erori, `aria-live` pentru zona de mesaje a paginii, `aria-busy` în timpul unui schimb.
 - [x] Tastatura: Escape închide dialogurile și meniul, Enter salvează titlul, Ctrl+S salvează, Ctrl+F caută, săgețile navighează între taburi; cu PR #4, Ctrl+Enter deschide referința internă de la cursor, iar Tab, după un număr, caută referința și, cu popup-ul deschis, o face link (Escape închide popup-ul).
 - [!] Reordonarea se face numai cu mouse-ul (drag-and-drop HTML5); pe ecranele tactile depinde de suportul browserului.
+# Layout admin
+
+Zona `/admin` are layout separat, fără meniul public. După autentificare, meniul conține numai „Configurare” și acțiunea POST de deconectare; stilurile reutilizează tokenurile „Hârtie & salvie”.

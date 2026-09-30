@@ -248,4 +248,26 @@
 <data name="Editor_ReferenceChoiceNotes" xml:space="preserve"><value>Open the notes</value></data>
 <data name="Editor_ReferenceChoiceGit" xml:space="preserve"><value>Or the GitHub branch, in a new tab:</value></data>
 <data name="Editor_ReferenceChoiceHint" xml:space="preserve"><value>Tab: the notes · Shift+Tab: Git · Esc closes</value></data>
+  <data name="Admin_LoginTitle" xml:space="preserve"><value>Administrator sign in</value></data>
+  <data name="Admin_ConfigurationTitle" xml:space="preserve"><value>Configuration</value></data>
+  <data name="Admin_GitHubConfigurationTitle" xml:space="preserve"><value>GitHub configuration</value></data>
+  <data name="Admin_MenuLabel" xml:space="preserve"><value>Administration menu</value></data>
+  <data name="Admin_SecretConfigured" xml:space="preserve"><value>configured</value></data>
+  <data name="Button_Login" xml:space="preserve"><value>Sign in</value></data>
+  <data name="Button_Logout" xml:space="preserve"><value>Sign out</value></data>
+  <data name="Field_UserName" xml:space="preserve"><value>User name</value></data>
+  <data name="Field_ClientId" xml:space="preserve"><value>Client ID</value></data>
+  <data name="Field_ClientSecret" xml:space="preserve"><value>Client secret</value></data>
+  <data name="Field_Scopes" xml:space="preserve"><value>Scopes</value></data>
+  <data name="Field_CallbackUrl" xml:space="preserve"><value>Callback URL</value></data>
+  <data name="Validation_UserNameRequired" xml:space="preserve"><value>The user name is required.</value></data>
+  <data name="Validation_ClientIdRequired" xml:space="preserve"><value>The client ID is required.</value></data>
+  <data name="Validation_CallbackUrlRequired" xml:space="preserve"><value>The callback URL is required.</value></data>
+  <data name="Validation_CallbackUrlInvalid" xml:space="preserve"><value>Enter a valid callback URL.</value></data>
+  <data name="Message_AdminLoginFailed" xml:space="preserve"><value>The sign-in details are invalid.</value></data>
+  <data name="Message_ConfigurationSaved" xml:space="preserve"><value>The configuration was saved.</value></data>
+  <data name="Message_GitHubConfiguration_ClientIdRequired" xml:space="preserve"><value>The client ID is required.</value></data>
+  <data name="Message_GitHubConfiguration_ClientSecretRequired" xml:space="preserve"><value>The client secret is required for the first configuration.</value></data>
+  <data name="Message_GitHubConfiguration_InvalidScopes" xml:space="preserve"><value>The scopes contain invalid characters.</value></data>
+  <data name="Message_GitHubConfiguration_InvalidCallbackUrl" xml:space="preserve"><value>The callback URL is invalid.</value></data>
 </root>

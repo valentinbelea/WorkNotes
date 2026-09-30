@@ -85,3 +85,7 @@ Propuneri rezultate din analiza documentației din 2026-09-25, neaprobate:
 | Editarea notelor partajate de colegi | stabilirea permisiunilor |
 
 Ordinea din „Etapele următoare” este cea a planului inițial. TODO: Necesită clarificare — prioritățile efective și versiunea în care intră fiecare etapă.
+# Administrare
+
+- [x] Zonă `/admin`, autentificare separată și configurație globală GitHub protejată.
+- [ ] Operațional: aplicarea scriptului 004, alegerea parolei inițiale și configurarea directorului persistent Data Protection pe hosting.

@@ -8,6 +8,7 @@ using WorkNotes.Integrations;
 using WorkNotes.Web.Git;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using WorkNotes.Web.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,11 +19,22 @@ builder.Services.ConfigureOptions<LocalizedMvcOptions>();
 builder.Services.AddRazorPages().AddDataAnnotationsLocalization(options =>
     options.DataAnnotationLocalizerProvider = (_, factory) => factory.Create(typeof(SharedResources)));
 builder.Services.AddProblemDetails();
-builder.Services.AddAuthentication(options =>
+var authenticationBuilder = builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = IdentityConstants.ApplicationScheme;
     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-}).AddIdentityCookies();
+});
+authenticationBuilder.AddIdentityCookies();
+authenticationBuilder.AddCookie(AdminAuthenticationDefaults.Scheme, options =>
+{
+    options.Cookie.Name = "WorkNotes.Admin.Auth";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
+    options.LoginPath = "/admin/login";
+    options.AccessDeniedPath = "/admin/login";
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+});
 builder.Services.AddAuthorization();
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -47,6 +59,7 @@ builder.Services.AddScoped<IGitHubTokenService, GitHubTokenService>();
 builder.Services.AddScoped<IGitHubConnectionService, GitHubConnectionService>();
 builder.Services.AddScoped<IGitRepositoryService, GitRepositoryService>();
 builder.Services.AddScoped<INoteGitReferenceService, NoteGitReferenceService>();
+builder.Services.AddScoped<IGitHubConfigurationService, GitHubConfigurationService>();
 builder.Services.AddSingleton<GitHubAuthorizationCookie>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDataAccess(builder.Configuration.GetConnectionString("WorkNotes")
@@ -66,6 +79,13 @@ if (builder.Configuration["DataProtection:KeysPath"] is { Length: > 0 } keysPath
 builder.Services.AddScoped<IdentityErrorDescriber, LocalizedIdentityErrorDescriber>();
 
 var app = builder.Build();
+
+if (builder.Configuration["AdminBootstrap:Password"] is { Length: > 0 } bootstrapPassword)
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<IAdminBootstrapService>().CreateIfMissingAsync(
+        builder.Configuration["AdminBootstrap:UserName"] ?? "admin", bootstrapPassword, CancellationToken.None);
+}
 app.UseRequestLocalization();
 
 if (!app.Environment.IsDevelopment())

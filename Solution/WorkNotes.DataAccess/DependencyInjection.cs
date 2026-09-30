@@ -26,6 +26,11 @@ public static class DependencyInjection
         services.AddScoped<IGitConnectionRepository, GitConnectionRepository>();
         services.AddScoped<IGitRepositoryRepository, GitRepositoryRepository>();
         services.AddScoped<INoteGitReferenceRepository, NoteGitReferenceRepository>();
+        services.AddScoped<IGitHubConfigurationRepository, GitHubConfigurationRepository>();
+        services.AddScoped<IPasswordHasher<AdminUser>, PasswordHasher<AdminUser>>();
+        services.AddScoped<AdminAuthenticationService>();
+        services.AddScoped<IAdminAuthenticationService>(provider => provider.GetRequiredService<AdminAuthenticationService>());
+        services.AddScoped<IAdminBootstrapService>(provider => provider.GetRequiredService<AdminAuthenticationService>());
         services.AddDbContext<AccountsDbContext>(options => options.UseSqlServer(connectionString));
         services.AddIdentityCore<ApplicationUser>(options =>
         {

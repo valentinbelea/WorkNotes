@@ -240,3 +240,6 @@ git grep -n -E "style=|\.style\." -- 'Solution/WorkNotes.Web/*.cshtml' 'Solution
 ```
 
 Singurele referințe la DataAccess și Integrations din Web sunt `using WorkNotes.DataAccess;` și `using WorkNotes.Integrations;` din `Program.cs`, pentru `AddDataAccess` și `AddIntegrations`. Comenzile au fost rulate pe 2026-09-25 și, cu cele două noi, pe 2026-09-29, fără rezultate.
+# Fluxul administrării
+
+`Admin Razor Pages → IAdminAuthenticationService / IGitHubConfigurationService → implementări Business/DataAccess → WorkNotesDbContext`. Web emite și șterge numai cookie-ul schemei admin; DataAccess verifică hashul și protejează credențialele. `IGitHubConfigurationService.GetCredentialAsync` este contractul server-side prin care integrarea poate obține valorile decriptate fără a le expune paginii.

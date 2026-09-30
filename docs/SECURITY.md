@@ -110,3 +110,6 @@ Regulile obligatorii sunt în [AGENTS.md › Integrarea GitHub](../AGENTS.md#int
 ## Uploaduri
 
 Aplicația nu acceptă fișiere încărcate de utilizatori. Imaginile (sigla, banda post-it-urilor, favicon-ul) sunt fișiere statice din `wwwroot`.
+# Zona de administrare
+
+Administratorii sunt separați în `AdminUsers`, folosesc un cookie dedicat și nu primesc acces prin autentificarea publică. Parolele sunt verificate cu `PasswordHasher`, mesajul de eșec este generic, iar formularele Razor Pages au antiforgery. Configurația GitHub globală folosește Data Protection pentru criptare reversibilă; Client secret nu este trimis înapoi browserului. Cerințele operaționale pentru chei sunt în [ADMIN_CONFIGURATION.md](ADMIN_CONFIGURATION.md#data-protection-și-deploy).
