@@ -7,9 +7,16 @@
 <section class="account-card postit-panel" aria-labelledby="github-title">
 <h1 id="github-title">@L["Navigation_GitHub"]</h1>
 <p class="help-text">@L["GitHub_Description"]</p>
-@if (!Model.IsConfigured)
+@if (!Model.HasEmail)
+{
+    <p class="text-muted">@L["GitHub_EmailRequired"]</p>
+}
+else if (!Model.IsConfigured)
 {
     <p class="text-muted">@L["GitHub_NotConfiguredHelp"]</p>
+    <form method="post" asp-page-handler="Connect">
+        <button type="submit" class="btn btn-primary">@L["Button_ConnectGitHub"]</button>
+    </form>
 }
 else if (Model.Connection is { } connection)
 {

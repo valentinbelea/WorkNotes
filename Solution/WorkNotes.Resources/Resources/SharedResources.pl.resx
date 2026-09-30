@@ -182,7 +182,8 @@
 <data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab: referencja aplikacji · Shift+Tab: Git · Esc zamyka</value></data>
 <data name="Navigation_GitHub" xml:space="preserve"><value>Połączenie z GitHub</value></data>
 <data name="GitHub_Description" xml:space="preserve"><value>Połącz konto GitHub, aby WorkNotes mógł odczytywać gałęzie, commity i pull requesty powiązane z CR-ami i błędami. Autoryzacja odbywa się w GitHub: WorkNotes nie widzi Twojego hasła do GitHub.</value></data>
-<data name="GitHub_NotConfiguredHelp" xml:space="preserve"><value>Połączenie z GitHub nie jest skonfigurowane na tym serwerze. Administrator musi zarejestrować aplikację w GitHub i ustawić GitHub:ClientId oraz GitHub:ClientSecret.</value></data>
+<data name="GitHub_NotConfiguredHelp" xml:space="preserve"><value>Integracja z GitHub jest obecnie niedostępna, ponieważ brakuje ustawień technicznych aplikacji. Skontaktuj się z administratorem.</value></data>
+<data name="GitHub_EmailRequired" xml:space="preserve"><value>Zalogowany użytkownik nie ma skonfigurowanego adresu e-mail. Adres e-mail jest wymagany do połączenia konta GitHub.</value></data>
 <data name="GitHub_Account" xml:space="preserve"><value>Konto GitHub</value></data>
 <data name="GitHub_ConnectedAt" xml:space="preserve"><value>Połączono</value></data>
 <data name="GitHub_ValidatedAt" xml:space="preserve"><value>Ostatnio zweryfikowano</value></data>
@@ -190,7 +191,7 @@
 <data name="GitHub_ExpiresHelp" xml:space="preserve"><value>Dostęp jest odnawiany automatycznie podczas weryfikacji, dopóki autoryzacja w GitHub jest ważna.</value></data>
 <data name="GitHub_NotConnectedInfo" xml:space="preserve"><value>Twoje konto nie jest połączone z GitHub.</value></data>
 <data name="GitHub_Connected" xml:space="preserve"><value>Konto GitHub zostało połączone.</value></data>
-<data name="GitHub_NotConfigured" xml:space="preserve"><value>Połączenie z GitHub nie jest skonfigurowane na tym serwerze.</value></data>
+<data name="GitHub_NotConfigured" xml:space="preserve"><value>Integracja z GitHub jest obecnie niedostępna, ponieważ brakuje ustawień technicznych aplikacji.</value></data>
 <data name="GitHub_InvalidState" xml:space="preserve"><value>Nie udało się potwierdzić połączenia: wygasło lub nie zostało rozpoczęte z tej strony. Spróbuj ponownie.</value></data>
 <data name="GitHub_Denied" xml:space="preserve"><value>Autoryzacja została odrzucona w GitHub; konto nie zostało połączone.</value></data>
 <data name="GitHub_Rejected" xml:space="preserve"><value>GitHub odrzucił połączenie. Spróbuj ponownie.</value></data>
@@ -208,7 +209,7 @@
 <data name="Button_ChooseRepositories" xml:space="preserve"><value>Wybierz repozytoria</value></data>
 <data name="Button_SaveRepositories" xml:space="preserve"><value>Zapisz wybór</value></data>
 <data name="GitHub_RepositoriesDescription" xml:space="preserve"><value>Zaznacz repozytoria GitHub, które chcesz zaimportować do WorkNotes, a następnie zapisz wybór. Lista pochodzi bezpośrednio z GitHub, dla połączonego konta; odznaczone repozytorium zostaje usunięte z WorkNotes.</value></data>
-<data name="GitHub_RepositoriesNotConnected" xml:space="preserve"><value>Połącz konto GitHub, aby zobaczyć repozytoria.</value></data>
+<data name="GitHub_RepositoriesNotConnected" xml:space="preserve"><value>Twoje konto GitHub nie jest jeszcze połączone. Połącz GitHub, aby zobaczyć swoje repozytoria.</value></data>
 <data name="GitHub_RepositoriesEmpty" xml:space="preserve"><value>GitHub nie zwrócił żadnych repozytoriów dla tego konta.</value></data>
 <data name="GitHub_RepositoriesCount" xml:space="preserve"><value>Repozytoria: {0}, w tym zaimportowane: {1}.</value></data>
 <data name="GitHub_RepositoriesTruncated" xml:space="preserve"><value>Wyświetlane są tylko pierwsze {0} repozytoria otrzymane z GitHub.</value></data>
