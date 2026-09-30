@@ -79,7 +79,7 @@ Notele noi sunt private (`Private`). O notă `Context` este citită de membri nu
 ## Secretele
 
 - `appsettings.json` conține numai conexiunea locală de dezvoltare, cu Windows Authentication (`Integrated Security=True`), fără utilizator sau parolă.
-- Credențialele și alte secrete (inclusiv `GitHub:ClientSecret`) se configurează prin User Secrets sau variabile de mediu și nu se salvează în Git. Proiectul Web are `UserSecretsId` (versiunea 0.03).
+- Credențialele și alte secrete nu se salvează în Git. Credențialele OAuth GitHub se administrează în `/admin/configuration` și se păstrează protejat în `GitHubConfigurations`; secretele de bootstrap admin și celelalte secrete de deploy folosesc User Secrets sau variabile de mediu.
 - Pentru găzduire: cheile Data Protection (care protejează cookie-urile și tokenurile antiforgery) trebuie să fie persistente, protejate și comune instanțelor, dacă sunt mai multe. Din versiunea 0.03 ele protejează și tokenurile GitHub stocate. `Program.cs` fixează numele aplicației (`WorkNotes`) și, cu `DataProtection:KeysPath`, păstrează cheile într-un folder (criptate cu DPAPI pe Windows); fără setare se folosește folderul implicit al utilizatorului procesului. TODO: Necesită clarificare — folderul și protecția cheilor în mediile Test și Production.
 - `AllowedHosts` este `*`. TODO: Necesită clarificare — lista de host-uri permise în producție.
 
@@ -113,3 +113,7 @@ Aplicația nu acceptă fișiere încărcate de utilizatori. Imaginile (sigla, ba
 # Zona de administrare
 
 Administratorii sunt separați în `AdminUsers`, folosesc un cookie dedicat și nu primesc acces prin autentificarea publică. Parolele sunt verificate cu `PasswordHasher`, mesajul de eșec este generic, iar formularele Razor Pages au antiforgery. Configurația GitHub globală folosește Data Protection pentru criptare reversibilă; Client secret nu este trimis înapoi browserului. Cerințele operaționale pentru chei sunt în [ADMIN_CONFIGURATION.md](ADMIN_CONFIGURATION.md#data-protection-și-deploy).
+
+### Configurația globală OAuth
+
+Client ID, Client secret, scopes și callback URL se citesc exclusiv din `GitHubConfigurations`; credențialele sunt decriptate numai server-side pentru operația curentă și nu sunt memorate într-un singleton/cache. Un payload nedecriptabil produce starea localizată „neconfigurat”, fără detalii criptografice; o eroare SQL se propagă. Configurația schimbată este folosită fără restart.

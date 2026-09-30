@@ -314,3 +314,7 @@ Tot pe 2026-09-29, pentru schimbarea tipului unei note din editor, în aceeași 
 2. Stabilirea ordinii de integrare între acest branch și PR #4 și portarea modificărilor de documentație din PR #4 ([lista de mai sus](#impactul-asupra-pr-4)).
 3. Clarificarea punctelor marcate „TODO: Necesită clarificare”, în primul rând: calea locală de referință, convenția branch-urilor și regula Git din PR #4, mediile Test/Production, backup-ul și rollback-ul, contextele fără membri, pagina de bun venit.
 4. Pașii următori ai produsului, în ordinea din [ROADMAP.md](ROADMAP.md#etapele-următoare), numai la cerere explicită.
+
+### 2026-09-30 — configurația OAuth GitHub din baza de date
+
+Fluxurile utilizatorilor consumă configurația globală administrată în `/admin/configuration`; lipsa ori imposibilitatea decriptării înseamnă „neconfigurat”, iar erorile SQL se propagă. Operațiile următoare unei salvări administrative citesc valorile noi fără restart.

@@ -12,7 +12,7 @@ public sealed class GitHubTokenService(IGitHubOAuthClient gitHub, IGitConnection
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!gitHub.IsConfigured) return GitAccessToken.Failed(GitVerifyStatus.NotConfigured);
+        if (!await gitHub.IsConfiguredAsync(cancellationToken)) return GitAccessToken.Failed(GitVerifyStatus.NotConfigured);
 
         var credential = await connections.GetCredentialAsync(userId, Provider, cancellationToken);
         if (credential is null) return GitAccessToken.Failed(GitVerifyStatus.NotConnected);

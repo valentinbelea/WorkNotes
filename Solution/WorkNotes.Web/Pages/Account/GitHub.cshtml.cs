@@ -15,7 +15,7 @@ namespace WorkNotes.Web.Pages.Account;
 public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthorizationCookie authorizationCookie,
     IAccountService accounts) : PageModel
 {
-    public bool IsConfigured => gitHub.IsConfigured;
+    public bool IsConfigured { get; private set; }
     public bool HasEmail { get; private set; }
     public GitConnection? Connection { get; private set; }
 
@@ -23,15 +23,15 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         HasEmail = await HasUserEmailAsync(cancellationToken);
+        IsConfigured = await gitHub.IsConfiguredAsync(cancellationToken);
         if (HasEmail) Connection = await gitHub.GetAsync(UserId, cancellationToken);
     }
 
     public async Task<IActionResult> OnPostConnectAsync(CancellationToken cancellationToken)
     {
         if (!await HasUserEmailAsync(cancellationToken)) return Message("GitHub_EmailRequired", StatusMessageKind.Error);
-        if (!gitHub.IsConfigured) return Message("GitHub_NotConfigured", StatusMessageKind.Error);
-
-        var authorization = gitHub.StartAuthorization(CallbackUrl());
+        var authorization = await gitHub.StartAuthorizationAsync(cancellationToken);
+        if (authorization is null) return Message("GitHub_NotConfigured", StatusMessageKind.Error);
         authorizationCookie.Write(HttpContext, UserId, authorization.Pending);
         return Redirect(authorization.Url);
     }
@@ -43,7 +43,7 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
         if (!await HasUserEmailAsync(cancellationToken)) return Message("GitHub_EmailRequired", StatusMessageKind.Error);
         var pending = authorizationCookie.Take(HttpContext, UserId);
         var status = await gitHub.CompleteAuthorizationAsync(UserId, pending, new GitHubCallback(code, state, error),
-            CallbackUrl(), cancellationToken);
+            cancellationToken);
         return status switch
         {
             GitConnectStatus.Connected => Message("GitHub_Connected"),
@@ -81,9 +81,6 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
     public IActionResult OnGetConnect() => RedirectToPage();
     public IActionResult OnGetVerify() => RedirectToPage();
     public IActionResult OnGetDisconnect() => RedirectToPage();
-
-    private string CallbackUrl() =>
-        Url.PageLink("/Account/GitHub", "Callback") ?? throw new InvalidOperationException("No callback URL.");
 
     private async Task<bool> HasUserEmailAsync(CancellationToken cancellationToken)
     {

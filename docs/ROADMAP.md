@@ -89,3 +89,5 @@ Ordinea din „Etapele următoare” este cea a planului inițial. TODO: Necesit
 
 - [x] Zonă `/admin`, autentificare separată și configurație globală GitHub protejată.
 - [ ] Operațional: aplicarea scriptului 004, alegerea parolei inițiale și configurarea directorului persistent Data Protection pe hosting.
+
+- [x] Integrarea GitHub consumă configurația globală protejată din `GitHubConfigurations`, fără restart după actualizarea administrativă.

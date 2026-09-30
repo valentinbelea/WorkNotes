@@ -58,14 +58,7 @@ Descrierea proiectelor, a fluxurilor și a paginilor este în [docs/ARCHITECTURE
 
 ## Configurarea GitHub
 
-Secțiunea Conectare GitHub (versiunea 0.03) are nevoie de o aplicație înregistrată pe GitHub (recomandat o GitHub App, cu permisiuni numai de citire), cu URL-ul de callback `http://localhost:5018/Account/GitHub/Callback` (sau `https://localhost:7190/Account/GitHub/Callback`). ID-ul și secretul ei se pun în User Secrets, din folderul `Solution`:
-
-```powershell
-dotnet user-secrets set "GitHub:ClientId" "<Client ID>" --project WorkNotes.Web
-dotnet user-secrets set "GitHub:ClientSecret" "<Client secret>" --project WorkNotes.Web
-```
-
-Fără ele, aplicația funcționează, iar pagina spune că GitHub nu este configurat. Pașii și setările pentru celelalte medii sunt în [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#configurare).
+Aplicația GitHub se înregistrează pentru mediul de rulare, apoi un administrator salvează Client ID, Client secret, scopes și callback URL în `/admin/configuration`. Valorile OAuth sunt citite din tabela singleton `GitHubConfigurations` la fiecare operație OAuth; nu se mai configurează prin `appsettings`, User Secrets sau variabile de mediu. Scriptul existent `Scripts/version_0.03/004_CreateAdministration.sql` trebuie aplicat explicit înainte, iar `DataProtection:KeysPath` trebuie să indice un director persistent. Detaliile sunt în [docs/ADMIN_CONFIGURATION.md](docs/ADMIN_CONFIGURATION.md) și [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#configurare).
 
 ## Pornire
 

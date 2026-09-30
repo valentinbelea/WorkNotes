@@ -15,49 +15,61 @@ namespace WorkNotes.Integrations.GitHub;
 // GitHub's OAuth web flow (https://docs.github.com/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps) and the
 // user and authorization endpoints of its REST API. Tokens travel only in request bodies and the Authorization header,
 // never in an address, so the HttpClient logs never contain them.
-public sealed class GitHubOAuthClient(HttpClient http, IOptions<GitHubOptions> options, TimeProvider time) : IGitHubOAuthClient
+public sealed class GitHubOAuthClient(HttpClient http, IOptions<GitHubOptions> options, TimeProvider time,
+    IGitHubConfigurationService configuration) : IGitHubOAuthClient
 {
     private const string ApiVersion = "2022-11-28";
     private const string HeadsPrefix = "refs/heads/";
     private readonly GitHubOptions settings = options.Value;
 
-    public bool IsConfigured =>
-        !string.IsNullOrWhiteSpace(settings.ClientId) && !string.IsNullOrWhiteSpace(settings.ClientSecret);
+    public async Task<bool> IsConfiguredAsync(CancellationToken cancellationToken) =>
+        await configuration.GetCredentialAsync(cancellationToken) is not null;
 
-    public string GetAuthorizationUrl(string state, string codeChallenge, string redirectUri)
+    public async Task<string?> GetAuthorizationUrlAsync(string state, string codeChallenge,
+        CancellationToken cancellationToken)
     {
+        var credential = await configuration.GetCredentialAsync(cancellationToken);
+        if (credential is null) return null;
         var query = new Dictionary<string, string?>
         {
-            ["client_id"] = settings.ClientId,
-            ["redirect_uri"] = redirectUri,
+            ["client_id"] = credential.ClientId,
+            ["redirect_uri"] = credential.CallbackUrl,
             ["state"] = state,
             ["code_challenge"] = codeChallenge,
             ["code_challenge_method"] = "S256",
             ["allow_signup"] = "false"
         };
-        if (!string.IsNullOrWhiteSpace(settings.Scopes)) query["scope"] = settings.Scopes.Trim();
+        if (!string.IsNullOrWhiteSpace(credential.Scopes)) query["scope"] = credential.Scopes.Trim();
         return QueryHelpers.AddQueryString(settings.AuthorizationEndpoint.AbsoluteUri, query);
     }
 
-    public Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri,
-        CancellationToken cancellationToken) =>
-        RequestTokensAsync(new Dictionary<string, string>
+    public async Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier,
+        CancellationToken cancellationToken)
+    {
+        var credential = await configuration.GetCredentialAsync(cancellationToken);
+        if (credential is null) return GitProviderResult<GitTokens>.Rejected;
+        return await RequestTokensAsync(new Dictionary<string, string>
         {
-            ["client_id"] = settings.ClientId!,
-            ["client_secret"] = settings.ClientSecret!,
+            ["client_id"] = credential.ClientId,
+            ["client_secret"] = credential.ClientSecret,
             ["code"] = code,
-            ["redirect_uri"] = redirectUri,
+            ["redirect_uri"] = credential.CallbackUrl,
             ["code_verifier"] = codeVerifier
         }, cancellationToken);
+    }
 
-    public Task<GitProviderResult<GitTokens>> RefreshAsync(string refreshToken, CancellationToken cancellationToken) =>
-        RequestTokensAsync(new Dictionary<string, string>
+    public async Task<GitProviderResult<GitTokens>> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        var credential = await configuration.GetCredentialAsync(cancellationToken);
+        if (credential is null) return GitProviderResult<GitTokens>.Rejected;
+        return await RequestTokensAsync(new Dictionary<string, string>
         {
-            ["client_id"] = settings.ClientId!,
-            ["client_secret"] = settings.ClientSecret!,
+            ["client_id"] = credential.ClientId,
+            ["client_secret"] = credential.ClientSecret,
             ["grant_type"] = "refresh_token",
             ["refresh_token"] = refreshToken
         }, cancellationToken);
+    }
 
     public async Task<GitProviderResult<GitAccount>> GetAccountAsync(string accessToken, CancellationToken cancellationToken)
     {
@@ -151,10 +163,12 @@ public sealed class GitHubOAuthClient(HttpClient http, IOptions<GitHubOptions> o
 
     public async Task<GitProviderStatus> RevokeAsync(string accessToken, CancellationToken cancellationToken)
     {
+        var credential = await configuration.GetCredentialAsync(cancellationToken);
+        if (credential is null) return GitProviderStatus.Rejected;
         // DELETE /applications/{client_id}/grant, authenticated as the application: removes the user's authorization.
-        using var request = ApiRequest(HttpMethod.Delete, $"applications/{Uri.EscapeDataString(settings.ClientId!)}/grant");
+        using var request = ApiRequest(HttpMethod.Delete, $"applications/{Uri.EscapeDataString(credential.ClientId)}/grant");
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-            Convert.ToBase64String(Encoding.UTF8.GetBytes($"{settings.ClientId}:{settings.ClientSecret}")));
+            Convert.ToBase64String(Encoding.UTF8.GetBytes($"{credential.ClientId}:{credential.ClientSecret}")));
         request.Content = JsonContent.Create(new RevokeRequest(accessToken));
         using var response = await SendAsync(request, cancellationToken);
         if (response is null || Unavailable(response.StatusCode)) return GitProviderStatus.Unavailable;

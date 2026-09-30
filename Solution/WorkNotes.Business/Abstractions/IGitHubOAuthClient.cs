@@ -6,13 +6,13 @@ namespace WorkNotes.Business.Abstractions;
 // refused (Rejected) or could not answer (Unavailable); cancellation is propagated, never reported as a result.
 public interface IGitHubOAuthClient
 {
-    // False when GitHub:ClientId or GitHub:ClientSecret is missing: no call can succeed.
-    bool IsConfigured { get; }
+    // False when the global database configuration is missing or cannot be decrypted.
+    Task<bool> IsConfiguredAsync(CancellationToken cancellationToken);
 
     // The authorization address the browser is sent to, with the state and the PKCE challenge.
-    string GetAuthorizationUrl(string state, string codeChallenge, string redirectUri);
+    Task<string?> GetAuthorizationUrlAsync(string state, string codeChallenge, CancellationToken cancellationToken);
 
-    Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri,
+    Task<GitProviderResult<GitTokens>> ExchangeCodeAsync(string code, string codeVerifier,
         CancellationToken cancellationToken);
 
     // Only for tokens that expire (a GitHub App): a refresh token is used once and replaced.

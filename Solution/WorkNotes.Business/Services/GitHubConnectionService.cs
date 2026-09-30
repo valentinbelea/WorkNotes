@@ -8,7 +8,8 @@ public sealed class GitHubConnectionService(IGitHubOAuthClient gitHub, IGitConne
 {
     private const string Provider = GitProviders.GitHub;
 
-    public bool IsConfigured => gitHub.IsConfigured;
+    public Task<bool> IsConfiguredAsync(CancellationToken cancellationToken) =>
+        gitHub.IsConfiguredAsync(cancellationToken);
 
     public Task<GitConnection?> GetAsync(string userId, CancellationToken cancellationToken)
     {
@@ -17,25 +18,23 @@ public sealed class GitHubConnectionService(IGitHubOAuthClient gitHub, IGitConne
         return connections.GetAsync(userId, Provider, cancellationToken);
     }
 
-    public GitHubAuthorization StartAuthorization(string redirectUri)
+    public async Task<GitHubAuthorization?> StartAuthorizationAsync(CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(redirectUri);
-        if (!gitHub.IsConfigured) throw new InvalidOperationException("GitHub OAuth is not configured.");
-
+        cancellationToken.ThrowIfCancellationRequested();
         var pending = new GitHubPendingAuthorization(GitAuthorizationRules.NewState(), GitAuthorizationRules.NewCodeVerifier());
-        var url = gitHub.GetAuthorizationUrl(pending.State, GitAuthorizationRules.CodeChallenge(pending.CodeVerifier), redirectUri);
-        return new GitHubAuthorization(url, pending);
+        var url = await gitHub.GetAuthorizationUrlAsync(pending.State,
+            GitAuthorizationRules.CodeChallenge(pending.CodeVerifier), cancellationToken);
+        return url is null ? null : new GitHubAuthorization(url, pending);
     }
 
     public async Task<GitConnectStatus> CompleteAuthorizationAsync(string userId, GitHubPendingAuthorization? pending,
-        GitHubCallback callback, string redirectUri, CancellationToken cancellationToken)
+        GitHubCallback callback, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         ArgumentNullException.ThrowIfNull(callback);
-        ArgumentException.ThrowIfNullOrWhiteSpace(redirectUri);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!gitHub.IsConfigured) return GitConnectStatus.NotConfigured;
+        if (!await gitHub.IsConfiguredAsync(cancellationToken)) return GitConnectStatus.NotConfigured;
         // The state is checked first: nothing in a callback this browser did not ask for is trusted, not even its error.
         if (pending is null || !GitAuthorizationRules.StateMatches(pending.State, callback.State))
             return GitConnectStatus.InvalidState;
@@ -43,7 +42,7 @@ public sealed class GitHubConnectionService(IGitHubOAuthClient gitHub, IGitConne
             return callback.Error == "access_denied" ? GitConnectStatus.Denied : GitConnectStatus.Rejected;
         if (string.IsNullOrWhiteSpace(callback.Code)) return GitConnectStatus.Rejected;
 
-        var grant = await gitHub.ExchangeCodeAsync(callback.Code, pending.CodeVerifier, redirectUri, cancellationToken);
+        var grant = await gitHub.ExchangeCodeAsync(callback.Code, pending.CodeVerifier, cancellationToken);
         if (grant.Value is not { } tokens) return ConnectStatus(grant.Status);
         var account = await gitHub.GetAccountAsync(tokens.AccessToken, cancellationToken);
         if (account.Value is not { } owner) return ConnectStatus(account.Status);
@@ -82,7 +81,7 @@ public sealed class GitHubConnectionService(IGitHubOAuthClient gitHub, IGitConne
         if (credential is null) return GitDisconnectStatus.NotConnected;
         // Deleted first: the link leaves WorkNotes even when GitHub cannot be reached.
         if (!await connections.DeleteAsync(userId, Provider, cancellationToken)) return GitDisconnectStatus.NotConnected;
-        if (!gitHub.IsConfigured || credential.Tokens is not { } stored) return GitDisconnectStatus.NotRevoked;
+        if (!await gitHub.IsConfiguredAsync(cancellationToken) || credential.Tokens is not { } stored) return GitDisconnectStatus.NotRevoked;
 
         return await gitHub.RevokeAsync(stored.AccessToken, cancellationToken) == GitProviderStatus.Succeeded
             ? GitDisconnectStatus.Disconnected
