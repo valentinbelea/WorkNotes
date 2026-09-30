@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — WorkNotes</title>
+    <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+<body>
+<header class="admin-header"><a class="brand" asp-page="/Admin/Index">WorkNotes Admin</a>
+@if (User.Identities.Any(x => x.AuthenticationType == WorkNotes.Web.Authentication.AdminAuthenticationDefaults.Scheme))
+{
+<nav aria-label="@L["Admin_MenuLabel"]"><a asp-page="/Admin/Configuration">@L["Admin_ConfigurationTitle"]</a></nav>
+<form method="post" asp-page="/Admin/Logout"><button class="btn" type="submit">@L["Button_Logout"]</button></form>
+}
+</header>
+<main class="site-main admin-main">@RenderBody()</main>
+<script src="~/js/validation.js" asp-append-version="true" defer></script>
+</body>
+</html>

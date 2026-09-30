@@ -14,9 +14,13 @@ public partial class WorkNotesDbContext : DbContext
 
     public virtual DbSet<ContextMember> ContextMembers { get; set; }
 
+    public virtual DbSet<AdminUser> AdminUsers { get; set; }
+
     public virtual DbSet<DatabaseVersion> DatabaseVersions { get; set; }
 
     public virtual DbSet<GitConnection> GitConnections { get; set; }
+
+    public virtual DbSet<GitHubConfiguration> GitHubConfigurations { get; set; }
 
     public virtual DbSet<GitReference> GitReferences { get; set; }
 
@@ -40,6 +44,16 @@ public partial class WorkNotesDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AdminUser>(entity =>
+        {
+            entity.HasIndex(e => e.UserName, "UX_AdminUsers_UserName").IsUnique();
+            entity.Property(e => e.UserName).HasMaxLength(100).UseCollation("Latin1_General_100_CI_AS");
+            entity.Property(e => e.PasswordHash).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(0).HasDefaultValueSql("(sysutcdatetime())", "DF_AdminUsers_CreatedAtUtc");
+            entity.Property(e => e.UpdatedAtUtc).HasPrecision(0);
+            entity.Property(e => e.LastLoginAtUtc).HasPrecision(0);
+        });
+
         modelBuilder.Entity<ContextMember>(entity =>
         {
             entity.HasKey(e => new { e.ContextId, e.UserId });
@@ -79,6 +93,16 @@ public partial class WorkNotesDbContext : DbContext
             entity.Property(e => e.RefreshTokenExpiresAtUtc).HasPrecision(0);
             entity.Property(e => e.Scopes).HasMaxLength(500);
             entity.Property(e => e.ValidatedAtUtc).HasPrecision(0);
+        });
+
+        modelBuilder.Entity<GitHubConfiguration>(entity =>
+        {
+            entity.ToTable("GitHubConfigurations", table => table.HasCheckConstraint("CK_GitHubConfigurations_SingleRow", "[Id] = 1"));
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Scopes).HasMaxLength(500);
+            entity.Property(e => e.CallbackUrl).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(0).HasDefaultValueSql("(sysutcdatetime())", "DF_GitHubConfigurations_CreatedAtUtc");
+            entity.Property(e => e.UpdatedAtUtc).HasPrecision(0);
         });
 
         modelBuilder.Entity<GitReference>(entity =>

@@ -248,4 +248,26 @@
 <data name="Editor_ReferenceChoiceNotes" xml:space="preserve"><value>Deschide notele</value></data>
 <data name="Editor_ReferenceChoiceGit" xml:space="preserve"><value>Sau branch-ul din GitHub, într-un tab nou:</value></data>
 <data name="Editor_ReferenceChoiceHint" xml:space="preserve"><value>Tab: notele · Shift+Tab: Git · Esc închide</value></data>
+  <data name="Admin_LoginTitle" xml:space="preserve"><value>Autentificare administrator</value></data>
+  <data name="Admin_ConfigurationTitle" xml:space="preserve"><value>Configurare</value></data>
+  <data name="Admin_GitHubConfigurationTitle" xml:space="preserve"><value>Configurare GitHub</value></data>
+  <data name="Admin_MenuLabel" xml:space="preserve"><value>Meniu administrare</value></data>
+  <data name="Admin_SecretConfigured" xml:space="preserve"><value>configurat</value></data>
+  <data name="Button_Login" xml:space="preserve"><value>Autentificare</value></data>
+  <data name="Button_Logout" xml:space="preserve"><value>Deconectare</value></data>
+  <data name="Field_UserName" xml:space="preserve"><value>Nume utilizator</value></data>
+  <data name="Field_ClientId" xml:space="preserve"><value>Client ID</value></data>
+  <data name="Field_ClientSecret" xml:space="preserve"><value>Client secret</value></data>
+  <data name="Field_Scopes" xml:space="preserve"><value>Permisiuni</value></data>
+  <data name="Field_CallbackUrl" xml:space="preserve"><value>URL callback</value></data>
+  <data name="Validation_UserNameRequired" xml:space="preserve"><value>Numele de utilizator este obligatoriu.</value></data>
+  <data name="Validation_ClientIdRequired" xml:space="preserve"><value>Client ID este obligatoriu.</value></data>
+  <data name="Validation_CallbackUrlRequired" xml:space="preserve"><value>URL-ul callback este obligatoriu.</value></data>
+  <data name="Validation_CallbackUrlInvalid" xml:space="preserve"><value>Introduceți un URL callback valid.</value></data>
+  <data name="Message_AdminLoginFailed" xml:space="preserve"><value>Datele de autentificare nu sunt valide.</value></data>
+  <data name="Message_ConfigurationSaved" xml:space="preserve"><value>Configurarea a fost salvată.</value></data>
+  <data name="Message_GitHubConfiguration_ClientIdRequired" xml:space="preserve"><value>Client ID este obligatoriu.</value></data>
+  <data name="Message_GitHubConfiguration_ClientSecretRequired" xml:space="preserve"><value>Client secret este obligatoriu la prima configurare.</value></data>
+  <data name="Message_GitHubConfiguration_InvalidScopes" xml:space="preserve"><value>Permisiunile conțin caractere nepermise.</value></data>
+  <data name="Message_GitHubConfiguration_InvalidCallbackUrl" xml:space="preserve"><value>URL-ul callback nu este valid.</value></data>
 </root>

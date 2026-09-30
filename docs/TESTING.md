@@ -138,3 +138,6 @@ După modificările care le ating, înainte de predare:
 15. Procesele `WorkNotes.Web` pornite pentru verificare sunt oprite la final.
 
 Verificările care nu pot fi făcute într-un mediu (de exemplu fără SQL Server într-o sesiune cloud) se raportează explicit ca neefectuate.
+# Verificări pentru administrare
+
+Verificarea manuală include redirectul `/admin` către login, eroarea generică, refuzul administratorului inactiv, cookie-ul separat, unicul link „Configurare”, salvarea fără secrete în clar, păstrarea secretului când inputul este gol, decriptarea după restart și inaccesibilitatea după logout. Se inspectează baza numai într-un mediu autorizat și nu se afișează valorile decriptate.

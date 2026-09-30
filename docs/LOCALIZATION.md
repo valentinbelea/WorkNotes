@@ -113,3 +113,6 @@ Din folderul `Solution`, în PowerShell:
 ```
 
 Scriptul verifică: chei duplicate sau valori goale, aceleași chei în cele patru fișiere, aceiași parametri `{n}`, fallback-ul românesc identic cu `.ro`, cheile neutilizate în codul Web/Business/DataAccess și cheile folosite în cod care lipsesc din catalog. Mesajul de succes începe cu `PASS:`.
+# Zona admin
+
+Login-ul, layoutul și formularul configurației folosesc același catalog `SharedResources`, cu chei `Admin_*`, `Field_*`, `Validation_*` și `Message_GitHubConfiguration_*` complete în ro/en/pl.

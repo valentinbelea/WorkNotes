@@ -1,0 +1,6 @@
+.admin-header { display: flex; align-items: center; gap: 1.5rem; padding: 1rem 2rem; background: var(--wn-primary); color: var(--wn-on-primary); }
+.admin-header a { color: inherit; }
+.admin-header nav { margin-inline-start: auto; }
+.admin-header form { margin: 0; }
+.admin-main { max-width: 48rem; margin: 2rem auto; }
+@media (max-width: 40rem) { .admin-header { align-items: flex-start; flex-direction: column; } .admin-header nav { margin-inline-start: 0; } }

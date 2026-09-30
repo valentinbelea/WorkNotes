@@ -96,6 +96,8 @@ Scripturile sunt în `Scripts/version_0.0x`, câte un folder pentru fiecare vers
 
 ## Documentație
 
+- [Administrare și configurarea GitHub](docs/ADMIN_CONFIGURATION.md)
+
 | Document | Conținut |
 | --- | --- |
 | [AGENTS.md](AGENTS.md) | Regulile obligatorii: arhitectură, SOLID, date, SQL, localizare, design, verificare, Git |

@@ -153,3 +153,8 @@ Versiunea 0.03 este dedicată integrării cu Git, la cererea utilizatorului din 
 **În lucru pentru version_0.03**: conectarea contului GitHub prin OAuth și importul repository-urilor.
 
 **Planificate**: referințele de lucru CR/bug și asocierile lor, legăturile externe, evidențierea referințelor, salvarea automată, vizibilitatea și arhivarea din interfață, paragraful important, editarea notelor partajate, platformele și modulele ulterioare. Ordinea și dependențele sunt în [ROADMAP.md](ROADMAP.md).
+# Administrare și configurare tehnică
+
+- [x] Zona `/admin` nu este legată din meniul public și folosește autentificare, cookie și tabela `AdminUsers` separate.
+- [x] Configurația globală GitHub se editează din meniul admin; Client ID și Client secret sunt protejate reversibil, iar secretul nu revine în formular.
+- [~] Punerea în funcțiune cere aplicarea explicită a scriptului 004, parola inițială aleasă de operator și un `DataProtection:KeysPath` persistent.

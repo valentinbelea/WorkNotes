@@ -141,3 +141,17 @@ Apoi, tot pe 2026-09-29, la cererea utilizatorului (în editor, schimbarea tipul
 ### Documentation
 
 - `Solution/README.md`, `Solution/AGENTS.md`, ghidul de design `Solution/docs/design-system.md` și documentele de planificare `Solution/docs/planning/` (viziune, model de date, arhitectură, funcționalități, decizii, backlog).
+# Modificări nepublicate
+
+### Added
+
+- Zonă `/admin` cu autentificare și cookie separate, meniu propriu cu „Configurare” și administrarea configurației globale GitHub.
+- Servicii stratificate pentru autentificarea administratorilor și configurarea GitHub; parola este hashuită, iar Client ID și Client secret sunt protejate reversibil cu Data Protection.
+
+### Database
+
+- `version_0.03/004_CreateAdministration.sql` creează idempotent `AdminUsers` și configurația globală `GitHubConfigurations`, fără seed sau secrete în SQL.
+
+### Documentation
+
+- Ghidul `docs/ADMIN_CONFIGURATION.md` documentează bootstrap-ul, cheile persistente și verificările de deploy.

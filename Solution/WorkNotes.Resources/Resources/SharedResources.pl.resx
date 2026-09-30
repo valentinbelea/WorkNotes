@@ -248,4 +248,26 @@
 <data name="Editor_ReferenceChoiceNotes" xml:space="preserve"><value>Otwórz notatki</value></data>
 <data name="Editor_ReferenceChoiceGit" xml:space="preserve"><value>Albo gałąź w GitHubie, w nowej karcie:</value></data>
 <data name="Editor_ReferenceChoiceHint" xml:space="preserve"><value>Tab: notatki · Shift+Tab: Git · Esc zamyka</value></data>
+  <data name="Admin_LoginTitle" xml:space="preserve"><value>Logowanie administratora</value></data>
+  <data name="Admin_ConfigurationTitle" xml:space="preserve"><value>Konfiguracja</value></data>
+  <data name="Admin_GitHubConfigurationTitle" xml:space="preserve"><value>Konfiguracja GitHub</value></data>
+  <data name="Admin_MenuLabel" xml:space="preserve"><value>Menu administracyjne</value></data>
+  <data name="Admin_SecretConfigured" xml:space="preserve"><value>skonfigurowany</value></data>
+  <data name="Button_Login" xml:space="preserve"><value>Zaloguj się</value></data>
+  <data name="Button_Logout" xml:space="preserve"><value>Wyloguj się</value></data>
+  <data name="Field_UserName" xml:space="preserve"><value>Nazwa użytkownika</value></data>
+  <data name="Field_ClientId" xml:space="preserve"><value>Identyfikator klienta</value></data>
+  <data name="Field_ClientSecret" xml:space="preserve"><value>Sekret klienta</value></data>
+  <data name="Field_Scopes" xml:space="preserve"><value>Zakresy</value></data>
+  <data name="Field_CallbackUrl" xml:space="preserve"><value>Adres URL wywołania zwrotnego</value></data>
+  <data name="Validation_UserNameRequired" xml:space="preserve"><value>Nazwa użytkownika jest wymagana.</value></data>
+  <data name="Validation_ClientIdRequired" xml:space="preserve"><value>Identyfikator klienta jest wymagany.</value></data>
+  <data name="Validation_CallbackUrlRequired" xml:space="preserve"><value>Adres URL wywołania zwrotnego jest wymagany.</value></data>
+  <data name="Validation_CallbackUrlInvalid" xml:space="preserve"><value>Wprowadź prawidłowy adres URL wywołania zwrotnego.</value></data>
+  <data name="Message_AdminLoginFailed" xml:space="preserve"><value>Dane logowania są nieprawidłowe.</value></data>
+  <data name="Message_ConfigurationSaved" xml:space="preserve"><value>Konfiguracja została zapisana.</value></data>
+  <data name="Message_GitHubConfiguration_ClientIdRequired" xml:space="preserve"><value>Identyfikator klienta jest wymagany.</value></data>
+  <data name="Message_GitHubConfiguration_ClientSecretRequired" xml:space="preserve"><value>Sekret klienta jest wymagany przy pierwszej konfiguracji.</value></data>
+  <data name="Message_GitHubConfiguration_InvalidScopes" xml:space="preserve"><value>Zakresy zawierają niedozwolone znaki.</value></data>
+  <data name="Message_GitHubConfiguration_InvalidCallbackUrl" xml:space="preserve"><value>Adres URL wywołania zwrotnego jest nieprawidłowy.</value></data>
 </root>

@@ -1,0 +1,15 @@
+@page "/admin/configuration"
+@model WorkNotes.Web.Pages.Admin.ConfigurationModel
+@{ Layout = "_AdminLayout"; ViewData["Title"] = L["Admin_ConfigurationTitle"]; }
+<section class="account-card postit-panel">
+<h1>@L["Admin_GitHubConfigurationTitle"]</h1>
+@if (Model.StatusMessage is not null) { <p class="status-message status-message--success">@Model.StatusMessage</p> }
+<form method="post" data-validate>
+<div asp-validation-summary="All" class="validation-summary" role="alert"></div>
+<div class="field"><label asp-for="Input.ClientId"></label><input asp-for="Input.ClientId" autocomplete="off" /><span asp-validation-for="Input.ClientId" class="field-error"></span></div>
+<div class="field"><label asp-for="Input.ClientSecret"></label><input asp-for="Input.ClientSecret" autocomplete="new-password" placeholder="@(Model.HasClientSecret ? L["Admin_SecretConfigured"] : "")" /><span asp-validation-for="Input.ClientSecret" class="field-error"></span></div>
+<div class="field"><label asp-for="Input.Scopes"></label><input asp-for="Input.Scopes" autocomplete="off" /><span asp-validation-for="Input.Scopes" class="field-error"></span></div>
+<div class="field"><label asp-for="Input.CallbackUrl"></label><input asp-for="Input.CallbackUrl" type="url" autocomplete="url" /><span asp-validation-for="Input.CallbackUrl" class="field-error"></span></div>
+<button type="submit" class="btn btn-primary">@L["Button_Save"]</button>
+</form>
+</section>
