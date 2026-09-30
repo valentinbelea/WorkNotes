@@ -173,7 +173,7 @@ Conturile Git conectate prin OAuth: câte un rând pentru fiecare utilizator și
 | `ConnectedAtUtc` | datetime2(0) NOT NULL | implicit `SYSUTCDATETIME()`; data conectării (o reconectare o schimbă) |
 | `ValidatedAtUtc` | datetime2(0) NOT NULL | ultima verificare reușită a tokenului la furnizor |
 
-Cheia primară `PK_GitConnections` este `UserId` + `Provider`. Tokenurile se pot decripta numai cu cheile Data Protection ale aplicației: fără ele, rândul rămâne, iar utilizatorul trebuie să se conecteze din nou.
+Cheia primară `PK_GitConnections` este `UserId` + `Provider`. Emailul normalizat este identificatorul funcțional cerut de fluxul GitHub și este unic în `Users`; conexiunea păstrează cheia internă `UserId` ca FK, evitând duplicarea emailului și rămânând asociată aceleiași identități. Tokenurile se pot decripta numai cu cheile Data Protection ale aplicației: fără ele, rândul rămâne, iar utilizatorul trebuie să se conecteze din nou.
 
 ### GitRepositories (versiunea 0.03)
 

@@ -182,7 +182,8 @@
 <data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab: referință aplicație · Shift+Tab: Git · Esc închide</value></data>
 <data name="Navigation_GitHub" xml:space="preserve"><value>Conectare GitHub</value></data>
 <data name="GitHub_Description" xml:space="preserve"><value>Conectați contul GitHub, pentru ca WorkNotes să citească branch-urile, commit-urile și pull request-urile legate de CR-uri și buguri. Autorizarea se face pe GitHub: WorkNotes nu vă vede parola GitHub.</value></data>
-<data name="GitHub_NotConfiguredHelp" xml:space="preserve"><value>Conectarea GitHub nu este configurată pe acest server. Administratorul trebuie să înregistreze aplicația pe GitHub și să seteze GitHub:ClientId și GitHub:ClientSecret.</value></data>
+<data name="GitHub_NotConfiguredHelp" xml:space="preserve"><value>Integrarea GitHub nu este disponibilă momentan. Lipsesc setările tehnice ale aplicației. Contactați administratorul.</value></data>
+<data name="GitHub_EmailRequired" xml:space="preserve"><value>Utilizatorul autentificat nu are email configurat. Emailul este necesar pentru asocierea contului GitHub.</value></data>
 <data name="GitHub_Account" xml:space="preserve"><value>Cont GitHub</value></data>
 <data name="GitHub_ConnectedAt" xml:space="preserve"><value>Conectat la</value></data>
 <data name="GitHub_ValidatedAt" xml:space="preserve"><value>Verificat ultima dată</value></data>
@@ -190,7 +191,7 @@
 <data name="GitHub_ExpiresHelp" xml:space="preserve"><value>Accesul se reînnoiește automat la verificare, cât timp autorizarea este valabilă pe GitHub.</value></data>
 <data name="GitHub_NotConnectedInfo" xml:space="preserve"><value>Contul nu este conectat la GitHub.</value></data>
 <data name="GitHub_Connected" xml:space="preserve"><value>Contul GitHub a fost conectat.</value></data>
-<data name="GitHub_NotConfigured" xml:space="preserve"><value>Conectarea GitHub nu este configurată pe acest server.</value></data>
+<data name="GitHub_NotConfigured" xml:space="preserve"><value>Integrarea GitHub nu este disponibilă momentan. Lipsesc setările tehnice ale aplicației.</value></data>
 <data name="GitHub_InvalidState" xml:space="preserve"><value>Conectarea nu a putut fi confirmată: a expirat sau nu a pornit din această pagină. Încercați din nou.</value></data>
 <data name="GitHub_Denied" xml:space="preserve"><value>Autorizarea a fost refuzată pe GitHub; contul nu a fost conectat.</value></data>
 <data name="GitHub_Rejected" xml:space="preserve"><value>GitHub a refuzat conectarea. Încercați din nou.</value></data>
@@ -208,7 +209,7 @@
 <data name="Button_ChooseRepositories" xml:space="preserve"><value>Alege repository-urile</value></data>
 <data name="Button_SaveRepositories" xml:space="preserve"><value>Salvează selecția</value></data>
 <data name="GitHub_RepositoriesDescription" xml:space="preserve"><value>Bifați repository-urile GitHub pe care doriți să le importați în WorkNotes, apoi salvați selecția. Lista vine direct de la GitHub, pentru contul conectat; un repository debifat este scos din WorkNotes.</value></data>
-<data name="GitHub_RepositoriesNotConnected" xml:space="preserve"><value>Conectați contul GitHub pentru a vedea repository-urile.</value></data>
+<data name="GitHub_RepositoriesNotConnected" xml:space="preserve"><value>Contul dumneavoastră GitHub nu este încă asociat. Conectați GitHub pentru a vedea repository-urile.</value></data>
 <data name="GitHub_RepositoriesEmpty" xml:space="preserve"><value>GitHub nu a întors niciun repository pentru acest cont.</value></data>
 <data name="GitHub_RepositoriesCount" xml:space="preserve"><value>Repository-uri: {0}, dintre care importate: {1}.</value></data>
 <data name="GitHub_RepositoriesTruncated" xml:space="preserve"><value>Sunt afișate numai primele {0} repository-uri primite de la GitHub.</value></data>

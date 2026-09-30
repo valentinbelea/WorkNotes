@@ -13,7 +13,8 @@ public sealed class AccountClaimsPrincipalFactory(UserManager<ApplicationUser> m
         var identity = await base.GenerateClaimsAsync(user);
         identity.AddClaim(new Claim(ClaimTypes.GivenName, user.FirstName));
         identity.AddClaim(new Claim(ClaimTypes.Surname, user.LastName));
+        if (!string.IsNullOrWhiteSpace(user.Email) && !identity.HasClaim(claim => claim.Type == ClaimTypes.Email))
+            identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
         return identity;
     }
 }
-

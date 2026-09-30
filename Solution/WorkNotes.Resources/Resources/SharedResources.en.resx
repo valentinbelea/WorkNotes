@@ -182,7 +182,8 @@
 <data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab: application reference · Shift+Tab: Git · Esc closes</value></data>
 <data name="Navigation_GitHub" xml:space="preserve"><value>GitHub connection</value></data>
 <data name="GitHub_Description" xml:space="preserve"><value>Connect your GitHub account so WorkNotes can read the branches, commits and pull requests linked to CRs and bugs. You authorize it on GitHub: WorkNotes never sees your GitHub password.</value></data>
-<data name="GitHub_NotConfiguredHelp" xml:space="preserve"><value>The GitHub connection is not configured on this server. The administrator has to register the application on GitHub and set GitHub:ClientId and GitHub:ClientSecret.</value></data>
+<data name="GitHub_NotConfiguredHelp" xml:space="preserve"><value>The GitHub integration is currently unavailable because the application’s technical settings are missing. Contact the administrator.</value></data>
+<data name="GitHub_EmailRequired" xml:space="preserve"><value>The signed-in user has no email configured. An email is required to connect a GitHub account.</value></data>
 <data name="GitHub_Account" xml:space="preserve"><value>GitHub account</value></data>
 <data name="GitHub_ConnectedAt" xml:space="preserve"><value>Connected on</value></data>
 <data name="GitHub_ValidatedAt" xml:space="preserve"><value>Last verified</value></data>
@@ -190,7 +191,7 @@
 <data name="GitHub_ExpiresHelp" xml:space="preserve"><value>Access is renewed automatically when it is verified, as long as the authorization is valid on GitHub.</value></data>
 <data name="GitHub_NotConnectedInfo" xml:space="preserve"><value>Your account is not connected to GitHub.</value></data>
 <data name="GitHub_Connected" xml:space="preserve"><value>Your GitHub account has been connected.</value></data>
-<data name="GitHub_NotConfigured" xml:space="preserve"><value>The GitHub connection is not configured on this server.</value></data>
+<data name="GitHub_NotConfigured" xml:space="preserve"><value>The GitHub integration is currently unavailable because the application’s technical settings are missing.</value></data>
 <data name="GitHub_InvalidState" xml:space="preserve"><value>The connection could not be confirmed: it expired or was not started from this page. Please try again.</value></data>
 <data name="GitHub_Denied" xml:space="preserve"><value>The authorization was declined on GitHub; your account was not connected.</value></data>
 <data name="GitHub_Rejected" xml:space="preserve"><value>GitHub refused the connection. Please try again.</value></data>
@@ -208,7 +209,7 @@
 <data name="Button_ChooseRepositories" xml:space="preserve"><value>Choose repositories</value></data>
 <data name="Button_SaveRepositories" xml:space="preserve"><value>Save selection</value></data>
 <data name="GitHub_RepositoriesDescription" xml:space="preserve"><value>Check the GitHub repositories you want to import into WorkNotes, then save your selection. The list comes straight from GitHub, for the connected account; an unchecked repository is removed from WorkNotes.</value></data>
-<data name="GitHub_RepositoriesNotConnected" xml:space="preserve"><value>Connect your GitHub account to see your repositories.</value></data>
+<data name="GitHub_RepositoriesNotConnected" xml:space="preserve"><value>Your GitHub account is not connected yet. Connect GitHub to see your repositories.</value></data>
 <data name="GitHub_RepositoriesEmpty" xml:space="preserve"><value>GitHub returned no repositories for this account.</value></data>
 <data name="GitHub_RepositoriesCount" xml:space="preserve"><value>Repositories: {0}, of which imported: {1}.</value></data>
 <data name="GitHub_RepositoriesTruncated" xml:space="preserve"><value>Only the first {0} repositories received from GitHub are shown.</value></data>
