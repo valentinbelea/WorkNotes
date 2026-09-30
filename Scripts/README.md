@@ -30,7 +30,8 @@ Scripts/
     ├── 009_CreateReferenceTypes.sql      # PR #4
     ├── 010_InsertReferenceTypes.sql      # PR #4
     ├── 011_UpdateReferenceTypeKeys.sql   # PR #4
-    └── 012_RefreshNoteReferences.sql     # PR #4
+    ├── 012_RefreshNoteReferences.sql     # PR #4
+    └── 013_UpdateNoteBlockLineEndings.sql # PR #4
 ```
 
 ## Convenții de denumire
@@ -67,6 +68,7 @@ Baza `WorkNotes.db` trebuie să existe. Se aplică întâi `version_0.01`, apoi 
 | 19 | `version_0.02/010_InsertReferenceTypes.sql` | PR #4, script de date: adaugă tipurile `CR` și `BUG`, active, și orice alt tip deja stocat în `NoteReferences` sau `WorkReferences`, dacă lipsesc; un tip existent rămâne cum este; afișează tipurile |
 | 20 | `version_0.02/011_UpdateReferenceTypeKeys.sql` | PR #4: adaugă cheile externe `FK_NoteReferences_ReferenceTypes_ReferenceType` și `FK_WorkReferences_ReferenceTypes_ReferenceType` (fără cascadă), apoi elimină `CK_NoteReferences_ReferenceType` și `CK_WorkReferences_ReferenceType` |
 | 21 | `version_0.02/012_RefreshNoteReferences.sql` | PR #4, script de date, se poate rula oricând: citește din nou toate paragrafele și titlurile cu tipurile active, aduce la zi `NoteReferences`, `NoteReferenceTargets` și `WorkReferences` (șterge rândurile pe care regula nu le mai dă, inclusiv cele ale tipurilor dezactivate, și le adaugă pe cele lipsă) și afișează tipurile, rezumatul, referințele fără notă, cele cu mai multe note și jurnalul „CRs” |
+| 22 | `version_0.02/013_UpdateNoteBlockLineEndings.sql` | PR #4, script de date, se poate rula oricând: înlocuiește `\r\n` și `\r` cu `\n` în `dbo.NoteBlocks.Content`, ca salvarea din aplicație (`NoteRules.NormalizeBlockContent`), fără să schimbe auditul; afișează notele atinse și numărul paragrafelor schimbate |
 
 Comentariul din antetul `006_CreateNotes.sql` („A Journal is daily: one per owner, context and date”) descrie regula inițială, înlocuită de `007_AllowSeveralJournalsPerDay.sql`; scriptul livrat nu se modifică.
 
@@ -96,9 +98,10 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\ve
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\010_InsertReferenceTypes.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\011_UpdateReferenceTypeKeys.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\012_RefreshNoteReferences.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\013_UpdateNoteBlockLineEndings.sql'
 ```
 
-Pe o bază la care `002` și `003` au fost deja aplicate se rulează numai `004`–`011`; pe una la care și `004` a fost aplicat, `005`–`011`; pe una la care s-a ajuns până la `008`, `009`–`011`. `012` se rulează apoi oricând este nevoie. Scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea versiunii de cod care le folosește: codul PR #4 scrie `WorkReferenceId` la fiecare referință stocată, iar codul anterior nu îl scrie, deci după `008` nu mai poate salva o referință nouă (și nici nu citește catalogul). `005` afișează rezultatele sub formă de liste (rezumatul, referințele fără notă, cele cu mai multe note, cu fiecare notă, și jurnalul „CRs”), ca `004`. `004` afișează rezultatele sub formă de liste (în SSMS, în fila Results; cu `sqlcmd`, în consolă): rezumatul, referințele fără destinație, cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele ale căror legături vechi au devenit text. Cu `DECLARE @Save bit = 0;` în loc de `1`, `004`, `005`, `007`, `008` și `012` nu salvează nimic, nici tabelele sau coloana: listele arată ce ar face. `007` și `008` încep prin a verifica existența `dbo.WorkReferences` și se opresc cu un mesaj dacă `006` nu a fost aplicat; `010`–`012` verifică la fel scripturile de care depind.
+Pe o bază la care `002` și `003` au fost deja aplicate se rulează numai `004`–`011`; pe una la care și `004` a fost aplicat, `005`–`011`; pe una la care s-a ajuns până la `008`, `009`–`011`. `012` se rulează apoi oricând este nevoie. Scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea versiunii de cod care le folosește: codul PR #4 scrie `WorkReferenceId` la fiecare referință stocată, iar codul anterior nu îl scrie, deci după `008` nu mai poate salva o referință nouă (și nici nu citește catalogul). `005` afișează rezultatele sub formă de liste (rezumatul, referințele fără notă, cele cu mai multe note, cu fiecare notă, și jurnalul „CRs”), ca `004`. `004` afișează rezultatele sub formă de liste (în SSMS, în fila Results; cu `sqlcmd`, în consolă): rezumatul, referințele fără destinație, cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele ale căror legături vechi au devenit text. Cu `DECLARE @Save bit = 0;` în loc de `1`, `004`, `005`, `007`, `008`, `012` și `013` nu salvează nimic, nici tabelele sau coloana: listele arată ce ar face. `007` și `008` încep prin a verifica existența `dbo.WorkReferences` și se opresc cu un mesaj dacă `006` nu a fost aplicat; `010`–`012` verifică la fel scripturile de care depind.
 
 Scripturile `009`–`011` se aplică înaintea versiunii de cod care citește `dbo.ReferenceTypes`; codul care le precede (cel cu catalogul, după `008`) funcționează și cu ele, pentru că scrie numai `CR` și `BUG`. `012` nu este necesar la prima aplicare (textele au fost citite de `005` cu `CR` și `BUG`, aceleași tipuri); se rulează după fiecare schimbare a tipurilor (un tip adăugat, activat sau dezactivat), astfel încât textele deja salvate să o urmeze. Un tip se adaugă cu `INSERT INTO dbo.ReferenceTypes (Code, IsActive) VALUES (N'TASK', 1);`, se dezactivează cu `UPDATE dbo.ReferenceTypes SET IsActive = 0 WHERE Code = N'TASK';` și nu se șterge cât timp sunt stocate referințe cu el; aplicația vede schimbarea în cel mult 5 minute.
 
@@ -174,6 +177,8 @@ SELECT [Code], [IsActive], [CreatedAtUtc] FROM [dbo].[ReferenceTypes] ORDER BY [
 -- Cheile externe ale tipului; CK_NoteReferences_ReferenceType și CK_WorkReferences_ReferenceType nu mai există
 SELECT [name] FROM sys.foreign_keys WHERE [referenced_object_id] = OBJECT_ID(N'dbo.ReferenceTypes');
 SELECT [name] FROM sys.check_constraints WHERE [name] IN (N'CK_NoteReferences_ReferenceType', N'CK_WorkReferences_ReferenceType');
+-- După 013: niciun paragraf cu \r (rezultat 0)
+SELECT COUNT(*) AS [ParagraphsWithCarriageReturn] FROM [dbo].[NoteBlocks] WHERE CHARINDEX(NCHAR(13), [Content]) > 0;
 -- Nicio legătură veche rămasă în text
 SELECT COUNT(*) AS [OldLinks] FROM [dbo].[NoteBlocks] WHERE CHARINDEX(N'[[note:', [Content]) > 0;
 ```

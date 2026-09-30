@@ -56,6 +56,11 @@ Apoi, tot pe 2026-09-29, la cererea utilizatorului (în editor, schimbarea tipul
 
 - **Added** — proprietarul schimbă tipul notei din footerul ei din editor, cu același comutator ca pe cardul „Notă nouă” (iconurile sunt acum partialul comun `_NoteTypeIcon`, cu stilul lor în comutator): foaia, tabul și forma minimizată iau imediat tipul ales, nota are modificări nesalvate, iar Salvează sau Ctrl+S salvează tipul odată cu nota (`noteType` în corpul `SaveNote`); cardul de pe tablă își schimbă culoarea și numele tipului. O notă devenită jurnal primește ziua locală a creării ei, un articol nu are dată, iar schimbarea tipului actualizează ultima modificare. Un tip necunoscut primește 400 (`NoteSaveStatus.InvalidType`). Fără JavaScript și pentru cei care doar citesc, footerul arată în continuare numele tipului. Fără script SQL și fără chei .resx noi.
 
+Apoi, pe 2026-09-30, la cererea utilizatorului (în editor, textul scris dispărea la Enter):
+
+- **Fixed** — într-o notă ale cărei paragrafe erau stocate cu terminații `\r\n` (jurnalul `jurnal_2026` avea 497), editorul nu accepta nicio modificare: textul scris apărea, dar dispărea la Enter, iar consola arăta `RangeError: Position … is out of range for changeset`. CodeMirror numără o trecere la rând ca un caracter, iar pozițiile paragrafelor și ale linkurilor erau calculate pe textul cu `\r\n`, deci erau decalate (și linkurile apăreau mutate cu câte un caracter). `NoteService.GetDocumentAsync` citește acum paragrafele normalizate ca la salvare (`NoteRules.NormalizeBlockContent`), înainte ca linkurile să fie căutate în ele. Test nou: `AnOpenedNoteHasItsLineEndingsAsASaveStoresThem`.
+- **Database** — `version_0.02/013_UpdateNoteBlockLineEndings.sql`, script de date: înlocuiește `\r\n` și `\r` cu `\n` în `dbo.NoteBlocks.Content`, fără să schimbe auditul paragrafelor; afișează notele atinse; cu `@Save = 0` nu salvează nimic; se poate rula din nou.
+
 ## [0.02] — integrată în `main` pe 2026-09-25 (PR #3)
 
 ### Added

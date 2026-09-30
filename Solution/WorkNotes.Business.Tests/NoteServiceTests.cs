@@ -742,6 +742,31 @@ public sealed class NoteServiceTests
     }
 
     [Fact]
+    public async Task AnOpenedNoteHasItsLineEndingsAsASaveStoresThem()
+    {
+        // Paragraphs stored with \r\n: the editor counts each line break as one character, and so do the links.
+        var first = Guid.NewGuid();
+        var second = Guid.NewGuid();
+        var stored = Document() with
+        {
+            Blocks =
+            [
+                new(first, "09:00 - bug 17648\r\n14:30 - bug 17636", DateTime.UtcNow, DateTime.UtcNow),
+                new(second, "Unu\rDoi\n", DateTime.UtcNow, DateTime.UtcNow)
+            ]
+        };
+        var references = new StubReferences();
+        var service = new NoteService(new StubNotes(document: stored), new StubContexts(), references, UtcTime);
+
+        var document = await service.GetDocumentAsync(7, User, CancellationToken.None);
+
+        Assert.Equal(["09:00 - bug 17648\n14:30 - bug 17636", "Unu\nDoi"], document!.Blocks.Select(block => block.Content));
+        Assert.Equal([first, second], document.Blocks.Select(block => block.Id));
+        // The links are read from the normalized text.
+        Assert.Equal(document.Blocks.Select(block => block.Content), references.LinkedBlocks!.Select(block => block.Content));
+    }
+
+    [Fact]
     public async Task AnInvisibleNoteReadsNoLinks()
     {
         var references = new StubReferences();
@@ -873,6 +898,7 @@ public sealed class NoteServiceTests
         public (string OwnerUserId, int ContextId, int NoteId, IReadOnlyList<NoteBlockInput> Paragraphs)? Resolved { get; private set; }
         public List<(int ContextId, string? PreviousTitle, string? Title)> Refreshed { get; } = [];
         public (int NoteId, string UserId)? Linked { get; private set; }
+        public IReadOnlyList<NoteBlockDetails>? LinkedBlocks { get; private set; }
 
         public Task<NoteReferenceResolution> ResolveAsync(string ownerUserId, int contextId, int noteId,
             IReadOnlyList<NoteBlockInput> paragraphs, CancellationToken cancellationToken)
@@ -890,6 +916,7 @@ public sealed class NoteServiceTests
         public Task<NoteDocument> WithLinksAsync(NoteDocument document, string userId, CancellationToken cancellationToken)
         {
             Linked = (document.Id, userId);
+            LinkedBlocks = document.Blocks;
             return Task.FromResult(document with { References = [Cr30080] });
         }
 
