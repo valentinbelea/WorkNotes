@@ -37,6 +37,8 @@ Scripts/
     ├── 002_CreateGitRepositories.sql
     ├── 003_CreateGitReferences.sql
     └── 004_CreateAdministration.sql
+    └── 012_RefreshNoteReferences.sql     # PR #4
+    └── 013_UpdateNoteBlockLineEndings.sql # PR #4
 ```
 
 ## Convenții de denumire
@@ -74,10 +76,11 @@ Baza `WorkNotes.db` trebuie să existe. Se aplică întâi `version_0.01`, apoi 
 | 20 | `version_0.02/011_UpdateReferenceTypeKeys.sql` | PR #4: adaugă cheile externe `FK_NoteReferences_ReferenceTypes_ReferenceType` și `FK_WorkReferences_ReferenceTypes_ReferenceType` (fără cascadă), apoi elimină `CK_NoteReferences_ReferenceType` și `CK_WorkReferences_ReferenceType` |
 | 21 | `version_0.02/012_RefreshNoteReferences.sql` | PR #4, script de date, se poate rula oricând: citește din nou toate paragrafele și titlurile cu tipurile active, aduce la zi `NoteReferences`, `NoteReferenceTargets` și `WorkReferences` (șterge rândurile pe care regula nu le mai dă, inclusiv cele ale tipurilor dezactivate, și le adaugă pe cele lipsă) și afișează tipurile, rezumatul, referințele fără notă, cele cu mai multe note și jurnalul „CRs” |
 | 22 | `version_0.03/000_UpdateDatabaseVersion.sql` | Inserează `v.0.03`, dacă lipsește; `v.0.01` și `v.0.02` rămân, iar footerul afișează `v.0.03` |
-| 23 | `version_0.03/001_CreateGitConnections.sql` | Creează `dbo.GitConnections` (conturile GitHub conectate, cu tokenurile criptate de aplicație; cheia `UserId` + `Provider`, cascadă cu `Users`), dacă lipsește; afișează coloanele |
-| 24 | `version_0.03/002_CreateGitRepositories.sql` | Creează `dbo.GitRepositories` (repository-urile importate de fiecare utilizator, cascadă cu `Users`) și indexul unic `UX_GitRepositories_UserId_Provider_ExternalId`, dacă lipsesc; afișează coloanele |
-| 25 | `version_0.03/003_CreateGitReferences.sql` | Creează `dbo.GitReferences` (catalogul branch-urilor: furnizor, repository, tip `Branch`, nume în colație BIN2, unic pe cele patru) și `dbo.NoteBlockGitReferences` (paragraf ↔ referință Git ↔ referință din catalog `WorkReferences`, cascadă cu paragraful, cheie unică pe cele trei ID-uri), cu indexurile lor, dacă lipsesc; afișează coloanele |
-| 26 | `version_0.03/004_CreateAdministration.sql` | Creează `dbo.AdminUsers`, indexul unic pe numele administratorului și configurația GitHub globală `dbo.GitHubConfigurations` (un singur rând, credențiale protejate), fără a insera secrete |
+| 23 | `version_0.02/013_UpdateNoteBlockLineEndings.sql` | PR #4, script de date, se poate rula oricând: înlocuiește `\r\n` și `\r` cu `\n` în `dbo.NoteBlocks.Content`, ca salvarea din aplicație (`NoteRules.NormalizeBlockContent`), fără să schimbe auditul; afișează notele atinse și numărul paragrafelor schimbate |
+| 24 | `version_0.03/001_CreateGitConnections.sql` | Creează `dbo.GitConnections` (conturile GitHub conectate, cu tokenurile criptate de aplicație; cheia `UserId` + `Provider`, cascadă cu `Users`), dacă lipsește; afișează coloanele |
+| 25 | `version_0.03/002_CreateGitRepositories.sql` | Creează `dbo.GitRepositories` (repository-urile importate de fiecare utilizator, cascadă cu `Users`) și indexul unic `UX_GitRepositories_UserId_Provider_ExternalId`, dacă lipsesc; afișează coloanele |
+| 26 | `version_0.03/003_CreateGitReferences.sql` | Creează `dbo.GitReferences` (catalogul branch-urilor: furnizor, repository, tip `Branch`, nume în colație BIN2, unic pe cele patru) și `dbo.NoteBlockGitReferences` (paragraf ↔ referință Git ↔ referință din catalog `WorkReferences`, cascadă cu paragraful, cheie unică pe cele trei ID-uri), cu indexurile lor, dacă lipsesc; afișează coloanele |
+| 27 | `version_0.03/004_CreateAdministration.sql` | Creează `dbo.AdminUsers`, indexul unic pe numele administratorului și configurația GitHub globală `dbo.GitHubConfigurations` (un singur rând, credențiale protejate), fără a insera secrete |
 
 Comentariul din antetul `006_CreateNotes.sql` („A Journal is daily: one per owner, context and date”) descrie regula inițială, înlocuită de `007_AllowSeveralJournalsPerDay.sql`; scriptul livrat nu se modifică.
 
@@ -108,6 +111,7 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\011_UpdateReferenceTypeKeys.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.02\012_RefreshNoteReferences.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\000_UpdateDatabaseVersion.sql'
+sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -i '..\Scripts\version_0.02\013_UpdateNoteBlockLineEndings.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\001_CreateGitConnections.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\002_CreateGitRepositories.sql'
 sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts\version_0.03\003_CreateGitReferences.sql'
@@ -115,8 +119,8 @@ sqlcmd -S 'localhost\MSSQLSERVER02' -d 'WorkNotes.db' -E -C -b -I -i '..\Scripts
 ```
 
 `sqlcmd` are nevoie de opțiunea `-I` (`QUOTED_IDENTIFIER ON`): fără ea, scripturile cu indecși filtrați sau coloane calculate se opresc cu eroarea 1934; SSMS o setează implicit.
+Pe o bază la care `002` și `003` au fost deja aplicate se rulează numai `004`–`011`; pe una la care și `004` a fost aplicat, `005`–`011`; pe una la care s-a ajuns până la `008`, `009`–`011`. `012` se rulează apoi oricând este nevoie. Scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea versiunii de cod care le folosește: codul PR #4 scrie `WorkReferenceId` la fiecare referință stocată, iar codul anterior nu îl scrie, deci după `008` nu mai poate salva o referință nouă (și nici nu citește catalogul). `005` afișează rezultatele sub formă de liste (rezumatul, referințele fără notă, cele cu mai multe note, cu fiecare notă, și jurnalul „CRs”), ca `004`. `004` afișează rezultatele sub formă de liste (în SSMS, în fila Results; cu `sqlcmd`, în consolă): rezumatul, referințele fără destinație, cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele ale căror legături vechi au devenit text. Cu `DECLARE @Save bit = 0;` în loc de `1`, `004`, `005`, `007`, `008`, `012` și `013` nu salvează nimic, nici tabelele sau coloana: listele arată ce ar face. `007` și `008` încep prin a verifica existența `dbo.WorkReferences` și se opresc cu un mesaj dacă `006` nu a fost aplicat; `010`–`012` verifică la fel scripturile de care depind.
 
-Pe o bază la care `002` și `003` au fost deja aplicate se rulează numai `004`–`011`; pe una la care și `004` a fost aplicat, `005`–`011`; pe una la care s-a ajuns până la `008`, `009`–`011`. `012` se rulează apoi oricând este nevoie. Scripturile `005`–`008` se aplică împreună, cu aplicația oprită, înaintea versiunii de cod care le folosește: codul PR #4 scrie `WorkReferenceId` la fiecare referință stocată, iar codul anterior nu îl scrie, deci după `008` nu mai poate salva o referință nouă (și nici nu citește catalogul). `005` afișează rezultatele sub formă de liste (rezumatul, referințele fără notă, cele cu mai multe note, cu fiecare notă, și jurnalul „CRs”), ca `004`. `004` afișează rezultatele sub formă de liste (în SSMS, în fila Results; cu `sqlcmd`, în consolă): rezumatul, referințele fără destinație, cele ambigue (cu notele care le au în titlu), jurnalul „CRs” și paragrafele ale căror legături vechi au devenit text. Cu `DECLARE @Save bit = 0;` în loc de `1`, `004`, `005`, `007`, `008` și `012` nu salvează nimic, nici tabelele sau coloana: listele arată ce ar face. `007` și `008` încep prin a verifica existența `dbo.WorkReferences` și se opresc cu un mesaj dacă `006` nu a fost aplicat; `010`–`012` verifică la fel scripturile de care depind.
 
 Scripturile `009`–`011` se aplică înaintea versiunii de cod care citește `dbo.ReferenceTypes`; codul care le precede (cel cu catalogul, după `008`) funcționează și cu ele, pentru că scrie numai `CR` și `BUG`. `012` nu este necesar la prima aplicare (textele au fost citite de `005` cu `CR` și `BUG`, aceleași tipuri); se rulează după fiecare schimbare a tipurilor (un tip adăugat, activat sau dezactivat), astfel încât textele deja salvate să o urmeze. Un tip se adaugă cu `INSERT INTO dbo.ReferenceTypes (Code, IsActive) VALUES (N'TASK', 1);`, se dezactivează cu `UPDATE dbo.ReferenceTypes SET IsActive = 0 WHERE Code = N'TASK';` și nu se șterge cât timp sunt stocate referințe cu el; aplicația vede schimbarea în cel mult 5 minute.
 
@@ -194,6 +198,8 @@ SELECT [name] FROM sys.foreign_keys WHERE [referenced_object_id] = OBJECT_ID(N'd
 SELECT [name] FROM sys.check_constraints WHERE [name] IN (N'CK_NoteReferences_ReferenceType', N'CK_WorkReferences_ReferenceType');
 -- Versiunea 0.03: coloanele GitConnections și cheia ei externă către Users
 SELECT [name], [is_nullable] FROM sys.columns WHERE [object_id] = OBJECT_ID(N'dbo.GitConnections') ORDER BY [column_id];
+-- După 013: niciun paragraf cu \r (rezultat 0)
+SELECT COUNT(*) AS [ParagraphsWithCarriageReturn] FROM [dbo].[NoteBlocks] WHERE CHARINDEX(NCHAR(13), [Content]) > 0;
 SELECT [name] FROM sys.foreign_keys WHERE [parent_object_id] = OBJECT_ID(N'dbo.GitConnections');
 -- Versiunea 0.03: GitRepositories, PK_GitRepositories și UX_GitRepositories_UserId_Provider_ExternalId
 SELECT [name] FROM sys.indexes WHERE [object_id] = OBJECT_ID(N'dbo.GitRepositories') AND [name] IS NOT NULL;

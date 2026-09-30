@@ -57,7 +57,14 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         cancellationToken.ThrowIfCancellationRequested();
         var document = await notes.GetDocumentAsync(noteId, userId, cancellationToken);
-        return document is null ? null : await references.WithLinksAsync(document, userId, cancellationToken);
+        if (document is null) return null;
+        // Paragraphs stored before the save normalized line endings (or written by other tools) may hold \r\n. The editor
+        // counts a line break as one character, so the text is read as a save stores it and the links are found in it.
+        document = document with
+        {
+            Blocks = document.Blocks.Select(block => block with { Content = NoteRules.NormalizeBlockContent(block.Content) }).ToList()
+        };
+        return await references.WithLinksAsync(document, userId, cancellationToken);
     }
 
     public async Task<NoteSaveResult> SaveAsync(string userId, int noteId, string expectedVersion, string? title, string? noteType,

@@ -93,7 +93,7 @@ Cheia primară este `ContextId` + `UserId`; indexul `IX_ContextMembers_UserId` s
 | `Id` | uniqueidentifier | `PK_NoteBlocks`; GUID stabil, generat de editor (fără valoare implicită) |
 | `NoteId` | int NOT NULL | cheie externă către `Notes`, cascadă |
 | `Position` | int NOT NULL | ordinea în document, `CK_NoteBlocks_Position` (`>= 0`) |
-| `Content` | nvarchar(max) NOT NULL | textul paragrafului |
+| `Content` | nvarchar(max) NOT NULL | textul paragrafului; trecerile la rând sunt `\n` (`NoteRules.NormalizeBlockContent` la salvare și la citire; `version_0.02/013_UpdateNoteBlockLineEndings.sql` pentru textele stocate cu `\r\n`) |
 | `ActivityDate` | date NULL | pregătită, fără interfață |
 | `IsImportant` | bit NOT NULL, implicit 0 | pregătită, fără interfață |
 | `CreatedAtUtc`, `CreatedByUserId`, `ModifiedAtUtc`, `ModifiedByUserId` | datetime2(0), nvarchar(128) | auditul paragrafului; utilizatorii au chei externe către `Users` |
