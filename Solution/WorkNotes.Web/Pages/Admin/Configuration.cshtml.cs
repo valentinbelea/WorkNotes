@@ -17,7 +17,7 @@ public sealed class ConfigurationModel(IGitHubConfigurationService service, IStr
     public bool HasClientSecret { get; private set; }
     public string? StatusMessage { get; private set; }
 
-    public static IReadOnlyList<string> Environments { get; } = [GitHubEnvironments.Development, GitHubEnvironments.Production];
+    public IReadOnlyList<string> Environments { get; } = [GitHubEnvironments.Development, GitHubEnvironments.Production];
 
     public async Task OnGetAsync(string? environmentName, CancellationToken cancellationToken)
     {
