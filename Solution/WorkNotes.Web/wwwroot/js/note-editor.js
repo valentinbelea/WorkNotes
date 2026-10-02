@@ -292,6 +292,12 @@ function createNoteEditor(panel, data, shared) {
         signal
     }).then(response => response.ok ? response.json() : null);
 
+    // The server rechecks before creating. The popup disables its button while this request is in flight; the shared
+    // window-level guard also coalesces clicks for the same normalized reference from different editor tabs.
+    const createReferenceArticle = ({ reference, title }) => shared.createReferenceArticle({
+        reference, title, url: data.referenceArticleUrl
+    });
+
     const gitHeaders = { "Content-Type": "application/json", "Accept": "application/json", "RequestVerificationToken": shared.token };
 
     // The branches of a repository whose name contains a reference (INoteGitReferenceService.SearchBranchesAsync), for the
@@ -384,7 +390,7 @@ function createNoteEditor(panel, data, shared) {
             choice: shared.choice ? { ...shared.choice, branches: reference => gitLinks.filter(link => link.normalized === reference) } : null,
             // The owner's editor asks about the references it types.
             lookup: data.readOnly || !data.lookupUrl || !shared.lookup ? null : {
-                ...shared.lookup, find: findReference,
+                ...shared.lookup, find: findReference, create: createReferenceArticle,
                 // The Git option of the popup, when this note can link branches.
                 git: data.gitBranchesUrl && data.gitAddUrl
                     ? { repositories: shared.gitRepositories, choice: shared.gitChoice, search: searchBranches, add: addGitReference }
@@ -474,6 +480,7 @@ function initializeEditorWindow(dialog, settings, dataElement) {
     const panels = dialog.querySelector("[data-editor-panels]");
     const minimized = dialog.querySelector("[data-editor-minimized]");
     const tabs = new Map();         // note id -> { item, panel, editor }, in the order of the tab bar
+    const creatingReferences = new Map(); // normalized reference -> one request for the whole editor window
     let activeId = null;
     let leaving = false;            // unsaved changes were already confirmed away
     let boardStale = false;         // a save the board behind could not show
@@ -482,6 +489,28 @@ function initializeEditorWindow(dialog, settings, dataElement) {
 
     const isMinimized = () => dialog.classList.contains("note-editor-dialog--minimized");
     let referencesOpen = false;     // the references drawer, open or closed in every tab
+
+    shared.createReferenceArticle = ({ reference, title, url }) => {
+        if (!reference || !title || !url) return Promise.resolve({ ok: false, message: shared.texts.openFailed });
+        if (creatingReferences.has(reference)) return creatingReferences.get(reference);
+        const operation = fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json", "RequestVerificationToken": shared.token },
+            body: JSON.stringify({ text: title })
+        }).then(async response => {
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) return { ok: false, message: body.message ?? shared.texts.openFailed };
+            const ids = (body.notes ?? []).filter(Number.isInteger).map(String);
+            if (ids.length === 0 || !(await openNotes(ids))) return { ok: false, message: shared.texts.openFailed };
+            // The new article has no card on the already-rendered board; reload it when the editor eventually closes.
+            boardStale = true;
+            showStatusMessage(shared.messages, "success", body.message);
+            return { ok: true };
+        }).catch(() => ({ ok: false, message: shared.texts.openFailed }))
+            .finally(() => creatingReferences.delete(reference));
+        creatingReferences.set(reference, operation);
+        return operation;
+    };
 
     // The window's paper follows the active note's type, like its card on the board.
     function setSheetType(typeClass) {

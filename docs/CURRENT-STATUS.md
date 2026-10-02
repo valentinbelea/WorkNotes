@@ -11,6 +11,8 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 - **Contexte și membri**: listare, adăugare, editare, ștergere în overlay; proprietarul gestionează membrii după e-mail.
 - **Tabla**: o tablă pentru fiecare context, notele grupate pe luni după ultima modificare; post-it-uri pentru jurnale și articole, create, redenumite și șterse direct pe tablă; ordonarea prin drag-and-drop în aceeași lună (version_0.02).
 - **Editorul** CodeMirror 6: paragrafe cu identitate și audit propriu, căutare, undo/redo, Ctrl+S, detectarea salvărilor concurente, taburi, minimizare.
+- **Creare rapidă din referințe**: un `BUG`/`CR` fără destinație poate crea din popup un articol cu referința scrisă drept titlu și îl deschide într-un tab, păstrând nota curentă și evitând cererile duble din aceeași fereastră.
+- **Persistența autentificării**: cookie-ul Identity are 14 zile și expirare glisantă; pe hosting, continuitatea după restart/deploy depinde de directorul persistent configurat prin `DataProtection:KeysPath`.
 - **Mesaje de salvare**, sigla WN, designul „Hârtie & salvie”, funcționarea de bază fără JavaScript, versiunea în footer.
 
 ## În dezvoltare

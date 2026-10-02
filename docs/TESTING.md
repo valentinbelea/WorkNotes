@@ -145,3 +145,7 @@ Verificarea manuală include redirectul `/admin` către login, eroarea generică
 ### Configurația OAuth din baza de date
 
 Verificarea manuală trebuie să acopere: lipsa rândului (pagina indică „neconfigurat”, Connect nu redirecționează); salvarea din `/admin/configuration` (URL cu Client ID, scopes și callback URL din tabelă, fără Client secret); exchange, refresh și revoke cu credențialele curente; schimbarea configurației fără restart; restart cu `DataProtection:KeysPath` persistent; payload-urile SQL rămân protejate. Testele HTTP ale `GitHubOAuthClient` necesită infrastructură de teste Integrations, inexistentă în soluție și neadăugată în această schimbare.
+
+Pentru autentificarea online: inspectați ticket-ul/cookie-ul după login și confirmați valabilitatea de 14 zile; după 30–60 de minute de inactivitate faceți refresh și confirmați identitatea; repetați după restart/deploy cu același `DataProtection:KeysPath`; verificați separat cu „Ține-mă minte” bifat (cookie persistent) și nebifat (cookie de sesiune). Pierderea autentificării după restart indică în primul rând chei nepersistate, nu un timeout mai mic.
+
+Pentru crearea rapidă: încercați `bug17649`, `bug-17649`, `bug_17649`, `bug 17649` și `CR 30042`; popup-ul trebuie să ofere numai pentru o destinație lipsă „Adaugă articol”, să păstreze forma scrisă în titlu și să deschidă tabul nou. Dublu-click-ul trimite o singură operație; dacă articolul apare între lookup și click, se deschide cel existent; o eroare rămâne în popup, iar textul nesalvat al notei curente rămâne neschimbat.

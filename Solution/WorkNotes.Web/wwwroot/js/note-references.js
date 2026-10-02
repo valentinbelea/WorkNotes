@@ -228,7 +228,7 @@ const closeLookup = StateEffect.define();
 // aborted); add({ repository, reference, branch, position }) gives { ok, message }, where position() is where the
 // reference starts now (null once the popup is gone). branchTemplate: one branch of the popup's list. The option opens
 // with its button or Shift+Tab; picking a branch links it to the paragraph and closes the popup.
-function referenceLookup({ length, find, template, noteTemplate, branchTemplate, git }, linkEndsAt) {
+function referenceLookup({ length, find, create, template, noteTemplate, branchTemplate, git }, linkEndsAt) {
     let tokens = 0;
     let request = null;     // the lookup on its way: { token, controller }
     let closing = 0;        // the timer that closes a popup that found no note
@@ -288,6 +288,7 @@ function referenceLookup({ length, find, template, noteTemplate, branchTemplate,
         const dom = template.content.firstElementChild.cloneNode(true);
         const message = dom.querySelector("[data-lookup-message]");
         const list = dom.querySelector("[data-lookup-notes]");
+        const quickCreate = dom.querySelector("[data-lookup-quick-create]");
         const gitButton = dom.querySelector("[data-lookup-git-open]");
         const gitPanel = dom.querySelector("[data-lookup-git]");
         const gitOption = git && gitButton && gitPanel ? gitOptionOf(view, dom, gitButton, gitPanel) : null;
@@ -298,9 +299,18 @@ function referenceLookup({ length, find, template, noteTemplate, branchTemplate,
         const render = value => {
             if (!value) return;
             // Another lookup in the same popup: the Git option starts again for its reference.
-            if (value.token !== token) { token = value.token; gitOption?.reset(); }
-            if (value.state === state) return;
+            const changedToken = value.token !== token;
+            if (changedToken) {
+                token = value.token;
+                gitOption?.reset();
+                if (quickCreate) {
+                    quickCreate.disabled = false;
+                    quickCreate.textContent = quickCreate.dataset.textIdle;
+                }
+            }
+            if (!changedToken && value.state === state) return;
             dom.classList.replace(`note-reference-lookup--${state}`, `note-reference-lookup--${value.state}`);
+            dom.classList.toggle("note-reference-lookup--can-create", value.state === "missing" && value.canCreate === true);
             state = value.state;
             message.textContent = value.message;
             list.replaceChildren(...(value.notes ?? []).map(note => {
@@ -316,6 +326,19 @@ function referenceLookup({ length, find, template, noteTemplate, branchTemplate,
             if (!(event.target instanceof Element && event.target.closest("select"))) event.preventDefault();
         });
         dom.querySelector("[data-lookup-create]").addEventListener("click", () => accept(view));
+        quickCreate?.addEventListener("click", async () => {
+            const value = view.state.field(lookup, false);
+            if (!create || value?.state !== "missing" || value.canCreate !== true || quickCreate.disabled) return;
+            clearTimeout(closing);
+            quickCreate.disabled = true;
+            quickCreate.textContent = quickCreate.dataset.textBusy;
+            const result = await create({ reference: value.reference, title: value.title });
+            if (!alive(view) || view.state.field(lookup, false)?.token !== value.token) return;
+            if (result.ok) { close(view, value.token); return; }
+            message.textContent = result.message;
+            quickCreate.disabled = false;
+            quickCreate.textContent = quickCreate.dataset.textIdle;
+        });
         dom.addEventListener("keydown", event => {
             if (event.key !== "Escape") return;
             // Used here: the dialog must not take it as a request to close the editor.
@@ -473,9 +496,10 @@ function referenceLookup({ length, find, template, noteTemplate, branchTemplate,
             if (status === "found" && notes.length === 0) { close(view, token); return; }
             const reference = typeof answer.reference === "string" ? answer.reference : null;
             view.dispatch({ effects: answerLookup.of({ token, from: referenceFrom, to: value.to, state: status, message: answer.message,
-                notes, reference }) });
+                notes, reference, title: answer.title, canCreate: answer.canCreate === true }) });
             // A reference no note has stays for a few seconds, unless the Git option can be used (it has repositories to look in).
-            if (status === "missing" && !(git && git.repositories.length > 0 && reference)) closing = setTimeout(() => close(view, token), missingShownFor);
+            if (status === "missing" && answer.canCreate !== true && !(git && git.repositories.length > 0 && reference))
+                closing = setTimeout(() => close(view, token), missingShownFor);
         }, () => close(view, token));
     }
 

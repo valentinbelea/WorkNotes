@@ -12,6 +12,7 @@ Baza existentă, livrată în version_0.01 și version_0.02:
 - contexte cu membri și roluri (`Owner` / `Member`);
 - tabla pe contexte și luni, cu post-it-uri pentru jurnale și articole, create, redenumite, șterse și ordonate pe loc;
 - editorul cu paragrafe auditate, căutare, taburi și minimizare;
+- crearea rapidă a unui articol dintr-o referință `BUG`/`CR` lipsă, direct din popup-ul editorului;
 - mesajele de salvare, versiunea în footer, funcționarea de bază fără JavaScript.
 
 ## În lucru

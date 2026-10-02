@@ -179,6 +179,11 @@
 <data name="Editor_ReferenceFound" xml:space="preserve"><value>Referința {0} deschide:</value></data>
 <data name="Editor_ReferenceMissing" xml:space="preserve"><value>Referință inexistentă: nicio notă nu are {0} în titlu.</value></data>
 <data name="Editor_ReferenceCreate" xml:space="preserve"><value>Referință aplicație</value></data>
+<data name="Editor_ReferenceAddArticle" xml:space="preserve"><value>Adaugă articol</value></data>
+<data name="Editor_ReferenceCreating" xml:space="preserve"><value>Se creează…</value></data>
+<data name="Editor_ReferenceArticleCreated" xml:space="preserve"><value>Articolul a fost creat.</value></data>
+<data name="Editor_ReferenceArticleExisting" xml:space="preserve"><value>Articolul există deja și a fost deschis.</value></data>
+<data name="Editor_ReferenceCreateInvalid" xml:space="preserve"><value>Referința nu mai poate fi creată.</value></data>
 <data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab: referință aplicație · Shift+Tab: Git · Esc închide</value></data>
 <data name="Navigation_GitHub" xml:space="preserve"><value>Conectare GitHub</value></data>
 <data name="GitHub_Description" xml:space="preserve"><value>Conectați contul GitHub, pentru ca WorkNotes să citească branch-urile, commit-urile și pull request-urile legate de CR-uri și buguri. Autorizarea se face pe GitHub: WorkNotes nu vă vede parola GitHub.</value></data>

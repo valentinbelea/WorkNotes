@@ -179,6 +179,11 @@
 <data name="Editor_ReferenceFound" xml:space="preserve"><value>The reference {0} opens:</value></data>
 <data name="Editor_ReferenceMissing" xml:space="preserve"><value>Reference not found: no note has {0} in its title.</value></data>
 <data name="Editor_ReferenceCreate" xml:space="preserve"><value>Application reference</value></data>
+<data name="Editor_ReferenceAddArticle" xml:space="preserve"><value>Add article</value></data>
+<data name="Editor_ReferenceCreating" xml:space="preserve"><value>Creating…</value></data>
+<data name="Editor_ReferenceArticleCreated" xml:space="preserve"><value>The article has been created.</value></data>
+<data name="Editor_ReferenceArticleExisting" xml:space="preserve"><value>The article already exists and has been opened.</value></data>
+<data name="Editor_ReferenceCreateInvalid" xml:space="preserve"><value>The reference can no longer be created.</value></data>
 <data name="Editor_ReferenceHint" xml:space="preserve"><value>Tab: application reference · Shift+Tab: Git · Esc closes</value></data>
 <data name="Navigation_GitHub" xml:space="preserve"><value>GitHub connection</value></data>
 <data name="GitHub_Description" xml:space="preserve"><value>Connect your GitHub account so WorkNotes can read the branches, commits and pull requests linked to CRs and bugs. You authorize it on GitHub: WorkNotes never sees your GitHub password.</value></data>

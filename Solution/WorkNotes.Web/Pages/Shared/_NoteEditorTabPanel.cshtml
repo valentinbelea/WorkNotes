@@ -16,6 +16,7 @@
         saveUrl = Url.Page("/Index", "SaveNote", new { note = note.Id }),
         // Only its owner writes in a note, so only the owner looks up the references just typed.
         lookupUrl = note.IsOwner ? Url.Page("/Index", "ReferenceLookup", new { note = note.Id }) : null,
+        referenceArticleUrl = note.IsOwner ? Url.Page("/Index", "CreateReferenceArticle", new { note = note.Id }) : null,
         // The same for the Git option of that popup: the branches of a repository that contain the reference, linking one
         // to a paragraph, and removing a link (from the drawer).
         gitBranchesUrl = note.IsOwner ? Url.Page("/Index", "GitBranches", new { note = note.Id }) : null,
