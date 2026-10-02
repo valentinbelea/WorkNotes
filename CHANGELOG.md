@@ -6,6 +6,7 @@ Categorii: **Added** (funcționalități noi), **Changed** (comportament modific
 
 - **Changed** — configurațiile OAuth GitHub sunt separate în `Development` și `Production`, selectate automat prin mediul ASP.NET Core; pagina admin editează independent cele două rânduri, iar lipsa configurației curente este raportată controlat. Scriptul defensiv `005_SplitGitHubConfigurationsByEnvironment.sql` migrează datele existente la `Production`.
 - **Fixed** — testele configurației GitHub folosesc `CancellationToken.None`, compatibil cu versiunea xUnit a soluției, în locul API-ului inexistent `TestContext.Current`.
+- **Fixed** — selectorul de mediu al paginii admin expune lista ca proprietate a modelului Razor, eliminând eroarea de compilare `CS0176` produsă de accesarea unei proprietăți statice prin `Model`.
 
 ## [Nelansat]
 
