@@ -70,11 +70,37 @@ Prin urmare, întrebarea „tabela există?” are două răspunsuri distincte:
 - **în sursele proiectului:** da, scriptul, entitatea, maparea și accesul există;
 - **în instanța SQL din imagine:** nu poate fi demonstrat numai din repository. Starea curentă documentează că agentul nu a aplicat scriptul. Verificarea/aplicarea bazei trebuie făcută explicit pe instanța autorizată, nu automat în această analiză.
 
+### De ce nu se poate construi un `INSERT` funcțional din capturile GitHub
+
+Capturile GitHub permit identificarea Client ID-ului și a callback-ului, dar arată explicit că încă trebuie generat un Client secret și nu arată o valoare de secret sau o listă completă de permisiuni/scopes. Client secret nu trebuie transmis în conversații, capturi, Git sau scripturi versionate.
+
+Captura suplimentară din secțiunea **Private keys** nu conține Client secret. Șirul `SHA256:...` este amprenta publică a unei chei private generate pentru GitHub App, nu materialul cheii și nu credentialul OAuth cerut de implementarea WorkNotes. Cheia privată este folosită de fluxurile GitHub App care semnează JWT-uri pentru tokenuri de instalare; clientul curent WorkNotes nu implementează acel flux și nu are câmp pentru PEM/private key. El trimite explicit `client_id` și `client_secret` la exchange și folosește aceeași pereche la revocare. Prin urmare, amprenta nu se salvează în `ProtectedClientSecret`, iar fișierul cheii private nu trebuie încărcat în WorkNotes sau inclus în SQL/Git.
+
+Dacă o captură ulterioară afișează valoarea completă a unui Client secret, acel secret este deja expus și nu mai este acceptabil pentru configurarea aplicației. Faptul că nu a fost încă folosit nu îl face sigur. Se generează un secret nou fără a-l publica, acesta se introduce direct în `/admin/configuration`, apoi secretul expus se revocă în GitHub. Nici documentația, nici fișierul SQL temporar nu trebuie completate cu valoarea expusă.
+
+Mai important, coloanele SQL nu acceptă semantic valorile GitHub în clar: `ProtectedClientId` și `ProtectedClientSecret` trebuie să conțină payload-uri produse de ASP.NET Core Data Protection cu purpose string-ul `WorkNotes.GitHubConfiguration.v1` și cu key ring-ul mediului care va rula aplicația. SQL Server nu poate reproduce singur apelul `IDataProtector.Protect` al aplicației. Un `INSERT` cu Client ID-ul ori secretul în clar ar satisface tipurile SQL, dar `Unprotect` ar eșua, iar integrarea ar rămâne „neconfigurată”. Un payload produs cu key ring-ul altui mediu ar avea același rezultat.
+
+Calea sigură și funcțională pentru prima inserare este `POST /admin/configuration`: repository-ul protejează credențialele cu key ring-ul curent și creează rândul `Id = 1` în aceeași operație. SQL se folosește numai pentru crearea tabelei și pentru verificări care nu expun payload-urile. Nu se adaugă un script de date cu secrete sau placeholder-e care ar putea fi rulate accidental.
+
+Valorile nesensibile observabile sunt callback-ul `https://worknotes.eu/Account/GitHub/Callback` și Client ID-ul afișat în GitHub. Client ID-ul se copiază direct de operator în formularul admin, fără a fi duplicat în documentația sau scripturile versionate. Înainte de salvare, operatorul trebuie să folosească **Generate a new client secret** din secțiunea **Client secrets** și să introducă valoarea afișată atunci direct în formular; **Generate a private key** este altă funcție și nu produce secretul cerut de fluxul existent.
+
+În configurația OAuth observată, redirectul de producție `https://worknotes.eu/Account/GitHub/Callback` corespunde rutei aplicației, iar redirectul local cu portul IIS Express `44389` corespunde profilului versionat. Câmpul **Homepage URL** nu este callback: pentru claritate trebuie să indice pagina de bază `https://worknotes.eu`, în timp ce callback-ul rămâne numai în **Redirect URIs**. Device Flow poate rămâne dezactivat deoarece WorkNotes folosește authorization code cu callback, `state` și PKCE. Scopes nu pot fi deduse din aceste capturi și trebuie confirmate separat înaintea salvării.
+
 ## 4. Data Protection
 
 `Program.cs` configurează `AddDataProtection().SetApplicationName("WorkNotes")`. Dacă `DataProtection:KeysPath` este setat, cheile sunt scrise în acel director; pe Windows sunt protejate suplimentar cu DPAPI. Dacă setarea lipsește, ASP.NET Core folosește depozitul implicit al utilizatorului procesului.
 
 Nu există tabelă SQL pentru cheile Data Protection și codul nu configurează persistența cheilor în baza de date. Folosirea depozitului implicit poate supraviețui unui restart în același profil, dar nu oferă garanția necesară pentru un deploy care schimbă utilizatorul, mașina/containerul ori discul și nici pentru mai multe instanțe.
+
+### De ce un director și nu aceeași bază de date
+
+Persistența este obligatorie pentru **cheile Data Protection**, nu obligatoriu pentru un anumit tip de mediu de stocare. Directorul persistent este mecanismul implementat acum, nu singura opțiune posibilă. Client ID, Client secret și tokenurile sunt deja în SQL Server, dar sub formă de payload-uri criptate; cheile Data Protection sunt materialul care permite decriptarea lor.
+
+Stocarea key ring-ului în aceeași bază de date este posibilă tehnic, dar nu înseamnă doar mutarea valorilor existente în `GitHubConfigurations`. Ar necesita o tabelă separată pentru chei, integrarea providerului Data Protection cu EF Core, script SQL Database First și teste de restart/deploy. În plus, dacă payload-urile și cheile neprotejate sunt în aceeași bază, compromiterea acelei baze oferă ambele componente. Pentru păstrarea separării de securitate, cheile din SQL ar trebui protejate la rândul lor cu o cheie externă (de exemplu un certificat sau un serviciu de management al cheilor); apare inevitabil o rădăcină de încredere în afara tabelei cu secretele aplicației.
+
+Avantajul directorului este că implementarea există deja, funcționează înaintea accesului la DbContext și permite separarea drepturilor dintre baza cu payload-uri și key ring. Dezavantajul este necesitatea unui volum persistent și comun instanțelor. Avantajul SQL este administrarea centralizată și accesul comun pentru mai multe instanțe; dezavantajele sunt schimbarea de schemă/dependențe, disponibilitatea bazei pentru operațiile Data Protection și necesitatea protejării cheilor la repaus.
+
+Pentru deblocarea imediată, planul descrie comportamentul deja implementat: `DataProtection:KeysPath`. Dacă se decide explicit că key ring-ul trebuie păstrat în SQL Server, aceasta este o schimbare separată de arhitectură și schemă, nu o condiție pentru crearea rândului `GitHubConfigurations`. Indiferent de mediu, cheia nu poate fi pierdută la restart/deploy; altfel rândul rămâne în SQL, dar nu mai poate fi decriptat.
 
 În mediile găzduite trebuie configurat un `DataProtection:KeysPath` care:
 
@@ -140,7 +166,7 @@ Prin urmare, formularea exactă a condiției este: aplicația obține configura�
 Acesta este un plan operațional, nu o solicitare de schimbare majoră a codului:
 
 1. **Confirmați baza și scripturile.** Pe baza autorizată, verificați și, numai cu acord explicit, aplicați în ordinea documentată scripturile 0.03 necesare, cel puțin `001_CreateGitConnections.sql` și `004_CreateAdministration.sql`. Nu folosiți migrări EF.
-2. **Pregătiți Data Protection persistent.** Alegeți directorul privat/persistent al mediului, acordați permisiuni identității aplicației și setați `DataProtection:KeysPath` înainte de salvarea oricărui secret sau token.
+2. **Asigurați persistența Data Protection prin mecanismul curent.** Pentru implementarea existentă, alegeți directorul privat/persistent al mediului, acordați permisiuni identității aplicației și setați `DataProtection:KeysPath` înainte de salvarea oricărui secret sau token. Persistența în SQL este o alternativă posibilă, dar necesită o schimbare separată de schemă, provider și protecție la repaus; nu este implementată acum.
 3. **Înregistrați aplicația la GitHub.** Folosiți callback-ul exact al mediului (`/Account/GitHub/Callback`) și permisiunile minime necesare. Păstrați Client secret în afara logurilor, Git și comenzilor partajate.
 4. **Creați administratorul inițial.** Furnizați temporar `AdminBootstrap:Password` (și, dacă este necesar, numele), porniți aplicația pentru creare, apoi eliminați parola de bootstrap din mediu.
 5. **Salvați configurația din admin.** Autentificați-vă la `/admin`, deschideți `/admin/configuration` și salvați Client ID, Client secret, scopes și callback URL. Nu inserați manual payload-uri în SQL.
