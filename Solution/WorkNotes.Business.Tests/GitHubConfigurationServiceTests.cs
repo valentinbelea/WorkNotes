@@ -11,7 +11,7 @@ public sealed class GitHubConfigurationServiceTests
     {
         var repository = new Repository();
         var result = await new GitHubConfigurationService(repository, new Environment()).SaveAsync(
-            new(GitHubEnvironments.Development, "client", null, "read:user", "https://example.test/callback"), TestContext.Current.CancellationToken);
+            new(GitHubEnvironments.Development, "client", null, "read:user", "https://example.test/callback"), CancellationToken.None);
         Assert.Equal(GitHubConfigurationSaveStatus.ClientSecretRequired, result);
         Assert.Null(repository.Saved);
     }
@@ -21,7 +21,7 @@ public sealed class GitHubConfigurationServiceTests
     {
         var repository = new Repository { Current = new(GitHubEnvironments.Development, "old", true, "read:user", "https://old.test") };
         var result = await new GitHubConfigurationService(repository, new Environment()).SaveAsync(
-            new(GitHubEnvironments.Development, "new", " ", "repo read:user", "https://example.test/callback"), TestContext.Current.CancellationToken);
+            new(GitHubEnvironments.Development, "new", " ", "repo read:user", "https://example.test/callback"), CancellationToken.None);
         Assert.Equal(GitHubConfigurationSaveStatus.Succeeded, result);
         Assert.Null(repository.Saved!.ClientSecret);
     }
@@ -34,7 +34,7 @@ public sealed class GitHubConfigurationServiceTests
         var input = expected == GitHubConfigurationSaveStatus.InvalidScopes
             ? new GitHubConfigurationInput(GitHubEnvironments.Development, "client", "secret", value, "https://example.test")
             : new GitHubConfigurationInput(GitHubEnvironments.Development, "client", "secret", "read:user", value);
-        Assert.Equal(expected, await new GitHubConfigurationService(new Repository(), new Environment()).SaveAsync(input, TestContext.Current.CancellationToken));
+        Assert.Equal(expected, await new GitHubConfigurationService(new Repository(), new Environment()).SaveAsync(input, CancellationToken.None));
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class GitHubConfigurationServiceTests
         var repository = new Repository();
         var status = await new GitHubConfigurationService(repository, new Environment()).SaveAsync(
             new("Staging", "client", "secret", "read:user", "https://example.test/callback"),
-            TestContext.Current.CancellationToken);
+            CancellationToken.None);
 
         Assert.Equal(GitHubConfigurationSaveStatus.InvalidEnvironment, status);
         Assert.Null(repository.Saved);
@@ -57,7 +57,7 @@ public sealed class GitHubConfigurationServiceTests
         var repository = new Repository();
         await new GitHubConfigurationService(repository, new Environment()).SaveAsync(
             new(environmentName, "client", "secret", "read:user", "https://example.test/callback"),
-            TestContext.Current.CancellationToken);
+            CancellationToken.None);
 
         Assert.Equal(environmentName, repository.Saved!.EnvironmentName);
     }
@@ -70,7 +70,7 @@ public sealed class GitHubConfigurationServiceTests
         var repository = new Repository();
         var service = new GitHubConfigurationService(repository, new Environment(environmentName));
 
-        await service.GetCredentialAsync(TestContext.Current.CancellationToken);
+        await service.GetCredentialAsync(CancellationToken.None);
 
         Assert.Equal(environmentName, repository.CredentialEnvironmentName);
     }
@@ -93,7 +93,12 @@ public sealed class GitHubConfigurationServiceTests
         var service = new GitHubConfigurationService(new Repository { CredentialFailure = expected }, new Environment());
 
         Assert.Same(expected, await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.GetCredentialAsync(TestContext.Current.CancellationToken)));
+            () => service.GetCredentialAsync(CancellationToken.None)));
+    }
+
+    private sealed class Environment(string name = GitHubEnvironments.Development) : IRuntimeEnvironment
+    {
+        public string Name { get; } = name;
     }
 
     private sealed class Environment(string name = GitHubEnvironments.Development) : IRuntimeEnvironment
