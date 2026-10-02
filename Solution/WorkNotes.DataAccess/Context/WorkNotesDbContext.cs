@@ -97,8 +97,10 @@ public partial class WorkNotesDbContext : DbContext
 
         modelBuilder.Entity<GitHubConfiguration>(entity =>
         {
-            entity.ToTable("GitHubConfigurations", table => table.HasCheckConstraint("CK_GitHubConfigurations_SingleRow", "[Id] = 1"));
+            entity.ToTable("GitHubConfigurations", table => table.HasCheckConstraint("CK_GitHubConfigurations_Environment", "([Id] = 1 AND [EnvironmentName] = N'Production') OR ([Id] = 2 AND [EnvironmentName] = N'Development')"));
+            entity.HasIndex(e => e.EnvironmentName, "UX_GitHubConfigurations_EnvironmentName").IsUnique();
             entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.EnvironmentName).HasMaxLength(50);
             entity.Property(e => e.Scopes).HasMaxLength(500);
             entity.Property(e => e.CallbackUrl).HasMaxLength(1000);
             entity.Property(e => e.CreatedAtUtc).HasPrecision(0).HasDefaultValueSql("(sysutcdatetime())", "DF_GitHubConfigurations_CreatedAtUtc");

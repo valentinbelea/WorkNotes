@@ -92,4 +92,4 @@ TODO: Necesită clarificare — nu există o procedură de backup documentată (
 
 ### Configurația GitHub administrată
 
-Aplicați explicit scriptul existent `Scripts/version_0.03/004_CreateAdministration.sql`, configurați bootstrap-ul admin și salvați Client ID, Client secret, scopes și callback URL în `/admin/configuration`. Nu setați aceste valori în secțiunea `GitHub`; aceasta păstrează numai endpoint-urile și timeout-ul nesensibile. `DataProtection:KeysPath` trebuie să fie persistent și disponibil aceleiași identități după restart/deploy.
+Aplicați explicit scripturile `Scripts/version_0.03/004_CreateAdministration.sql` și `005_SplitGitHubConfigurationsByEnvironment.sql`, configurați bootstrap-ul admin și salvați separat configurațiile `Development` și `Production` în `/admin/configuration`; callback-urile sunt `http://localhost:5018/Account/GitHub/Callback`, respectiv `https://worknotes.eu/Account/GitHub/Callback`. Nu setați aceste valori în secțiunea `GitHub`; aceasta păstrează numai endpoint-urile și timeout-ul nesensibile. `DataProtection:KeysPath` trebuie să fie persistent și disponibil aceleiași identități după restart/deploy.

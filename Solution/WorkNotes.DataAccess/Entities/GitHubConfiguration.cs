@@ -3,6 +3,7 @@ namespace WorkNotes.DataAccess.Entities;
 public sealed class GitHubConfiguration
 {
     public int Id { get; set; }
+    public string EnvironmentName { get; set; } = null!;
     public string ProtectedClientId { get; set; } = null!;
     public string ProtectedClientSecret { get; set; } = null!;
     public string Scopes { get; set; } = null!;

@@ -275,4 +275,11 @@
   <data name="Message_GitHubConfiguration_ClientSecretRequired" xml:space="preserve"><value>Sekret klienta jest wymagany przy pierwszej konfiguracji.</value></data>
   <data name="Message_GitHubConfiguration_InvalidScopes" xml:space="preserve"><value>Zakresy zawierają niedozwolone znaki.</value></data>
   <data name="Message_GitHubConfiguration_InvalidCallbackUrl" xml:space="preserve"><value>Adres URL wywołania zwrotnego jest nieprawidłowy.</value></data>
+  <data name="Admin_GitHubConfigurationEnvironmentTitle" xml:space="preserve"><value>Konfiguracja GitHub - {0}</value></data>
+  <data name="Field_Environment" xml:space="preserve"><value>Środowisko</value></data>
+  <data name="Button_Select" xml:space="preserve"><value>Wybierz</value></data>
+  <data name="Validation_EnvironmentRequired" xml:space="preserve"><value>Środowisko jest wymagane.</value></data>
+  <data name="Message_GitHubConfiguration_InvalidEnvironment" xml:space="preserve"><value>Wybrane środowisko jest niedozwolone.</value></data>
+  <data name="GitHub_NotConfiguredForEnvironment" xml:space="preserve"><value>Integracja GitHub jest niedostępna dla bieżącego środowiska: {0}.</value></data>
+  <data name="Validation_ScopesRequired" xml:space="preserve"><value>Zakresy są wymagane.</value></data>
 </root>
