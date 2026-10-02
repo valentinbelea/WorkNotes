@@ -17,26 +17,32 @@ public sealed class ConfigurationModel(IGitHubConfigurationService service, IStr
     public bool HasClientSecret { get; private set; }
     public string? StatusMessage { get; private set; }
 
-    public async Task OnGetAsync(CancellationToken cancellationToken)
+    public IReadOnlyList<string> Environments { get; } = [GitHubEnvironments.Development, GitHubEnvironments.Production];
+
+    public async Task OnGetAsync(string? environmentName, CancellationToken cancellationToken)
     {
-        var current = await service.GetAsync(cancellationToken);
+        var selectedEnvironment = GitHubEnvironments.IsSupported(environmentName ?? "")
+            ? environmentName!
+            : GitHubEnvironments.Development;
+        Input.EnvironmentName = selectedEnvironment;
+        var current = await service.GetAsync(selectedEnvironment, cancellationToken);
         if (current is null) return;
-        Input = new() { ClientId = current.ClientId, Scopes = current.Scopes, CallbackUrl = current.CallbackUrl };
+        Input = new() { EnvironmentName = current.EnvironmentName, ClientId = current.ClientId, Scopes = current.Scopes, CallbackUrl = current.CallbackUrl };
         HasClientSecret = current.HasClientSecret;
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid) return Page();
-        var status = await service.SaveAsync(new(Input.ClientId, Input.ClientSecret, Input.Scopes, Input.CallbackUrl), cancellationToken);
+        var status = await service.SaveAsync(new(Input.EnvironmentName, Input.ClientId, Input.ClientSecret, Input.Scopes, Input.CallbackUrl), cancellationToken);
         if (status != GitHubConfigurationSaveStatus.Succeeded)
         {
             ModelState.AddModelError("", localizer[$"Message_GitHubConfiguration_{status}"]);
-            HasClientSecret = (await service.GetAsync(cancellationToken))?.HasClientSecret == true;
+            HasClientSecret = (await service.GetAsync(Input.EnvironmentName, cancellationToken))?.HasClientSecret == true;
             return Page();
         }
         StatusMessage = localizer["Message_ConfigurationSaved"];
-        await OnGetAsync(cancellationToken);
+        await OnGetAsync(Input.EnvironmentName, cancellationToken);
         return Page();
     }
 }

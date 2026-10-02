@@ -116,3 +116,6 @@ Scriptul verifică: chei duplicate sau valori goale, aceleași chei în cele pat
 # Zona admin
 
 Login-ul, layoutul și formularul configurației folosesc același catalog `SharedResources`, cu chei `Admin_*`, `Field_*`, `Validation_*` și `Message_GitHubConfiguration_*` complete în ro/en/pl.
+
+
+Configurația OAuth pe medii adaugă șapte chei identice în cele patru cataloage: titlul formatat al mediului, eticheta/selectarea/validarea mediului, mediul invalid și mesajul formatat pentru configurația runtime lipsă. Parametrul `{0}` este identic în ro/en/pl.

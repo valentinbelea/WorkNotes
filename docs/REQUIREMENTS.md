@@ -159,4 +159,4 @@ Versiunea 0.03 este dedicată integrării cu Git, la cererea utilizatorului din 
 - [x] Configurația globală GitHub se editează din meniul admin; Client ID și Client secret sunt protejate reversibil, iar secretul nu revine în formular.
 - [~] Punerea în funcțiune cere aplicarea explicită a scriptului 004, parola inițială aleasă de operator și un `DataProtection:KeysPath` persistent.
 
-- [x] Configurația tehnică OAuth (Client ID, Client secret, scopes, callback URL) este singletonul `GitHubConfigurations`, administrat în `/admin/configuration` și citit asincron la fiecare operație; configurația lipsă/nedecriptabilă este „neconfigurat”, fără mascarea erorilor SQL.
+- [x] Configurația tehnică OAuth (Client ID, Client secret, scopes, callback URL) are câte un rând unic `Development`/`Production` în `GitHubConfigurations`, selectat automat după mediul ASP.NET Core și administrat în `/admin/configuration` și citit asincron la fiecare operație; configurația lipsă/nedecriptabilă este „neconfigurat”, fără mascarea erorilor SQL.
