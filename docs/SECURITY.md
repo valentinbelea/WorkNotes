@@ -117,4 +117,4 @@ Administratorii sunt separați în `AdminUsers`, folosesc un cookie dedicat și 
 
 ### Configurația globală OAuth
 
-Client ID, Client secret, scopes și callback URL se citesc exclusiv din `GitHubConfigurations`; credențialele sunt decriptate numai server-side pentru operația curentă și nu sunt memorate într-un singleton/cache. Un payload nedecriptabil produce starea localizată „neconfigurat”, fără detalii criptografice; o eroare SQL se propagă. Configurația schimbată este folosită fără restart.
+Client ID, Client secret, scopes și callback URL se citesc exclusiv din rândul `GitHubConfigurations` corespunzător mediului ASP.NET Core curent; credențialele sunt decriptate numai server-side pentru operația curentă și nu sunt memorate într-un singleton/cache. Un payload nedecriptabil produce starea localizată „neconfigurat”, fără detalii criptografice; o eroare SQL se propagă. Configurația schimbată este folosită fără restart.

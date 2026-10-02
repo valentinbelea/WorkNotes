@@ -275,4 +275,11 @@
   <data name="Message_GitHubConfiguration_ClientSecretRequired" xml:space="preserve"><value>Client secret este obligatoriu la prima configurare.</value></data>
   <data name="Message_GitHubConfiguration_InvalidScopes" xml:space="preserve"><value>Permisiunile conțin caractere nepermise.</value></data>
   <data name="Message_GitHubConfiguration_InvalidCallbackUrl" xml:space="preserve"><value>URL-ul callback nu este valid.</value></data>
+  <data name="Admin_GitHubConfigurationEnvironmentTitle" xml:space="preserve"><value>Configurare GitHub - {0}</value></data>
+  <data name="Field_Environment" xml:space="preserve"><value>Mediu</value></data>
+  <data name="Button_Select" xml:space="preserve"><value>Selectează</value></data>
+  <data name="Validation_EnvironmentRequired" xml:space="preserve"><value>Mediul este obligatoriu.</value></data>
+  <data name="Message_GitHubConfiguration_InvalidEnvironment" xml:space="preserve"><value>Mediul selectat nu este permis.</value></data>
+  <data name="GitHub_NotConfiguredForEnvironment" xml:space="preserve"><value>Integrarea GitHub nu este disponibilă pentru mediul curent: {0}.</value></data>
+  <data name="Validation_ScopesRequired" xml:space="preserve"><value>Permisiunile sunt obligatorii.</value></data>
 </root>

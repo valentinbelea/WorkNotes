@@ -4,6 +4,10 @@ namespace WorkNotes.Web.ViewModels;
 
 public sealed class GitHubConfigurationInput
 {
+    [Required(ErrorMessage = "Validation_EnvironmentRequired")]
+    [Display(Name = "Field_Environment")]
+    public string EnvironmentName { get; set; } = "Development";
+
     [Required(ErrorMessage = "Validation_ClientIdRequired")]
     [Display(Name = "Field_ClientId")]
     public string ClientId { get; set; } = "";
@@ -13,6 +17,7 @@ public sealed class GitHubConfigurationInput
     public string? ClientSecret { get; set; }
 
     [Display(Name = "Field_Scopes")]
+    [Required(ErrorMessage = "Validation_ScopesRequired")]
     public string Scopes { get; set; } = "";
 
     [Required(ErrorMessage = "Validation_CallbackUrlRequired")]

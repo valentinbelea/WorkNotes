@@ -13,11 +13,15 @@ public static class StatusMessageTempData
         StatusMessageKind kind = StatusMessageKind.Success, string entry = Page) =>
         tempData[entry] = $"{kind}|{key}";
 
+    public static void SetStatusMessage(this ITempDataDictionary tempData, string key,
+        StatusMessageKind kind, string argument, string entry = Page) =>
+        tempData[entry] = $"{kind}|{key}|{argument.Replace("|", "", StringComparison.Ordinal)}";
+
     public static StatusMessage? TakeStatusMessage(this ITempDataDictionary tempData, string entry = Page) =>
         tempData[entry] is string value
-        && value.Split('|') is [var kind, var key]
+        && value.Split('|') is [var kind, var key, .. var arguments]
         && Enum.TryParse<StatusMessageKind>(kind, out var parsed)
         && Enum.IsDefined(parsed)
-            ? new StatusMessage(parsed, key)
+            ? new StatusMessage(parsed, key, arguments.FirstOrDefault())
             : null;
 }

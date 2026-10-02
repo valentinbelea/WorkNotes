@@ -13,7 +13,7 @@
 }
 else if (!Model.IsConfigured)
 {
-    <p class="text-muted">@L["GitHub_NotConfiguredHelp"]</p>
+    <p class="text-muted">@L["GitHub_NotConfiguredForEnvironment", Model.EnvironmentName]</p>
     <form method="post" asp-page-handler="Connect">
         <button type="submit" class="btn btn-primary">@L["Button_ConnectGitHub"]</button>
     </form>

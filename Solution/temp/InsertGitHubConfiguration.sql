@@ -23,7 +23,10 @@ DECLARE @Scopes nvarchar(500) = N'';                 -- Confirm before use.
 DECLARE @CallbackUrl nvarchar(1000) = N'https://worknotes.eu/Account/GitHub/Callback';
 
 IF OBJECT_ID(N'[dbo].[GitHubConfigurations]', N'U') IS NULL
-    THROW 51000, 'dbo.GitHubConfigurations is missing. Apply version_0.03/004_CreateAdministration.sql first.', 1;
+    THROW 51000, 'dbo.GitHubConfigurations is missing. Apply version_0.03 scripts 004 and 005 first.', 1;
+
+IF COL_LENGTH(N'dbo.GitHubConfigurations', N'EnvironmentName') IS NULL
+    THROW 51003, 'EnvironmentName is missing. Apply version_0.03/005_SplitGitHubConfigurationsByEnvironment.sql first.', 1;
 
 IF NULLIF(@ProtectedClientId, N'') IS NULL OR NULLIF(@ProtectedClientSecret, N'') IS NULL
     THROW 51001, 'Protected Data Protection payloads are required. Do not use plaintext OAuth credentials.', 1;
@@ -33,7 +36,7 @@ IF @CallbackUrl <> N'https://worknotes.eu/Account/GitHub/Callback'
 
 BEGIN TRANSACTION;
 
-IF EXISTS (SELECT 1 FROM [dbo].[GitHubConfigurations] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = 1)
+IF EXISTS (SELECT 1 FROM [dbo].[GitHubConfigurations] WITH (UPDLOCK, HOLDLOCK) WHERE [EnvironmentName] = N'Production')
 BEGIN
     UPDATE [dbo].[GitHubConfigurations]
     SET [ProtectedClientId] = @ProtectedClientId,
@@ -41,17 +44,17 @@ BEGIN
         [Scopes] = @Scopes,
         [CallbackUrl] = @CallbackUrl,
         [UpdatedAtUtc] = SYSUTCDATETIME()
-    WHERE [Id] = 1;
+    WHERE [EnvironmentName] = N'Production';
 END
 ELSE
 BEGIN
     INSERT INTO [dbo].[GitHubConfigurations]
     (
-        [Id], [ProtectedClientId], [ProtectedClientSecret], [Scopes], [CallbackUrl], [CreatedAtUtc], [UpdatedAtUtc]
+        [Id], [EnvironmentName], [ProtectedClientId], [ProtectedClientSecret], [Scopes], [CallbackUrl], [CreatedAtUtc], [UpdatedAtUtc]
     )
     VALUES
     (
-        1, @ProtectedClientId, @ProtectedClientSecret, @Scopes, @CallbackUrl, SYSUTCDATETIME(), SYSUTCDATETIME()
+        1, N'Production', @ProtectedClientId, @ProtectedClientSecret, @Scopes, @CallbackUrl, SYSUTCDATETIME(), SYSUTCDATETIME()
     );
 END;
 
@@ -59,6 +62,7 @@ COMMIT TRANSACTION;
 
 SELECT
     [Id],
+    [EnvironmentName],
     CAST(CASE WHEN NULLIF([ProtectedClientId], N'') IS NULL THEN 0 ELSE 1 END AS bit) AS [HasProtectedClientId],
     CAST(CASE WHEN NULLIF([ProtectedClientSecret], N'') IS NULL THEN 0 ELSE 1 END AS bit) AS [HasProtectedClientSecret],
     [Scopes],
@@ -66,5 +70,5 @@ SELECT
     [CreatedAtUtc],
     [UpdatedAtUtc]
 FROM [dbo].[GitHubConfigurations]
-WHERE [Id] = 1;
+WHERE [EnvironmentName] = N'Production';
 GO
