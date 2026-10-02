@@ -79,6 +79,7 @@ Apoi utilizatorul a cerut ca editorul unei note să aibă în dreapta, lângă t
 
 ## Consecințe
 
+- Pentru o referință `BUG` sau `CR` fără destinație, popup-ul oferă crearea rapidă a unui articol privat. Serverul repetă lookup-ul la click, deschide destinația apărută între timp sau creează articolul cu `NoteReferenceMatch.Text` (forma scrisă, nu cheia `BUG:17649`) drept titlu, apoi repetă lookup-ul pentru ID-ul tabului. Clientul dezactivează butonul și reunește cererile aceleiași chei normalizate cât timp sunt în curs; celelalte tipuri configurabile nu primesc automat un tip de notă.
 - O referință nou scrisă devine link la salvare sau, mai devreme, din popup; textul scris într-un link, ca și o literă sau o cifră lipită de el, îl ascunde până la salvare; Ctrl+Z nu readuce un link înainte de salvare.
 - Popup-ul întreabă serverul la fiecare cuvânt terminat după o cifră; notele arătate sunt cele din acel moment, iar salvarea le calculează din nou.
 - O referință cu multe note deschide tot atâtea taburi.

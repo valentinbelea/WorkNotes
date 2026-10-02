@@ -821,6 +821,45 @@ public sealed class NoteServiceTests
         Assert.Null(references.LookedUp);
     }
 
+    [Theory]
+    [InlineData("bug17649", "bug17649")]
+    [InlineData("bug-17649", "bug-17649")]
+    [InlineData("bug_17649", "bug_17649")]
+    [InlineData("bug 17649", "bug 17649")]
+    [InlineData("CR 30042", "CR 30042")]
+    public async Task MissingBugOrCrCreatesAnArticleWithTheWrittenReferenceAndReturnsIt(string text, string title)
+    {
+        var match = new NoteReferenceMatch(0, title, title.StartsWith("CR", StringComparison.Ordinal) ? "CR" : "BUG",
+            title.StartsWith("CR", StringComparison.Ordinal) ? 30042 : 17649);
+        var created = new NoteReferenceTarget(23, title, NoteTypes.Article);
+        var references = new StubReferences();
+        references.Lookups.Enqueue(new(NoteReferenceLookupStatus.NoNote, match));
+        references.Lookups.Enqueue(new(NoteReferenceLookupStatus.Found, match, [created]));
+        var repository = new StubNotes(summary: Note(7, NoteTypes.Journal, September, contextId: 9));
+        var service = new NoteService(repository, new StubContexts(), references, UtcTime);
+
+        var result = await service.CreateReferenceArticleAsync(User, 7, text, CancellationToken.None);
+
+        Assert.Equal(NoteReferenceArticleStatus.Created, result.Status);
+        Assert.Equal([23], result.Targets!.Select(target => target.Id));
+        Assert.Equal(new NewNote(9, User, NoteTypes.Article, title, null, NoteVisibilities.Private), repository.Added);
+    }
+
+    [Fact]
+    public async Task ExistingReferenceArticleIsReturnedWithoutCreatingADuplicate()
+    {
+        var references = new StubReferences();
+        references.Lookups.Enqueue(new(NoteReferenceLookupStatus.Found, new(0, "CR 30042", "CR", 30042), [Cr30080]));
+        var repository = new StubNotes(summary: Note(7, NoteTypes.Journal, September, contextId: 9));
+        var service = new NoteService(repository, new StubContexts(), references, UtcTime);
+
+        var result = await service.CreateReferenceArticleAsync(User, 7, "CR 30042", CancellationToken.None);
+
+        Assert.Equal(NoteReferenceArticleStatus.Existing, result.Status);
+        Assert.Equal([Cr30080], result.Targets);
+        Assert.Null(repository.Added);
+    }
+
     private sealed class FixedTime(DateTimeOffset utcNow, TimeSpan offset) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => utcNow;
@@ -921,11 +960,13 @@ public sealed class NoteServiceTests
         }
 
         public (string OwnerUserId, int ContextId, int NoteId, string? Text, CancellationToken Token)? LookedUp { get; private set; }
+        public Queue<NoteReferenceLookup> Lookups { get; } = new();
 
         public Task<NoteReferenceLookup> LookUpAsync(string ownerUserId, int contextId, int noteId, string? text, CancellationToken cancellationToken)
         {
             LookedUp = (ownerUserId, contextId, noteId, text, cancellationToken);
-            return Task.FromResult(new NoteReferenceLookup(NoteReferenceLookupStatus.Found, new(10, "CR 30080", "CR", 30080), [Cr30080]));
+            return Task.FromResult(Lookups.Count > 0 ? Lookups.Dequeue()
+                : new NoteReferenceLookup(NoteReferenceLookupStatus.Found, new(10, "CR 30080", "CR", 30080), [Cr30080]));
         }
     }
 

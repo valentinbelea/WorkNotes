@@ -102,16 +102,17 @@ input.note-sheet__title:focus-visible { outline: none; border-bottom: 2px solid 
 .note-reference-lookup__note--article .note-reference-lookup__type { background: var(--wn-note-sage); }
 .note-reference-lookup__name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 .note-reference-lookup__actions { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .75rem; margin: .1rem 0 0; }
-.note-reference-lookup :is(.note-reference-lookup__create, .note-reference-lookup__git-open) { min-height: 36px; padding: .3rem .8rem; }
+.note-reference-lookup :is(.note-reference-lookup__create, .note-reference-lookup__quick-create, .note-reference-lookup__git-open) { min-height: 36px; padding: .3rem .8rem; }
 @media (pointer: coarse) {
-    .note-reference-lookup :is(.note-reference-lookup__create, .note-reference-lookup__git-open) { min-height: 44px; }
+    .note-reference-lookup :is(.note-reference-lookup__create, .note-reference-lookup__quick-create, .note-reference-lookup__git-open) { min-height: 44px; }
 }
 .note-reference-lookup__hint { color: var(--wn-muted); font-size: .75rem; }
 /* While the server searches nothing else shows. A found reference offers the application reference (the button that
    makes it a link) and the Git option; a reference no note has only the Git option, with its own hint. */
 .note-reference-lookup--searching :is(.note-reference-lookup__notes, .note-reference-lookup__actions, .note-reference-lookup__git) { display: none; }
-.note-reference-lookup--found .note-reference-lookup__hint--missing,
-.note-reference-lookup--missing :is(.note-reference-lookup__notes, .note-reference-lookup__create, .note-reference-lookup__hint--found) { display: none; }
+.note-reference-lookup--found :is(.note-reference-lookup__quick-create, .note-reference-lookup__hint--missing),
+.note-reference-lookup--missing :is(.note-reference-lookup__notes, .note-reference-lookup__create, .note-reference-lookup__hint--found),
+.note-reference-lookup--missing:not(.note-reference-lookup--can-create) .note-reference-lookup__quick-create { display: none; }
 /* The Git option: the repository to look in, then the branches of it whose name contains the reference. */
 /* With the Git panel open the popup may grow, but never past what the window can show; the keys' hint is not needed any more. */
 .note-reference-lookup:has(.note-reference-lookup__git:not([hidden])) { max-height: min(24rem, 45dvh); }

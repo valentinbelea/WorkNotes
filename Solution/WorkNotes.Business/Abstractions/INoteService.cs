@@ -24,6 +24,10 @@ public interface INoteService
     // Only the owner, who writes the note: the reference the text ends with (the text of a paragraph up to where the owner
     // is typing) and the notes it would open (INoteReferenceService.LookUpAsync).
     Task<NoteReferenceLookup> LookUpReferenceAsync(string userId, int noteId, string? text, CancellationToken cancellationToken);
+    // Rechecks a BUG/CR reference and creates its missing private article with the reference as written for its title.
+    // If another request already created it, returns that article instead of creating another one.
+    Task<NoteReferenceArticleResult> CreateReferenceArticleAsync(string userId, int noteId, string? text,
+        CancellationToken cancellationToken);
     // Null when the note does not exist or the user may not see it.
     Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken);
     // Only the owner renames a note, from its card; an empty title makes it untitled. The references of the board that

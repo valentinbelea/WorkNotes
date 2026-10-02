@@ -112,6 +112,39 @@ public sealed class NoteService(INoteRepository notes, IWorkContextRepository co
         return await references.LookUpAsync(userId, note.ContextId, noteId, text, cancellationToken);
     }
 
+    public async Task<NoteReferenceArticleResult> CreateReferenceArticleAsync(string userId, int noteId, string? text,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        cancellationToken.ThrowIfCancellationRequested();
+        var note = await notes.GetSummaryAsync(noteId, userId, cancellationToken);
+        if (note is null) return new(NoteReferenceArticleStatus.NotFound);
+        if (!note.IsOwner) return new(NoteReferenceArticleStatus.Forbidden);
+
+        // Look up again at click time: a different tab/session may have created the target since the popup appeared.
+        var lookup = await references.LookUpAsync(userId, note.ContextId, noteId, text, cancellationToken);
+        if (lookup.Status == NoteReferenceLookupStatus.Found && lookup.Targets is { Count: > 0 } existing)
+            return new(NoteReferenceArticleStatus.Existing, existing);
+        if (lookup is not { Status: NoteReferenceLookupStatus.NoNote, Match: { } match }
+            || match.ReferenceType is not ("BUG" or "CR"))
+            return new(NoteReferenceArticleStatus.InvalidReference);
+
+        var create = await CreateAsync(userId, note.ContextId, NoteTypes.Article, match.Text, cancellationToken);
+        if (create != NoteCreateStatus.Created)
+            return new(create switch
+            {
+                NoteCreateStatus.InvalidTitle => NoteReferenceArticleStatus.InvalidTitle,
+                NoteCreateStatus.ContextNotFound => NoteReferenceArticleStatus.ContextNotFound,
+                _ => NoteReferenceArticleStatus.InvalidReference
+            });
+
+        // CreateAsync refreshes reference targets. Resolve once more to obtain the new id without duplicating creation logic.
+        var created = await references.LookUpAsync(userId, note.ContextId, noteId, match.Text, cancellationToken);
+        return created.Status == NoteReferenceLookupStatus.Found && created.Targets is { Count: > 0 } targets
+            ? new(NoteReferenceArticleStatus.Created, targets)
+            : new(NoteReferenceArticleStatus.NotFound);
+    }
+
     public Task<NoteSummary?> GetSummaryAsync(int noteId, string userId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);

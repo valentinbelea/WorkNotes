@@ -181,11 +181,36 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
                 start = missing.Start,
                 length = missing.Length,
                 reference = missing.NormalizedReference,
-                message = localizer["Editor_ReferenceMissing", missing.Text].Value
+                message = localizer["Editor_ReferenceMissing", missing.Text].Value,
+                title = missing.Text,
+                canCreate = missing.ReferenceType is "BUG" or "CR"
             }),
             { Status: NoteReferenceLookupStatus.Forbidden } => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
             { Status: NoteReferenceLookupStatus.NotFound } => EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound"),
             _ => new JsonResult(new { status = "none" })
+        };
+    }
+
+    // Rechecks and creates a missing BUG/CR as an article, then returns the tab the editor must open. The current note is
+    // never saved or closed by this action, so its unsaved text remains intact.
+    public async Task<IActionResult> OnPostCreateReferenceArticleAsync(int note, [FromBody] NoteReferenceLookupRequest? request,
+        CancellationToken cancellationToken)
+    {
+        if (!IsSignedIn) return EditorFailure(StatusCodes.Status401Unauthorized, "Editor_SessionExpired");
+        var result = await notes.CreateReferenceArticleAsync(UserId, note, request?.Text, cancellationToken);
+        return result.Status switch
+        {
+            NoteReferenceArticleStatus.Created or NoteReferenceArticleStatus.Existing => new JsonResult(new
+            {
+                notes = (result.Targets ?? []).Select(target => target.Id),
+                message = localizer[result.Status == NoteReferenceArticleStatus.Created
+                    ? "Editor_ReferenceArticleCreated" : "Editor_ReferenceArticleExisting"].Value
+            }),
+            NoteReferenceArticleStatus.Forbidden => EditorFailure(StatusCodes.Status403Forbidden, "Editor_ReadOnly"),
+            NoteReferenceArticleStatus.NotFound => EditorFailure(StatusCodes.Status404NotFound, "Editor_NotFound"),
+            NoteReferenceArticleStatus.ContextNotFound => EditorFailure(StatusCodes.Status409Conflict, "Validation_ContextUnavailable"),
+            NoteReferenceArticleStatus.InvalidTitle => EditorFailure(StatusCodes.Status400BadRequest, "Validation_InvalidNoteTitle"),
+            _ => EditorFailure(StatusCodes.Status400BadRequest, "Editor_ReferenceCreateInvalid")
         };
     }
 
@@ -320,6 +345,7 @@ public sealed class IndexModel(INoteService notes, IWorkContextService contexts,
     public IActionResult OnGetGitBranches(int? context) => RedirectToPage(new { context });
     public IActionResult OnGetAddGitReference(int? context) => RedirectToPage(new { context });
     public IActionResult OnGetRemoveGitReference(int? context) => RedirectToPage(new { context });
+    public IActionResult OnGetCreateReferenceArticle(int? context) => RedirectToPage(new { context });
 
     // Why a Git reference operation failed, as the editor shows it: a code and a localized message.
     private JsonResult GitFailure(GitReferenceStatus status, bool removing = false) => status switch
