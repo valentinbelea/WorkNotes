@@ -101,6 +101,11 @@ public sealed class GitHubConfigurationServiceTests
         public string Name { get; } = name;
     }
 
+    private sealed class Environment(string name = GitHubEnvironments.Development) : IRuntimeEnvironment
+    {
+        public string Name { get; } = name;
+    }
+
     private sealed class Repository : IGitHubConfigurationRepository
     {
         public GitHubConfiguration? Current { get; init; }
