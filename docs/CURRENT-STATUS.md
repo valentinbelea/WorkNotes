@@ -37,7 +37,7 @@ Statusul detaliat al fiecărei cerințe este în [REQUIREMENTS.md](REQUIREMENTS.
 
 ## Probleme cunoscute
 
-Zona de administrare și configurația globală GitHub sunt implementate în cod și pregătite prin `version_0.03/004_CreateAdministration.sql`. Scriptul nu a fost aplicat de agent; administratorul inițial apare numai când operatorul furnizează secretul `AdminBootstrap:Password`. Detaliile sunt în [ADMIN_CONFIGURATION.md](ADMIN_CONFIGURATION.md).
+Zona de administrare și configurația globală GitHub sunt implementate în cod și pregătite prin `version_0.03/004_CreateAdministration.sql`. Scriptul nu a fost aplicat de agent; administratorul inițial apare numai când operatorul furnizează secretul `AdminBootstrap:Password`. Detaliile sunt în [ADMIN_CONFIGURATION.md](ADMIN_CONFIGURATION.md), iar diagnosticul concret al ecranului „neconfigurat” și planul minim de deblocare sunt în [GITHUB_CONFIGURATION_ANALYSIS.md](GITHUB_CONFIGURATION_ANALYSIS.md).
 
 Limitări documentate în version_0.01–0.02:
 

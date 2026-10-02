@@ -90,6 +90,7 @@ Scripturile sunt în `Scripts/version_0.0x`, câte un folder pentru fiecare vers
 ## Documentație
 
 - [Administrare și configurarea GitHub](docs/ADMIN_CONFIGURATION.md)
+- [Analiza deblocării configurării GitHub OAuth](docs/GITHUB_CONFIGURATION_ANALYSIS.md)
 
 | Document | Conținut |
 | --- | --- |
