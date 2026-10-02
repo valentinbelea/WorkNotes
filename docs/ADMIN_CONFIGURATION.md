@@ -21,6 +21,8 @@ Pagina `/admin/configuration` acceptă Client ID, Client secret, scopes și call
 
 Prima configurație se salvează obligatoriu prin această pagină, nu printr-un `INSERT` cu valorile în clar. Coloanele `ProtectedClientId` și `ProtectedClientSecret` necesită payload-uri create cu key ring-ul Data Protection al mediului; SQL Server nu le poate genera singur, iar un text clar sau un payload din alt mediu va fi considerat nedecriptabil. Client secret se generează în GitHub și se introduce direct în formular, fără a fi copiat în scripturi, documentație sau conversații.
 
+Șablonul cerut de operator este vizibil în soluție la `Solution/temp/InsertGitHubConfiguration.sql`. Este intenționat blocat cât timp payload-urile protejate lipsesc și nu înlocuiește formularul admin; nu face parte din ordinea scripturilor de versiune și nu conține credențiale.
+
 Pentru GitHub App, valoarea necesară formularului se obține prin **Generate a new client secret** din secțiunea **Client secrets**. Cheia din secțiunea **Private keys**, fișierul ei PEM și amprenta `SHA256:...` nu sunt Client secret și nu sunt consumate de fluxul OAuth implementat în WorkNotes; nu se introduc în formular sau în baza de date.
 
 Un Client secret care a apărut într-o captură, conversație, log sau alt canal neautorizat se consideră compromis chiar dacă GitHub îl marchează „Never used”. Nu se salvează în WorkNotes. Operatorul generează mai întâi un secret nou, actualizează WorkNotes direct prin formularul admin, verifică autentificarea, apoi revocă secretul expus din GitHub. Dacă secretul expus este singurul secret, GitHub cere generarea unuia nou înainte de ștergerea lui.
