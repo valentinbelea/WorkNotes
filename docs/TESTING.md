@@ -149,3 +149,8 @@ Verificarea manuală trebuie să acopere: lipsa rândului (pagina indică „nec
 Pentru autentificarea online: inspectați ticket-ul/cookie-ul după login și confirmați valabilitatea de 14 zile; după 30–60 de minute de inactivitate faceți refresh și confirmați identitatea; repetați după restart/deploy cu același `DataProtection:KeysPath`; verificați separat cu „Ține-mă minte” bifat (cookie persistent) și nebifat (cookie de sesiune). Pierderea autentificării după restart indică în primul rând chei nepersistate, nu un timeout mai mic.
 
 Pentru crearea rapidă: încercați `bug17649`, `bug-17649`, `bug_17649`, `bug 17649` și `CR 30042`; popup-ul trebuie să ofere numai pentru o destinație lipsă „Adaugă articol”, să păstreze forma scrisă în titlu și să deschidă tabul nou. Dublu-click-ul trimite o singură operație; dacă articolul apare între lookup și click, se deschide cel existent; o eroare rămâne în popup, iar textul nesalvat al notei curente rămâne neschimbat.
+
+
+## Configurația GitHub pe medii
+
+Verificarea manuală rulează separat cu `ASPNETCORE_ENVIRONMENT=Development` și `Production`: pagina de conectare trebuie să folosească exclusiv Client ID și callback-ul rândului curent. Development folosește `http://localhost:5018/Account/GitHub/Callback`, iar Production `https://worknotes.eu/Account/GitHub/Callback`. Ștergerea controlată a fiecărui rând într-o bază de test trebuie să păstreze utilizatorul în WorkNotes și să afișeze mesajul localizat cu numele mediului, fără redirect GitHub. În admin, modificați pe rând fiecare mediu și confirmați că celălalt nu se schimbă; un secret gol la editare păstrează secretul mediului selectat. Nu folosiți date de producție pentru aceste probe.

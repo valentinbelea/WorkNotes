@@ -4,6 +4,8 @@ Modificările WorkNotes, grupate pe versiuni. Versiunile corespund versiunilor b
 
 Categorii: **Added** (funcționalități noi), **Changed** (comportament modificat), **Fixed** (corecții), **Database** (scripturi SQL și schemă), **Documentation**.
 
+- **Changed** — configurațiile OAuth GitHub sunt separate în `Development` și `Production`, selectate automat prin mediul ASP.NET Core; pagina admin editează independent cele două rânduri, iar lipsa configurației curente este raportată controlat. Scriptul defensiv `005_SplitGitHubConfigurationsByEnvironment.sql` migrează datele existente la `Production`.
+
 ## [Nelansat]
 
 ### Versiunea 0.03 — integrarea cu Git (branch `main_task_03`)

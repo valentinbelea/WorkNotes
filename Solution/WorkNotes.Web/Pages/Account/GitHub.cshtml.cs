@@ -13,17 +13,21 @@ namespace WorkNotes.Web.Pages.Account;
 // /Account/GitHub/Callback (the callback URL registered on GitHub), Verify and Disconnect change it.
 [Authorize]
 public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthorizationCookie authorizationCookie,
-    IAccountService accounts) : PageModel
+    IAccountService accounts, IGitHubConfigurationService configuration,
+    ILogger<GitHubModel> logger) : PageModel
 {
     public bool IsConfigured { get; private set; }
     public bool HasEmail { get; private set; }
     public GitConnection? Connection { get; private set; }
+    public string EnvironmentName => configuration.CurrentEnvironmentName;
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         HasEmail = await HasUserEmailAsync(cancellationToken);
         IsConfigured = await gitHub.IsConfiguredAsync(cancellationToken);
+        if (!IsConfigured)
+            logger.LogWarning("GitHub configuration missing for environment: {EnvironmentName}", EnvironmentName);
         if (HasEmail) Connection = await gitHub.GetAsync(UserId, cancellationToken);
     }
 
@@ -31,7 +35,7 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
     {
         if (!await HasUserEmailAsync(cancellationToken)) return Message("GitHub_EmailRequired", StatusMessageKind.Error);
         var authorization = await gitHub.StartAuthorizationAsync(cancellationToken);
-        if (authorization is null) return Message("GitHub_NotConfigured", StatusMessageKind.Error);
+        if (authorization is null) return Message("GitHub_NotConfiguredForEnvironment", StatusMessageKind.Error, EnvironmentName);
         authorizationCookie.Write(HttpContext, UserId, authorization.Pending);
         return Redirect(authorization.Url);
     }
@@ -47,7 +51,7 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
         return status switch
         {
             GitConnectStatus.Connected => Message("GitHub_Connected"),
-            GitConnectStatus.NotConfigured => Message("GitHub_NotConfigured", StatusMessageKind.Error),
+            GitConnectStatus.NotConfigured => Message("GitHub_NotConfiguredForEnvironment", StatusMessageKind.Error, EnvironmentName),
             GitConnectStatus.InvalidState => Message("GitHub_InvalidState", StatusMessageKind.Error),
             GitConnectStatus.Denied => Message("GitHub_Denied", StatusMessageKind.Warning),
             GitConnectStatus.Rejected => Message("GitHub_Rejected", StatusMessageKind.Error),
@@ -62,7 +66,7 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
         {
             GitVerifyStatus.Valid => Message("GitHub_Valid"),
             GitVerifyStatus.NotConnected => Message("GitHub_NotConnected", StatusMessageKind.Warning),
-            GitVerifyStatus.NotConfigured => Message("GitHub_NotConfigured", StatusMessageKind.Error),
+            GitVerifyStatus.NotConfigured => Message("GitHub_NotConfiguredForEnvironment", StatusMessageKind.Error, EnvironmentName),
             GitVerifyStatus.ReconnectRequired => Message("GitHub_ReconnectRequired", StatusMessageKind.Warning),
             _ => Message("GitHub_Unavailable", StatusMessageKind.Error)
         };
@@ -90,9 +94,10 @@ public sealed class GitHubModel(IGitHubConnectionService gitHub, GitHubAuthoriza
         return !string.IsNullOrWhiteSpace(email?.Trim().ToLowerInvariant());
     }
 
-    private RedirectToPageResult Message(string key, StatusMessageKind kind = StatusMessageKind.Success)
+    private RedirectToPageResult Message(string key, StatusMessageKind kind = StatusMessageKind.Success, string? argument = null)
     {
-        TempData.SetStatusMessage(key, kind);
+        if (argument is null) TempData.SetStatusMessage(key, kind);
+        else TempData.SetStatusMessage(key, kind, argument);
         return RedirectToPage();
     }
 }

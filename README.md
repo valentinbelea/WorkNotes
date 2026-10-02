@@ -58,7 +58,7 @@ Descrierea proiectelor, a fluxurilor și a paginilor este în [docs/ARCHITECTURE
 
 ## Configurarea GitHub
 
-Aplicația GitHub se înregistrează pentru mediul de rulare, apoi un administrator salvează Client ID, Client secret, scopes și callback URL în `/admin/configuration`. Valorile OAuth sunt citite din tabela singleton `GitHubConfigurations` la fiecare operație OAuth; nu se mai configurează prin `appsettings`, User Secrets sau variabile de mediu. Scriptul existent `Scripts/version_0.03/004_CreateAdministration.sql` trebuie aplicat explicit înainte, iar `DataProtection:KeysPath` trebuie să indice un director persistent. Detaliile sunt în [docs/ADMIN_CONFIGURATION.md](docs/ADMIN_CONFIGURATION.md) și [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#configurare).
+Aplicația GitHub se înregistrează pentru mediul de rulare, apoi un administrator salvează Client ID, Client secret, scopes și callback URL în `/admin/configuration`. Valorile OAuth sunt citite din tabela `GitHubConfigurations`, cu câte un rând pentru `Development` și `Production` la fiecare operație OAuth; nu se mai configurează prin `appsettings`, User Secrets sau variabile de mediu. Scripturile `Scripts/version_0.03/004_CreateAdministration.sql` și `005_SplitGitHubConfigurationsByEnvironment.sql` trebuie aplicat explicit înainte, iar `DataProtection:KeysPath` trebuie să indice un director persistent. Detaliile sunt în [docs/ADMIN_CONFIGURATION.md](docs/ADMIN_CONFIGURATION.md) și [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#configurare).
 
 ## Pornire
 

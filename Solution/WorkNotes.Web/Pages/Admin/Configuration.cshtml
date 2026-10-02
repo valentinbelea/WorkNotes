@@ -2,9 +2,20 @@
 @model WorkNotes.Web.Pages.Admin.ConfigurationModel
 @{ Layout = "_AdminLayout"; ViewData["Title"] = L["Admin_ConfigurationTitle"]; }
 <section class="account-card postit-panel">
-<h1>@L["Admin_GitHubConfigurationTitle"]</h1>
+<h1>@L["Admin_GitHubConfigurationEnvironmentTitle", Model.Input.EnvironmentName]</h1>
+<form method="get" class="field">
+<label for="environmentName">@L["Field_Environment"]</label>
+<select id="environmentName" name="environmentName" onchange="this.form.submit()">
+@foreach (var environmentName in Model.Environments)
+{
+    <option value="@environmentName" selected="@(environmentName == Model.Input.EnvironmentName)">@environmentName</option>
+}
+</select>
+<noscript><button type="submit" class="btn btn-secondary">@L["Button_Select"]</button></noscript>
+</form>
 @if (Model.StatusMessage is not null) { <p class="status-message status-message--success">@Model.StatusMessage</p> }
 <form method="post" data-validate>
+<input asp-for="Input.EnvironmentName" type="hidden" />
 <div asp-validation-summary="All" class="validation-summary" role="alert"></div>
 <div class="field"><label asp-for="Input.ClientId"></label><input asp-for="Input.ClientId" autocomplete="off" /><span asp-validation-for="Input.ClientId" class="field-error"></span></div>
 <div class="field"><label asp-for="Input.ClientSecret"></label><input asp-for="Input.ClientSecret" autocomplete="new-password" placeholder="@(Model.HasClientSecret ? L["Admin_SecretConfigured"] : "")" /><span asp-validation-for="Input.ClientSecret" class="field-error"></span></div>

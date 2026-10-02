@@ -4,7 +4,8 @@ namespace WorkNotes.Business.Abstractions;
 
 public interface IGitHubConfigurationService
 {
-    Task<GitHubConfiguration?> GetAsync(CancellationToken cancellationToken);
+    string CurrentEnvironmentName { get; }
+    Task<GitHubConfiguration?> GetAsync(string environmentName, CancellationToken cancellationToken);
     Task<GitHubConfigurationCredential?> GetCredentialAsync(CancellationToken cancellationToken);
     Task<GitHubConfigurationSaveStatus> SaveAsync(GitHubConfigurationInput input, CancellationToken cancellationToken);
 }

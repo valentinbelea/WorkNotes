@@ -1,3 +1,3 @@
 namespace WorkNotes.Business.Models;
 
-public enum GitHubConfigurationSaveStatus { Succeeded, ClientIdRequired, ClientSecretRequired, InvalidScopes, InvalidCallbackUrl }
+public enum GitHubConfigurationSaveStatus { Succeeded, InvalidEnvironment, ClientIdRequired, ClientSecretRequired, InvalidScopes, InvalidCallbackUrl }

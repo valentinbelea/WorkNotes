@@ -9,6 +9,7 @@ using WorkNotes.Web.Git;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using WorkNotes.Web.Authentication;
+using WorkNotes.Web.Environment;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,6 +61,7 @@ builder.Services.AddScoped<IGitHubConnectionService, GitHubConnectionService>();
 builder.Services.AddScoped<IGitRepositoryService, GitRepositoryService>();
 builder.Services.AddScoped<INoteGitReferenceService, NoteGitReferenceService>();
 builder.Services.AddScoped<IGitHubConfigurationService, GitHubConfigurationService>();
+builder.Services.AddSingleton<IRuntimeEnvironment, RuntimeEnvironment>();
 builder.Services.AddSingleton<GitHubAuthorizationCookie>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDataAccess(builder.Configuration.GetConnectionString("WorkNotes")
